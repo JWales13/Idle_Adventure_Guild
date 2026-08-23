@@ -175,11 +175,15 @@ where things stand in a sentence or two before writing any code.
 
 **Current status:** Week 1, Days 1–6 complete. Unity project at `~/Idle_Adventure_Guild` (Unity **6000.5.0f1**, Universal 2D / URP), published to a **private GitHub repo** and managed through **GitHub Desktop**. The core loop was finished on Days 4–5 and the 11-step smoke test in `Docs/Day04_Asset_Values.md` passed against the fourteen ScriptableObject assets, with the scene wired at `Assets/_Project/Scenes/Guild.unity` (a `Game` object carrying `GameBootstrap` and `DebugConsoleOverlay`).
 
-Day 6 added save/load. A versioned JSON file now carries the guild tier, every building level, all four balances, the roster with levels, activity and rest timers, the quest runs in flight with their dispatch-time snapshots, the standing orders and the lifetime clock counters. `ISaveStore` and `FileSaveStore` joined the ad and IAP interfaces in `Core/Services` as the persistence boundary; `App/Saves/` holds the wire format, capture, restore, the migration ladder and the `GameSaveService` policy layer. The last-seen timestamp has moved out of PlayerPrefs and into the file. The debug console gained a **Save** section, and `Docs/Day06_Save_Verification.md` carries the schema, the compatibility rules and a 10-step verification pass including corruption and content-removal cases.
+Day 7 added the interface. `IdleGuild.UI` moved to the top of the assembly graph and now holds USS design tokens, a component stylesheet, and grey-box screens for Guild Hall, quests and roster behind a bottom tab bar, with the upgrade panel as an overlay raised from a building. `GuildScreenController` is the one MonoBehaviour, mirroring `GameBootstrap`: events set a flag, a 100 ms tick reads live values and rebuilds structure only when something actually changed. `Docs/Day07_UI_Setup.md` carries the two Editor steps — a Panel Settings asset and the scene wiring — plus a 10-step pass.
+
+Day 6 added save/load. A versioned JSON file now carries the guild tier, every building level, all four balances, the roster with levels, activity and rest timers, the quest runs in flight with their dispatch-time snapshots, the standing orders and the lifetime clock counters. `ISaveStore` and `FileSaveStore` joined the ad and IAP interfaces in `Core/Services` as the persistence boundary; `App/Saves/` holds the wire format, capture, restore, the migration ladder and the `GameSaveService` policy layer. The last-seen timestamp has moved out of PlayerPrefs and into the file. The debug console gained a **Save** section, and `Docs/Day06_Save_Verification.md` carries the schema, the compatibility rules and a 10-step verification pass including corruption and content-removal cases. **Seven code assemblies build with zero CS errors and zero warnings**, verified after import — Core, the four features, App and now UI.
+
+**Two things are written but not yet exercised**, and both are worth clearing before Days 8–9 start moving numbers around: the Day 6 save/load runtime pass, and the Day 7 UI pass, whose step 6 *is* the Week 1 checkpoint. Day 7 also has two Editor steps that must be done before the interface will appear at all — a Panel Settings asset and the scene wiring, both in `Docs/Day07_UI_Setup.md` §2.
 
 The Week 1 checkpoint holds, minus the UI that Day 7 adds.
 
-**Next action:** Week 1, Day 7 — UI Toolkit scaffolding. USS design tokens (color, spacing, type scale) and grey-box screens for Guild Hall, upgrade panel, quest log and roster, wired to the Model via events. `IdleGuild.UI` is still empty and still Core-only, so the screens read the world through the events in `GameEvents` and whatever seam the App layer exposes — note the `GameLoaded` rule in the save-format section below before deciding how a screen builds its first frame.
+**Next action:** Week 2, Days 8–9 — building set finalized. Full upgrade trees for Tavern, Training Room and Inn at Village tier. This is data work in `Docs/Day04_Asset_Values.md`'s successor rather than code: the curves exist and the ten levels behind them are first-pass numbers, so the job is deciding what each level should actually feel like and whether the tier gate lands where it should. Note that `BuildingDetailOverlay` now shows each effect at the current and next level, which makes a badly shaped curve visible in the game rather than only in the Inspector.
 
 ### The central architectural bet, and how to check it still holds
 
@@ -297,8 +301,22 @@ Assets/_Project/
       SaveRestore.cs          data to running guild, repairing whatever content no longer has
       SaveMigrations.cs       the version ladder; deliberately empty until a bump is needed
       GameSaveService.cs      save/load/delete policy, and what happens when JSON does not parse
-  UI/            IdleGuild.UI — depends on Core only (empty until Day 7)
-    Styles/      USS design tokens (Day 7)
+  UI/            IdleGuild.UI — the top of the graph; references Core, the four features and App
+    Styles/
+      Tokens.uss             the only file in the project naming a raw colour or measurement
+      GuildTheme.uss         component styles, every value pulled from a token via var()
+    Format.cs                amounts, durations, multipliers, stat names, rarity classes
+    Outcomes.cs              the service outcome enums as sentences a player can act on
+    GuildContext.cs          what a screen may touch, and the rule it exists to make visible
+    Ui.cs                    element constructors, so intent survives the boilerplate
+    SafeArea.cs              notch and home-indicator insets
+    GuildScreen.cs           the three tab destinations
+    GuildScreenController.cs the one MonoBehaviour: builds the shell, subscribes, ticks
+    Views/
+      TreasuryBar.cs / TabBar.cs / ToastBar.cs        the permanent chrome
+      HallView.cs / BuildingCard.cs                   home: tier gate, stats, buildings
+      BuildingDetailOverlay.cs                        the upgrade panel, and Week 3's overlay pattern
+      QuestsView.cs / RosterView.cs                   work, and people
   Data/          ScriptableObject asset instances
     Buildings/ Tiers/ Adventurers/ Quests/   and GameContent.asset alongside them
 ```
@@ -309,6 +327,8 @@ Three structural decisions, the first two from Day 1 and the third from Day 4–
 
 - **Assembly definitions per feature.** Principle 01 says systems talk through events and interfaces rather than direct references. An `.asmdef` per feature turns that from a convention into a compile error — a feature that reaches into another feature's internals will not build. This is the mechanism that makes "add Quest Board and Armory without touching shipped code" checkable rather than aspirational.
 - **Features depend on `Core` and on nothing else.** No cross-feature references at all; anything shared travels through `Core` events and interfaces. Deliberately the strictest arrangement, because loosening it later is a one-line asmdef edit and tightening it later is a refactor. If it proves too strict during Day 4–5 loop work, add the reference and note it here.
+- **`IdleGuild.UI` moved above `App` and may reference everything (Day 7).** A screen has to render a `BuildingDefinition` and call `BuildingUpgradeService.TryUpgrade` — the same cross-assembly pressure that created App, one layer up. The alternatives were a presenter layer in App keeping the views Core-only, which is purer and costs roughly 40% more classes on the three heaviest UI days, or routing commands through the event bus, which is the arrangement Day 4–5 already rejected because "did the spend succeed?" has no good answer through a fire-and-forget publish. **The features stayed Core-only**, so the compile-time wall and the Quest Board / Armory bet are untouched; what changed is that one more assembly above them can see across. The cost is real and worth restating: the UI assembly can now see the whole game, so *views hold no rules* is kept by discipline rather than by the compiler. `GuildContext` is where that discipline is written down — **views read state and call services, they never compute one**. A cost, a gate, an unlock or a failure chance belongs to a definition asset or a service, and a screen that works one out for itself has put a rule where Day 13's balance pass will never look.
+
 - **A seventh assembly, `IdleGuild.App`, sitting above the features.** Day 4–5 forced the question the note above anticipated: upgrading a building spends gold and raises a level, and dispatching a quest takes people off the roster — transactions spanning three feature assemblies, none of which may reference another. The alternatives were loosening the Core-only rule, or routing request-and-response traffic through the event bus, where "did the spend succeed?" becomes genuinely hard to answer. Instead App references all five feature assemblies, and nothing references App. The features stayed Core-only exactly as Day 1 hoped; the compile-time wall between them is untouched. The cost is one more layer to keep thin — App holds composition and transactions, never rules.
 
 ### Working arrangement
@@ -351,7 +371,7 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 
 ```
 I'm continuing work on Idle Adventurer's Guild, a solo Unity idle-tycoon game
-(fantasy adventurers' guild theme), targeting App Store submission with 23
+(fantasy adventurers' guild theme), targeting App Store submission with 22
 days left against the original 4-week deadline (target submission by Day 26,
 buffer through Day 28).
 
@@ -360,45 +380,47 @@ root in full before doing anything else — it is the source of truth. Pay
 particular attention to "The central architectural bet", "The save format, and
 the rule that keeps it readable" and "Working arrangement" in §06.
 
-Current position: Week 1, Day 7 — "Foundation & Architecture", final day
-Last completed: Days 1–6. Unity 6000.5.0f1 / URP 2D, private GitHub repo via
-GitHub Desktop. Six code assemblies: five feature assemblies depending on Core
-and nothing else, plus IdleGuild.App above them, the only assembly allowed to
-reference more than one feature. The full core loop is written, compiling and
-smoke-tested (Docs/Day04_Asset_Values.md, 11 steps, passed), running on
-fourteen ScriptableObject assets with the scene wired at Assets/_Project/
-Scenes/Guild.unity. Day 6 added save/load: a versioned JSON file carrying the
-guild tier, building levels, all four balances, the roster with activity and
-rest timers, quest runs with their dispatch-time snapshots, standing orders and
-the clock counters. ISaveStore/FileSaveStore sit in Core/Services as the
-persistence boundary; App/Saves/ holds SaveGameData, SaveCapture, SaveRestore,
-SaveMigrations and GameSaveService. GameBootstrap loads on wake, pays the
-absence through the existing OfflineProgress path, and saves on pause, on quit
-and every 30 seconds. Docs/Day06_Save_Verification.md has the schema and a
-10-step verification pass.
-Next task: Day 7 — UI Toolkit scaffolding. USS design tokens (color, spacing,
-type scale) in a shared stylesheet, then grey-box screens for Guild Hall,
-upgrade panel, quest log and roster, wired to the Model via events. IdleGuild.UI
-is empty and Core-only. Read the "restoration is quiet" note in §06 before
-deciding how a screen builds its first frame: it must read state directly on
-GameLoaded rather than accumulating change events, because loading a save
-deliberately does not announce the upgrades and tier advances it replays.
+Current position: Week 2, Days 8–9 — "Core Gameplay Complete"
+Last completed: Week 1 in full, Days 1–7. Unity 6000.5.0f1 / URP 2D, private
+GitHub repo via GitHub Desktop. Seven code assemblies: five feature assemblies
+depending on Core and nothing else, IdleGuild.App above them holding
+composition and cross-feature transactions, and IdleGuild.UI above that, the
+only assembly allowed to see the whole game. The core loop is written,
+compiling and smoke-tested against fourteen ScriptableObject assets, with the
+scene at Assets/_Project/Scenes/Guild.unity. Day 6 added versioned JSON
+save/load (Core/Services/ISaveStore + FileSaveStore, App/Saves/*), and Day 7
+added the grey-box UI Toolkit interface: USS design tokens, Guild Hall /
+Quests / Roster behind a bottom tab bar, and the upgrade panel as an overlay.
+Docs/Day06_Save_Verification.md and Docs/Day07_UI_Setup.md carry the schema,
+the Editor steps and a verification pass each.
+Next task: Days 8–9 — finalize the building set. Full upgrade trees for
+Tavern, Training Room and Inn at Village tier. This is data work rather than
+code: the ScalingCurve fields exist and hold first-pass numbers, so the job is
+deciding what each of the ten levels should feel like, whether the tier gate
+lands where it should, and whether the cost curve and the effect curve
+diverge in the right direction. BuildingDetailOverlay now shows each effect at
+the current and next level, so a badly shaped curve is visible in the game
+rather than only in the Inspector.
 Deviations from the plan so far: none material. Day 1's "ad/IAP SDK package
 stubs" became interface stubs, with the real SDK arriving Week 3 behind those
-interfaces. Day 4–5 added the IdleGuild.App assembly above the features — see
-the structural decisions in §06 for why, and note that the features stayed
-Core-only, including through Day 6's save/load, which spans all five of them.
-Known issues/blockers: Git LFS must be set up before the first art commit on
-Day 15. Ad network and IAP provider still unchosen. Bundle ID and product name
-still template defaults — note these also set the save directory, so changing
-them moves existing saves. Guild.unity is not in Build Settings, which ships a
-black build if it is still missing at the Day 25 TestFlight pass. GameBootstrap
-has Use Fixed Random Seed available and, if ticked, makes every session and
-every reload roll identical quest outcomes — fine for verification, wrong for
-any balance judgement. Save files are plain text and trivially editable,
-including the timestamp; that is a Day 20 hardening item, not a launch blocker.
-Week 4 execution surface (device builds, TestFlight, App Store Connect) is not
-solvable from Cowork and needs deciding before Day 22.
+interfaces. Day 4–5 added IdleGuild.App above the features; Day 7 added
+IdleGuild.UI above App. Both are recorded as structural decisions in §06, and
+in both cases the features stayed Core-only.
+Known issues/blockers: neither the Day 6 save/load runtime pass nor the Day 7
+UI pass has been run — both are written up in Docs/ and are worth running
+before balancing on top of them. Git LFS must be set up before the first art
+commit on Day 15. Ad network and IAP provider still unchosen. Bundle ID and
+product name still template defaults — note these also set the save directory,
+so changing them moves existing saves. Guild.unity is not in Build Settings,
+which ships a black build if it is still missing at the Day 25 TestFlight
+pass. GameBootstrap has Use Fixed Random Seed available and, if ticked, makes
+every session and every reload roll identical quest outcomes — fine for
+verification, wrong for any balance judgement, which matters more now that
+balancing is the task. Save files are plain text and trivially editable, a Day
+20 hardening item. The debug console must be deleted or excluded before
+submission, hard deadline Day 22. Week 4 execution surface (device builds,
+TestFlight, App Store Connect) is not solvable from Cowork and needs deciding
+before Day 22.
 
 Working arrangement (see §06): this runs in Claude Cowork, whose shell is a
 Linux VM with the project folder mounted — git exists but `unity` and `dotnet`
@@ -423,7 +445,8 @@ where things stand in a sentence or two before writing any code.
 3. **W1D1 — Foundation** — Unity project confirmed at `~/Idle_Adventure_Guild` (6000.5.0f1, URP 2D). Git initialised on `main` with Unity `.gitignore`/`.gitattributes`; `Library/`, `Temp/`, `Logs/`, `UserSettings/` verified ignored and signing material (`*.p8`, `*.p12`, `*.mobileprovision`, `GoogleService-Info.plist`) pre-excluded. Feature structure created under `Assets/_Project/` with an `.asmdef` per feature, every feature depending on `Core` alone. `IAdService`/`IPurchaseService` plus `NullAdService`/`NullPurchaseService` written into `Core/Services`. UI Toolkit needed no package — it ships in the Unity 6 editor. This Ledger moved into the repo as the working copy. Session ran in Claude Cowork, not a terminal: the shell was a Linux VM with the folder mounted, so all Editor and Xcode steps stayed manual.
 4. **W1D2–3 — Core data model** — Written and verified compiling (five assemblies build, zero CS errors; UI has no scripts yet so emits no DLL). Core gained the shared vocabulary — `GuildStat`, `Rarity`, `ModifierKind`, `CurrencyType`, `ScalingCurve`, `IGuildStats` — plus a typed `EventBus` using generic static channels, and the cross-assembly event structs in `GameEvents`. Guild gained `BuildingDefinition` / `BuildingEffect` / `BuildingLevelRequirement` / `GuildTierDefinition` / `GuildState`; Adventurers gained `AdventurerDefinition` / `Adventurer`; Quests gained `QuestDefinition`; Economy gained `PlayerEconomy`. The Core-only dependency rule held throughout — `GuildState.CanAdvance` takes reputation as a `double` argument rather than referencing Economy, and Adventurers reads Training Room and Inn effects through `IGuildStats`. Post-MVP stats (`QuestSlots`, `MaxQuestTier`, `FailureRateReduction`) were declared now so Quest Board and Armory stay data-only later. Project published to a private GitHub repo and moved onto GitHub Desktop for commits. Learned that `git status` from Claude's side also leaves index locks, so Claude now runs no git at all. No ScriptableObject assets authored yet, so nothing is playable — Day 4–5 must create at least the three MVP buildings to have anything to exercise.
 5. **W1D4–5 — Core loop logic** — The loop is written and compiles clean (six assemblies, zero CS errors, zero warnings). A seventh assembly, `IdleGuild.App`, was added above the features to hold the transactions that cross them — the features themselves stayed Core-only, so the compile-time wall and the Quest Board/Armory bet are intact, and the bet was explicitly re-checked: no field was added to `BuildingDefinition` and no branch to `GuildState.Aggregate`. Quests gained `QuestResolution` (duration scaling with the square root of party power, failure doubling at half the recommended power and vanishing at twice it, rewards scaled by Tavern yield), `ActiveQuest` with its outcome snapshotted at dispatch, and `QuestLog`. Adventurers gained an activity state, rest timers driven by the Inn, `AdventurerRoster` capped by Housing Capacity, and a per-adventurer training cost curve. App gained `GameContent`, `GameWorld`, `SimulationClock`, `QuestAssignment` plus the five services, `OfflineProgress`, `GameBootstrap` and `DebugConsoleOverlay`. The design decision worth remembering: the clock steps from event to event rather than in fixed slices, so eight hours of offline catch-up runs through exactly the same code as a single frame — there is no second offline formula that can drift from what the game pays while the player watches. Two things were found rather than built: `[Min]` on `double` fields was silently truncating costs to float precision through Unity's editor drawer, fixed before any asset existed; and Housing Capacity's zero base means a guild with no Inn can recruit nobody, resolved with starting gold rather than a code branch. Asset values, scene setup and an 11-step smoke test written to `Docs/Day04_Asset_Values.md`; the developer authored the fourteen assets in the Editor and the smoke test passed. Three things surfaced during that authoring pass and are worth knowing about. Reading the finished `.asset` YAML against the tables caught four transcription slips, one of them consequential: the Inn's Housing Capacity effect had received the *cost* curve, so a level-1 Inn granted 50 beds instead of 2 — a reminder that hand-copied curve fields are worth diffing rather than eyeballing, since a wrong effect looks exactly like a right one in the Inspector. Town and City had both kept Village's 3/3/3 gate, which would have collapsed the tier gate into a single check and let a player walk to Capital on Village-level buildings. And `GameContent.OnValidate` warned "no guild tiers listed" against a perfectly populated asset: it resolved `StartingTier`, which dereferences the tier references, and Unity leaves those reading null for a moment while it reimports a referenced asset — validation in `OnValidate` must count array entries, never follow references. Fixed by checking `Tiers.Length`.
-6. **W1D6 — Save/load** — A versioned JSON save now carries the guild tier, every building level, all four balances, the roster with levels, activity and rest timers, the quest runs in flight with their dispatch-time snapshots, the standing orders and the lifetime clock counters. `ISaveStore` and `FileSaveStore` joined the ad and IAP interfaces in `Core/Services`; `App/Saves/` gained the wire format, capture, restore, the migration ladder and the `GameSaveService` policy layer. Existing classes needed four small seams and nothing more, which the Day 4–5 read-only-state discipline had already paid for: `GuildState.RestoreState`, `SimulationClock.RestoreCounters`, `GameContent.FindTier` and a `GameLoaded` event. **The architectural bet was re-checked and still holds** — save/load spans all five feature assemblies, which is exactly the kind of pressure that would have forced a cross-feature reference, and it did not: capture and restore live in App, the features stayed Core-only, and nothing was added to `BuildingDefinition` or branched in `GuildState.Aggregate`. Four decisions worth carrying forward. **`JsonUtility`, not Newtonsoft** — no package to add before submission and no IL2CPP reflection worries, at the price of roughly seven significant figures on doubles, which the one precision-critical value dodges by being a `long` tick count. **The compatibility rule is about the schema file rather than the migration code**: fields are only added, never removed or renamed, which is what lets an old save deserialise into today's classes at all and makes most future changes need no version bump. **Restore repairs rather than refuses** — a save is not trusted to match today's catalogue, since a quest renamed in Week 2 orphans every save in the wild, so anything unresolvable is dropped and counted in a report instead of throwing. And **restoration is quiet**, which is a Day 7 constraint as much as a Day 6 one: loading a level-4 Tavern must not announce four upgrades, so a screen cannot build its first frame from change events and has to read state directly on `GameLoaded`. Two smaller things: the PlayerPrefs stamp was deleted rather than migrated, because the builds that wrote it never persisted a guild and honouring it would pay offline earnings for a guild that was never there; and saving runs off pause, quit *and* a 30-second autosave, because iOS calls `OnApplicationQuit` only sometimes and a crash calls neither. `Docs/Day06_Save_Verification.md` carries the schema, the compatibility rules and a 10-step pass whose last three steps deliberately corrupt the save and delete content out from under it — the Day 20 hardening item, brought forward to the day the code was written.
+6. **W1D6 — Save/load** — Written and compiling clean: six assemblies, zero CS errors, zero warnings, verified after import; the 10-step runtime pass in `Docs/Day06_Save_Verification.md` was still outstanding when this entry was written. A versioned JSON save now carries the guild tier, every building level, all four balances, the roster with levels, activity and rest timers, the quest runs in flight with their dispatch-time snapshots, the standing orders and the lifetime clock counters. `ISaveStore` and `FileSaveStore` joined the ad and IAP interfaces in `Core/Services`; `App/Saves/` gained the wire format, capture, restore, the migration ladder and the `GameSaveService` policy layer. Existing classes needed four small seams and nothing more, which the Day 4–5 read-only-state discipline had already paid for: `GuildState.RestoreState`, `SimulationClock.RestoreCounters`, `GameContent.FindTier` and a `GameLoaded` event. **The architectural bet was re-checked and still holds** — save/load spans all five feature assemblies, which is exactly the kind of pressure that would have forced a cross-feature reference, and it did not: capture and restore live in App, the features stayed Core-only, and nothing was added to `BuildingDefinition` or branched in `GuildState.Aggregate`. Four decisions worth carrying forward. **`JsonUtility`, not Newtonsoft** — no package to add before submission and no IL2CPP reflection worries, at the price of roughly seven significant figures on doubles, which the one precision-critical value dodges by being a `long` tick count. **The compatibility rule is about the schema file rather than the migration code**: fields are only added, never removed or renamed, which is what lets an old save deserialise into today's classes at all and makes most future changes need no version bump. **Restore repairs rather than refuses** — a save is not trusted to match today's catalogue, since a quest renamed in Week 2 orphans every save in the wild, so anything unresolvable is dropped and counted in a report instead of throwing. And **restoration is quiet**, which is a Day 7 constraint as much as a Day 6 one: loading a level-4 Tavern must not announce four upgrades, so a screen cannot build its first frame from change events and has to read state directly on `GameLoaded`. Two smaller things: the PlayerPrefs stamp was deleted rather than migrated, because the builds that wrote it never persisted a guild and honouring it would pay offline earnings for a guild that was never there; and saving runs off pause, quit *and* a 30-second autosave, because iOS calls `OnApplicationQuit` only sometimes and a crash calls neither. `Docs/Day06_Save_Verification.md` carries the schema, the compatibility rules and a 10-step pass whose last three steps deliberately corrupt the save and delete content out from under it — the Day 20 hardening item, brought forward to the day the code was written.
+7. **W1D7 — UI Toolkit scaffolding** — Written and compiling clean: seven assemblies now, zero CS errors, zero warnings, verified after import; the 10-step pass and the two Editor setup steps were still outstanding when this entry was written. The grey-box interface exists: USS design tokens, a component stylesheet built entirely on them, and Guild Hall / Quests / Roster behind a bottom tab bar with the upgrade panel as an overlay raised from a building card. The structural decision of the day was **moving `IdleGuild.UI` above `App` and letting it reference everything** — a screen has to render a `BuildingDefinition` and call a service, which is the same cross-assembly pressure that created App, one layer up. The features stayed Core-only, so the bet is intact; the honest cost is that *views hold no rules* is now discipline rather than a compile error, and `GuildContext` exists to write that rule down where it will be read. Three things worth carrying forward. **Events set a flag and a 100 ms tick acts on it** — an idle game's numbers change continuously while its structure changes rarely, so polling values and rebuilding on demand beats either alone, and a handler that only sets a bool cannot take another subscriber down with it when `EventBus` abandons a publish on an exception. **The overlay reads effects off the asset** and evaluates the curve at the current and next level, so it explains a Tavern without knowing what a Tavern is — the data-driven architecture doing for the interface what it already does for the simulation, and the reason a badly shaped curve will now be visible in the game rather than only in the Inspector. And **every refusal says why**: the services' outcome enums become sentences through `Outcomes.Describe` and land in a toast, which is the payoff for those returns not being bools and the reason no disabled button in this game is silent. Two smaller decisions: the hierarchy is built in C# rather than UXML, on the reading that the styling principle is about USS versus the Inspector and is equally satisfied by code adding class names — with the side benefit that a mis-wired button fails at compile time instead of at runtime; and safe-area insets went in on the day the first screen was built rather than on Day 22, since the Editor reports the whole screen as safe and a tab bar under the home indicator is otherwise found during the bug bash with three weeks of screens stacked on it. Day 7 needs two Editor steps that cannot be done from a text editor — a Panel Settings asset and the scene wiring — both written up in `Docs/Day07_UI_Setup.md` along with a 10-step pass whose step 6 is the Week 1 checkpoint itself.
 
 ---
 

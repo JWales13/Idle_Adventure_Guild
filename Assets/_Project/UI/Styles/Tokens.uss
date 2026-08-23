@@ -1,0 +1,73 @@
+/*
+ * Design tokens — the only file in the project that names a raw colour or a raw
+ * measurement. Everything else refers to these by name, so Week 3's art pass
+ * changes values here rather than hunting literals through a dozen stylesheets.
+ *
+ * Declared on .guild-root rather than :root because custom properties inherit, and
+ * the screen controller puts that class on the single element every view descends
+ * from. The effect is identical and the dependency is visible.
+ *
+ * Lengths are in reference-resolution pixels. PanelSettings is set to Scale With
+ * Screen Size at 1080 x 1920, so one unit here is one pixel on a 1080-wide phone and
+ * scales from there — which is why the type scale looks large next to CSS habits.
+ */
+
+.guild-root {
+    /* Surfaces, darkest to lightest. */
+    --color-surface-base: rgb(24, 22, 28);
+    --color-surface-raised: rgb(38, 34, 44);
+    --color-surface-overlay: rgb(48, 43, 56);
+    --color-surface-sunken: rgb(17, 15, 20);
+    --color-scrim: rgba(10, 8, 14, 0.78);
+
+    /* Lines. */
+    --color-border: rgb(62, 56, 74);
+    --color-border-strong: rgb(102, 92, 118);
+
+    /* Text, in descending emphasis. */
+    --color-text-primary: rgb(240, 236, 230);
+    --color-text-secondary: rgb(170, 162, 180);
+    --color-text-muted: rgb(118, 111, 130);
+    --color-text-inverse: rgb(22, 20, 26);
+
+    /* Currencies. Each one keeps its colour everywhere it appears. */
+    --color-gold: rgb(226, 180, 90);
+    --color-reputation: rgb(126, 168, 224);
+    --color-gems: rgb(190, 130, 224);
+
+    /* Interaction and outcome. */
+    --color-accent: rgb(198, 148, 66);
+    --color-accent-pressed: rgb(160, 118, 48);
+    --color-positive: rgb(122, 190, 128);
+    --color-negative: rgb(212, 106, 106);
+    --color-disabled: rgb(64, 59, 74);
+
+    /* Rarity, ordered to match the Rarity enum. */
+    --color-rarity-common: rgb(168, 164, 172);
+    --color-rarity-uncommon: rgb(126, 194, 130);
+    --color-rarity-rare: rgb(112, 158, 226);
+    --color-rarity-epic: rgb(184, 128, 224);
+    --color-rarity-legendary: rgb(232, 172, 78);
+
+    /* Spacing — a 4px base, so every gap in the game is a multiple of one number. */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 14px;
+    --space-lg: 22px;
+    --space-xl: 34px;
+
+    /* Corner radii. */
+    --radius-sm: 5px;
+    --radius-md: 10px;
+    --radius-lg: 18px;
+
+    /* Type scale. */
+    --text-caption: 22px;
+    --text-body: 28px;
+    --text-title: 36px;
+    --text-display: 52px;
+
+    /* Fixed chrome heights, referenced by both the bar and the space reserved for it. */
+    --height-tab-bar: 132px;
+    --height-treasury: 108px;
+}

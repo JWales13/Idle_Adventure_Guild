@@ -1,0 +1,418 @@
+/*
+ * Component styles. Every value here comes from Tokens.uss through var() — if a
+ * literal colour or measurement appears below, it is a mistake worth fixing rather
+ * than a shortcut.
+ *
+ * Class names are block__element--modifier. The block is the thing, the element is a
+ * part of it, the modifier is a state. It reads verbosely and it means a selector can
+ * never accidentally reach into an unrelated part of the tree, which is the failure
+ * that makes stylesheets rot.
+ *
+ * Note the absence of gap: UI Toolkit's flexbox has no gap property, so spacing
+ * between siblings is done with margins on the children.
+ */
+
+/* ---------------------------------------------------------------- layout ----- */
+
+.guild-root {
+    flex-grow: 1;
+    background-color: var(--color-surface-base);
+    color: var(--color-text-primary);
+    font-size: var(--text-body);
+}
+
+.guild-content {
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+.guild-screen {
+    flex-grow: 1;
+    padding-top: var(--space-md);
+    padding-bottom: var(--space-md);
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+}
+
+.guild-screen--hidden {
+    display: none;
+}
+
+.section-title {
+    font-size: var(--text-caption);
+    color: var(--color-text-muted);
+    -unity-font-style: bold;
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-sm);
+}
+
+.section-title--first {
+    margin-top: 0;
+}
+
+.empty {
+    color: var(--color-text-muted);
+    font-size: var(--text-caption);
+    padding-top: var(--space-sm);
+    padding-bottom: var(--space-sm);
+}
+
+/* -------------------------------------------------------------- treasury ----- */
+
+.treasury {
+    height: var(--height-treasury);
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+    background-color: var(--color-surface-raised);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--color-border);
+}
+
+.treasury__tier {
+    font-size: var(--text-title);
+    -unity-font-style: bold;
+}
+
+.treasury__tier-note {
+    font-size: var(--text-caption);
+    color: var(--color-text-muted);
+}
+
+.treasury__balances {
+    flex-direction: row;
+    align-items: center;
+}
+
+.currency {
+    flex-direction: row;
+    align-items: center;
+    margin-left: var(--space-lg);
+}
+
+.currency__label {
+    font-size: var(--text-caption);
+    color: var(--color-text-muted);
+    margin-right: var(--space-xs);
+}
+
+.currency__value {
+    font-size: var(--text-body);
+    -unity-font-style: bold;
+}
+
+.currency--gold .currency__value { color: var(--color-gold); }
+.currency--reputation .currency__value { color: var(--color-reputation); }
+.currency--gems .currency__value { color: var(--color-gems); }
+
+/* ------------------------------------------------------------------ tabs ----- */
+
+.tab-bar {
+    height: var(--height-tab-bar);
+    flex-shrink: 0;
+    flex-direction: row;
+    background-color: var(--color-surface-raised);
+    border-top-width: 1px;
+    border-top-color: var(--color-border);
+}
+
+.tab {
+    flex-grow: 1;
+    margin: 0;
+    padding: 0;
+    border-width: 0;
+    border-top-width: 4px;
+    border-top-color: rgba(0, 0, 0, 0);
+    background-image: none;
+    background-color: rgba(0, 0, 0, 0);
+    color: var(--color-text-muted);
+    font-size: var(--text-caption);
+    -unity-font-style: bold;
+    transition-property: color, border-top-color;
+    transition-duration: 0.12s;
+}
+
+.tab:hover {
+    color: var(--color-text-secondary);
+}
+
+.tab--active {
+    color: var(--color-accent);
+    border-top-color: var(--color-accent);
+    background-color: var(--color-surface-overlay);
+}
+
+/* ----------------------------------------------------------------- toast ----- */
+
+.toast {
+    flex-shrink: 0;
+    padding-top: var(--space-sm);
+    padding-right: var(--space-md);
+    padding-bottom: var(--space-sm);
+    padding-left: var(--space-md);
+    background-color: var(--color-surface-sunken);
+    border-top-width: 1px;
+    border-top-color: var(--color-border);
+    font-size: var(--text-caption);
+    color: var(--color-text-secondary);
+    white-space: normal;
+}
+
+.toast--hidden {
+    display: none;
+}
+
+.toast--positive { color: var(--color-positive); }
+.toast--negative { color: var(--color-negative); }
+
+/* ----------------------------------------------------------------- cards ----- */
+
+.card {
+    background-color: var(--color-surface-raised);
+    border-radius: var(--radius-md);
+    border-width: 1px;
+    border-color: var(--color-border);
+    padding-top: var(--space-md);
+    padding-right: var(--space-md);
+    padding-bottom: var(--space-md);
+    padding-left: var(--space-md);
+    margin-bottom: var(--space-sm);
+}
+
+.card--interactive {
+    transition-property: background-color, border-color;
+    transition-duration: 0.12s;
+}
+
+.card--interactive:hover {
+    background-color: var(--color-surface-overlay);
+    border-color: var(--color-border-strong);
+}
+
+.card--locked {
+    opacity: 0.55;
+}
+
+.card__header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.card__title {
+    font-size: var(--text-body);
+    -unity-font-style: bold;
+}
+
+.card__subtitle {
+    font-size: var(--text-caption);
+    color: var(--color-text-secondary);
+    margin-top: var(--space-xs);
+    white-space: normal;
+}
+
+.card__meta {
+    font-size: var(--text-caption);
+    color: var(--color-text-muted);
+    margin-top: var(--space-xs);
+}
+
+.card__row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: var(--space-sm);
+}
+
+/* --------------------------------------------------------------- buttons ----- */
+
+.button {
+    margin: 0;
+    padding-top: var(--space-sm);
+    padding-right: var(--space-md);
+    padding-bottom: var(--space-sm);
+    padding-left: var(--space-md);
+    min-height: 68px;
+    border-width: 1px;
+    border-color: var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background-image: none;
+    background-color: var(--color-surface-overlay);
+    color: var(--color-text-primary);
+    font-size: var(--text-caption);
+    -unity-font-style: bold;
+    transition-property: background-color;
+    transition-duration: 0.1s;
+}
+
+.button:hover {
+    background-color: var(--color-border);
+}
+
+.button:active {
+    background-color: var(--color-surface-sunken);
+}
+
+.button:disabled {
+    background-color: var(--color-disabled);
+    border-color: var(--color-disabled);
+    color: var(--color-text-muted);
+    opacity: 1;
+}
+
+.button--primary {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-text-inverse);
+}
+
+.button--primary:hover {
+    background-color: var(--color-accent-pressed);
+}
+
+.button--primary:active {
+    background-color: var(--color-accent-pressed);
+}
+
+.button--small {
+    min-height: 54px;
+    padding-top: var(--space-xs);
+    padding-right: var(--space-sm);
+    padding-bottom: var(--space-xs);
+    padding-left: var(--space-sm);
+}
+
+.button--wide {
+    flex-grow: 1;
+}
+
+/* -------------------------------------------------------------- progress ----- */
+
+.progress {
+    height: 14px;
+    background-color: var(--color-surface-sunken);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-top: var(--space-sm);
+}
+
+.progress__fill {
+    height: 100%;
+    width: 0%;
+    background-color: var(--color-accent);
+}
+
+/* ----------------------------------------------------------------- stats ----- */
+
+.stat-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: var(--space-sm);
+}
+
+.stat {
+    flex-direction: row;
+    align-items: center;
+    margin-right: var(--space-lg);
+    margin-bottom: var(--space-xs);
+}
+
+.stat__label {
+    font-size: var(--text-caption);
+    color: var(--color-text-muted);
+    margin-right: var(--space-xs);
+}
+
+.stat__value {
+    font-size: var(--text-caption);
+    color: var(--color-text-primary);
+    -unity-font-style: bold;
+}
+
+.stat__value--met {
+    color: var(--color-positive);
+}
+
+.stat__value--unmet {
+    color: var(--color-negative);
+}
+
+/* ---------------------------------------------------------------- badges ----- */
+
+.badge {
+    padding-top: 2px;
+    padding-right: var(--space-sm);
+    padding-bottom: 2px;
+    padding-left: var(--space-sm);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-surface-sunken);
+    color: var(--color-text-secondary);
+    font-size: var(--text-caption);
+    -unity-font-style: bold;
+}
+
+.badge--locked { color: var(--color-negative); }
+.badge--active { color: var(--color-positive); }
+
+.rarity--common { color: var(--color-rarity-common); }
+.rarity--uncommon { color: var(--color-rarity-uncommon); }
+.rarity--rare { color: var(--color-rarity-rare); }
+.rarity--epic { color: var(--color-rarity-epic); }
+.rarity--legendary { color: var(--color-rarity-legendary); }
+
+/* --------------------------------------------------------------- overlay ----- */
+
+.overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--color-scrim);
+    align-items: center;
+    justify-content: center;
+    padding-top: var(--space-lg);
+    padding-right: var(--space-lg);
+    padding-bottom: var(--space-lg);
+    padding-left: var(--space-lg);
+}
+
+.overlay--hidden {
+    display: none;
+}
+
+.overlay__panel {
+    width: 100%;
+    max-width: 900px;
+    background-color: var(--color-surface-overlay);
+    border-radius: var(--radius-lg);
+    border-width: 1px;
+    border-color: var(--color-border-strong);
+    padding-top: var(--space-lg);
+    padding-right: var(--space-lg);
+    padding-bottom: var(--space-lg);
+    padding-left: var(--space-lg);
+}
+
+.overlay__title {
+    font-size: var(--text-title);
+    -unity-font-style: bold;
+}
+
+.overlay__body {
+    margin-top: var(--space-md);
+    max-height: 900px;
+}
+
+.overlay__actions {
+    flex-direction: row;
+    margin-top: var(--space-lg);
+}
+
+.button--spaced {
+    margin-left: var(--space-sm);
+}
