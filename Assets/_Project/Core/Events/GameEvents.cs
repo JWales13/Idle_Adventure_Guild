@@ -58,6 +58,35 @@ namespace IdleGuild.Core.Events
         public int Order { get; }
     }
 
+    /// <summary>
+    /// Raised once the world is built and ready to be read, whether it was restored from
+    /// a save or started fresh.
+    /// </summary>
+    /// <remarks>
+    /// The single "read everything now" signal. Restoring a save writes a great many
+    /// values without announcing each one as a gameplay event, precisely so that loading
+    /// a level-4 Tavern does not look like four upgrades — which means a UI cannot build
+    /// its initial picture out of the change events alone. It waits for this, reads the
+    /// current state directly, and treats every other event as a delta from there.
+    ///
+    /// Published after every OnEnable has run, so a screen that subscribes there still
+    /// receives it.
+    /// </remarks>
+    public readonly struct GameLoaded
+    {
+        public GameLoaded(bool restoredFromSave, double secondsSinceSave)
+        {
+            RestoredFromSave = restoredFromSave;
+            SecondsSinceSave = secondsSinceSave;
+        }
+
+        /// <summary>False for a new guild, which has nothing to restore and no absence to pay for.</summary>
+        public bool RestoredFromSave { get; }
+
+        /// <summary>How long the player was away. Zero on a new guild.</summary>
+        public double SecondsSinceSave { get; }
+    }
+
     /// <summary>Raised when a new adventurer joins the roster.</summary>
     public readonly struct AdventurerRecruited
     {

@@ -136,6 +136,51 @@ namespace IdleGuild.Guild
             EventBus.Publish(new GuildTierAdvanced(tier.Id, tier.Order));
         }
 
+        /// <summary>
+        /// Put the guild back into a previously saved shape: a tier and a full set of
+        /// building levels, applied together.
+        ///
+        /// Deliberately quiet. It publishes <see cref="GuildStatsRecalculated"/>, because
+        /// the numbers genuinely did change and anything displaying them must re-read, but
+        /// it publishes neither <see cref="BuildingUpgraded"/> nor
+        /// <see cref="GuildTierAdvanced"/> — loading a save is not the player upgrading
+        /// four times and reaching City again, and a UI that celebrates those events
+        /// should not be made to celebrate a load.
+        ///
+        /// Taking the whole picture in one call rather than level by level is also what
+        /// keeps the recalculation to one pass, and what stops the stats being briefly
+        /// wrong partway through a restore.
+        ///
+        /// Buildings absent from <paramref name="buildingLevels"/> are reset to level 0
+        /// rather than left alone, so restoring onto a session already in progress cannot
+        /// leave a building standing that the save never built.
+        /// </summary>
+        public void RestoreState(GuildTierDefinition tier, IReadOnlyDictionary<string, int> buildingLevels)
+        {
+            if (tier != null)
+            {
+                _currentTier = tier;
+            }
+
+            foreach (BuildingDefinition building in _buildings)
+            {
+                if (building == null)
+                {
+                    continue;
+                }
+
+                int level = 0;
+                if (buildingLevels != null && buildingLevels.TryGetValue(building.Id, out int savedLevel))
+                {
+                    level = savedLevel;
+                }
+
+                _levelsByBuildingId[building.Id] = Math.Clamp(level, 0, building.MaxLevel);
+            }
+
+            Recalculate();
+        }
+
         /// <inheritdoc />
         public float Get(GuildStat stat)
         {

@@ -96,6 +96,23 @@ namespace IdleGuild.App
             return next;
         }
 
+        /// <summary>
+        /// The tier with this id, or null. Saves store the tier the guild reached by id,
+        /// and this is how it is resolved back to the asset on load.
+        /// </summary>
+        public GuildTierDefinition FindTier(string id)
+        {
+            foreach (GuildTierDefinition tier in Tiers)
+            {
+                if (tier != null && tier.Id == id)
+                {
+                    return tier;
+                }
+            }
+
+            return null;
+        }
+
         public BuildingDefinition FindBuilding(string id)
         {
             foreach (BuildingDefinition building in Buildings)

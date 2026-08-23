@@ -98,6 +98,24 @@ namespace IdleGuild.App
         }
 
         /// <summary>
+        /// Put the lifetime counters back to a saved reading. For save restoration only —
+        /// these numbers are a record of what has happened, and nothing in the simulation
+        /// may set them except by actually resolving a quest.
+        ///
+        /// Values are floored at zero rather than validated against each other. A
+        /// succeeded-plus-failed total that disagrees with the completed count means a
+        /// hand-edited file, and refusing to load over it would cost the player their
+        /// guild to protect a statistic.
+        /// </summary>
+        public void RestoreCounters(long completed, long succeeded, long failed, double totalSecondsSimulated)
+        {
+            QuestsCompleted = Math.Max(0L, completed);
+            QuestsSucceeded = Math.Max(0L, succeeded);
+            QuestsFailed = Math.Max(0L, failed);
+            TotalSecondsSimulated = double.IsNaN(totalSecondsSimulated) ? 0d : Math.Max(0d, totalSecondsSimulated);
+        }
+
+        /// <summary>
         /// Seconds until the next thing that needs handling, or
         /// <see cref="double.PositiveInfinity"/> when the guild is idle and nothing will
         /// happen without the player.

@@ -1,5 +1,6 @@
 using System;
 using IdleGuild.Adventurers;
+using IdleGuild.App.Saves;
 using IdleGuild.Core;
 using IdleGuild.Guild;
 using IdleGuild.Quests;
@@ -90,6 +91,7 @@ namespace IdleGuild.App
                 DrawTreasury();
                 DrawGuild();
                 DrawTimeControls();
+                DrawSaves();
                 DrawBuildings();
                 DrawRecruitment();
                 DrawRoster();
@@ -192,6 +194,52 @@ namespace IdleGuild.App
             GUILayout.Label(
                 $"Simulated {clock.TotalSecondsSimulated / 60d:F1} min   " +
                 $"Quests {clock.QuestsSucceeded} ok / {clock.QuestsFailed} failed");
+        }
+
+        private void DrawSaves()
+        {
+            GameSaveService saves = _bootstrap.Saves;
+            Section("Save");
+
+            string age = saves.LastSaveUtc == DateTime.MinValue
+                ? "never saved this session"
+                : $"saved {(DateTime.UtcNow - saves.LastSaveUtc).TotalSeconds:F0}s ago";
+
+            GUILayout.Label(
+                $"{age}   file {(saves.HasSave ? "present" : "absent")}   " +
+                $"schema {SaveSchema.CurrentVersion}   " +
+                $"session {(_bootstrap.LoadedFromSave ? "loaded" : "new")}");
+
+            if (saves.LastRestoreReport.HasRepairs)
+            {
+                GUILayout.Label($"Last load repaired: {saves.LastRestoreReport}");
+            }
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Save now"))
+            {
+                Queue(() => _message = _bootstrap.Save("debug console")
+                    ? "Saved."
+                    : "Save failed — see the console for why.");
+            }
+
+            if (GUILayout.Button("Reload"))
+            {
+                Queue(() => _message = $"Reload: {_bootstrap.ReloadFromSave()}. No offline time was paid.");
+            }
+
+            if (GUILayout.Button("Delete save"))
+            {
+                Queue(() => _message = _bootstrap.Saves.Delete()
+                    ? "Save deleted. The next launch starts a new guild."
+                    : "There was no save to delete.");
+            }
+
+            GUILayout.EndHorizontal();
+
+            // Worth showing rather than hiding behind a log line: on a device this is the
+            // only way to find out where the file a tester is describing actually lives.
+            GUILayout.Label(saves.Location);
         }
 
         private void DrawBuildings()
