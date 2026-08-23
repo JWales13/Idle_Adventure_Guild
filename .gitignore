@@ -1,0 +1,78 @@
+# ---- Unity generated ----
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Asset meta data should only be ignored when the corresponding asset is also ignored
+!/[Aa]ssets/**/*.meta
+
+# ---- Uncomment if not using the Unity Asset Store's Addressables ----
+# /[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# ---- Visual Studio / Rider / VS Code ----
+.vs/
+.idea/
+.vscode/
+/[Aa]ssets/Plugins/Editor/JetBrains*
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# ---- Unity3D generated meta files ----
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# ---- Unity3D generated file on crash reports ----
+sysinfo.txt
+
+# ---- Builds / packaged output ----
+*.apk
+*.aab
+*.unitypackage
+*.app
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# ---- Xcode / iOS build output ----
+/[Ii]OS[Bb]uild/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# ---- Crashlytics / service credentials (never commit) ----
+google-services.json
+GoogleService-Info.plist
+*.mobileprovision
+*.p8
+*.p12
+*.cer
+/[Ss]ecrets/
+
+# ---- OS cruft ----
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+desktop.ini

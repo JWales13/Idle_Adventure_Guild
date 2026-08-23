@@ -1,0 +1,58 @@
+# Normalize line endings on checkin; let git decide on checkout.
+* text=auto
+
+# ---- Unity YAML assets: text, and mergeable with UnityYAMLMerge ----
+*.asset      text merge=unityyamlmerge eol=lf
+*.unity      text merge=unityyamlmerge eol=lf
+*.prefab     text merge=unityyamlmerge eol=lf
+*.mat        text merge=unityyamlmerge eol=lf
+*.anim       text merge=unityyamlmerge eol=lf
+*.controller text merge=unityyamlmerge eol=lf
+*.overrideController text merge=unityyamlmerge eol=lf
+*.physicMaterial     text merge=unityyamlmerge eol=lf
+*.physicsMaterial2D  text merge=unityyamlmerge eol=lf
+*.playable   text merge=unityyamlmerge eol=lf
+*.mask       text merge=unityyamlmerge eol=lf
+*.brush      text merge=unityyamlmerge eol=lf
+*.flare      text merge=unityyamlmerge eol=lf
+*.fontsettings       text merge=unityyamlmerge eol=lf
+*.guiskin    text merge=unityyamlmerge eol=lf
+*.giparams   text merge=unityyamlmerge eol=lf
+*.meta       text merge=unityyamlmerge eol=lf
+
+# ---- Source and config ----
+*.cs         text diff=csharp eol=lf
+*.uxml       text eol=lf
+*.uss        text eol=lf
+*.json       text eol=lf
+*.md         text eol=lf
+*.asmdef     text eol=lf
+*.shader     text eol=lf
+*.hlsl       text eol=lf
+*.cginc      text eol=lf
+
+# ---- Binary: never diff or merge ----
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.psd binary
+*.aseprite binary
+*.ase  binary
+*.tif binary
+*.tga binary
+*.ico binary
+*.mp3 binary
+*.ogg binary
+*.wav binary
+*.mp4 binary
+*.ttf binary
+*.otf binary
+*.fbx binary
+*.blend binary
+*.dll binary
+*.a binary
+*.so binary
+*.dylib binary
+*.bundle binary
+*.unitypackage binary

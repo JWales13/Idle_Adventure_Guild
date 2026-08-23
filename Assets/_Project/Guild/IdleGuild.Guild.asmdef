@@ -1,0 +1,14 @@
+{
+    "name": "IdleGuild.Guild",
+    "rootNamespace": "IdleGuild.Guild",
+    "references": ["IdleGuild.Core"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
