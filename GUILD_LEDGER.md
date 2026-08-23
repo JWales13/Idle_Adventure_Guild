@@ -331,8 +331,12 @@ Known issues/blockers: the last-seen timestamp for offline income is in
 PlayerPrefs as a Day 4 placeholder and should move into the Day 6 save. Git LFS
 must be set up before the first art commit on Day 15. Ad network and IAP
 provider still unchosen. Bundle ID and product name still template defaults.
-Week 4 execution surface (device builds, TestFlight, App Store Connect) is not
-solvable from Cowork and needs deciding before Day 22.
+Guild.unity is not in Build Settings, which ships a black build if it is still
+missing at the Day 25 TestFlight pass. GameBootstrap currently has Use Fixed
+Random Seed ticked, which makes every session roll identical quest outcomes —
+fine for verification, wrong for any balance judgement. Week 4 execution
+surface (device builds, TestFlight, App Store Connect) is not solvable from
+Cowork and needs deciding before Day 22.
 
 Working arrangement (see §06): this runs in Claude Cowork, whose shell is a
 Linux VM with the project folder mounted — git exists but `unity` and `dotnet`
