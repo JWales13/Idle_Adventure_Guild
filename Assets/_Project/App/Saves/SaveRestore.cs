@@ -129,6 +129,40 @@ namespace IdleGuild.App.Saves
         }
 
         /// <summary>
+        /// Put a running world back to the state a brand-new guild starts in, before
+        /// starting balances are granted.
+        ///
+        /// Deleting the save file does not do this, and the gap between the two is the
+        /// sort of thing that only shows up in play: the running world carries on
+        /// untouched, the next autosave writes it straight back out, and half a minute
+        /// later the deletion has quietly undone itself. Wiping progress has to mean
+        /// wiping the guild, not the file that describes it.
+        ///
+        /// Shares its clearing rules with <see cref="Restore"/> on purpose — a new game
+        /// is just a restore with nothing in it, and two code paths that both mean
+        /// "empty the guild" would eventually disagree about what empty means.
+        /// </summary>
+        public static void Reset(GameWorld world, SimulationClock clock)
+        {
+            if (world == null)
+            {
+                throw new ArgumentNullException(nameof(world));
+            }
+
+            world.GuildState.RestoreState(world.Content.StartingTier, null);
+
+            foreach (CurrencyType currency in Enum.GetValues(typeof(CurrencyType)))
+            {
+                world.Economy.Restore(currency, 0d);
+            }
+
+            world.Roster.Clear();
+            world.QuestLog.Clear();
+            world.ClearAssignments();
+            clock?.RestoreCounters(0L, 0L, 0L, 0d);
+        }
+
+        /// <summary>
         /// Tier and building levels, applied together in one quiet call so the stats are
         /// recalculated once from the finished picture rather than after each building.
         /// Returns true when the saved tier could not be found.

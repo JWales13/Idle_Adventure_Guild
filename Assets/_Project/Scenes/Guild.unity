@@ -182,7 +182,7 @@ MonoBehaviour:
   _content: {fileID: 11400000, guid: 6ba3ebd86d0e4400f9935bb6ad35e65b, type: 2}
   _autosaveIntervalSeconds: 30
   _loadSaveOnStart: 1
-  _useFixedRandomSeed: 1
+  _useFixedRandomSeed: 0
   _randomSeed: 1
 --- !u!1 &1287232733
 GameObject:

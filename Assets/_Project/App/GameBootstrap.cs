@@ -249,13 +249,54 @@ namespace IdleGuild.App
                     "file has been kept alongside it rather than deleted.");
             }
 
+            BeginNewGuild("new game");
+        }
+
+        /// <summary>
+        /// Throw the current guild away and start over: wipe the save, reset the running
+        /// world, hand out the starting balances again, and write the result out at once.
+        ///
+        /// Both halves are necessary. Deleting the file alone leaves the world running,
+        /// and the next autosave — or simply quitting — writes that same guild back over
+        /// the gap, so the deletion lasts about thirty seconds. Found while walking
+        /// through the Day 6 verification pass, where "delete the save, restart, expect a
+        /// new guild" produced the old one instead.
+        ///
+        /// This is what the Week 3 settings screen's reset-progress option should call.
+        /// </summary>
+        public void StartNewGuild()
+        {
+            if (!IsReady)
+            {
+                return;
+            }
+
+            Saves.Delete();
+            BeginNewGuild("start over");
+
+            // The world underneath the UI has been replaced, so tell it to read
+            // everything again rather than leaving it showing the guild that just went.
+            EventBus.Publish(new GameLoaded(false, 0d));
+        }
+
+        /// <summary>
+        /// Reset, grant the starting balances, and save. Harmless on a world that is
+        /// already empty, which is why first launch and starting over can share it.
+        ///
+        /// The save at the end is not optional: without it a player who closes the app
+        /// before the first autosave comes back to a guild with no memory of having
+        /// started.
+        /// </summary>
+        private void BeginNewGuild(string reason)
+        {
+            SaveRestore.Reset(World, Clock);
             World.ApplyStartingState();
+
+            LoadedFromSave = false;
+            LastOfflineReport = default;
             _lastSeenUtc = DateTime.UtcNow;
 
-            // Save straight away so the file — and its timestamp — exist from the first
-            // frame. Without this a player who closes the app before the first autosave
-            // would come back to a guild with no memory of having started.
-            Save("new game");
+            Save(reason);
         }
 
         private void TickAutosave()

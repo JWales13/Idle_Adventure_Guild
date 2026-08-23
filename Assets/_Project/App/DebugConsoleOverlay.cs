@@ -228,11 +228,15 @@ namespace IdleGuild.App
                 Queue(() => _message = $"Reload: {_bootstrap.ReloadFromSave()}. No offline time was paid.");
             }
 
-            if (GUILayout.Button("Delete save"))
+            if (GUILayout.Button("Start over"))
             {
-                Queue(() => _message = _bootstrap.Saves.Delete()
-                    ? "Save deleted. The next launch starts a new guild."
-                    : "There was no save to delete.");
+                // Deliberately not a bare Saves.Delete(): that removes the file and
+                // leaves the guild running, so the next autosave puts it straight back.
+                Queue(() =>
+                {
+                    _bootstrap.StartNewGuild();
+                    _message = "Started a new guild. The old save is gone.";
+                });
             }
 
             GUILayout.EndHorizontal();

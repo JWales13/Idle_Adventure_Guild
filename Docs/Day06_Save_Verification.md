@@ -25,6 +25,10 @@ changes, and how to check it works. Written to be usable again in Week 3, when
 | `SaveMigrations.cs` | The version ladder and null normalisation. No steps yet — version 1 is the first version. |
 | `GameSaveService.cs` | The policy joining the three: which key, JSON in and out, what happens when it does not parse. |
 
+`GameBootstrap.StartNewGuild()` sits above all of it: wipe the save **and** reset the
+running world, then save the fresh guild at once. See step 1 of §4 for why both halves
+are needed.
+
 **Edited**
 
 | File | Change |
@@ -163,9 +167,18 @@ worth the extra ten minutes now rather than on Day 20.
 ticked. Leave *Use Fixed Random Seed* as you had it — but see the note at the end.
 
 1. **Clean slate.** Press Play, open the debug console, and in the **Save** section
-   press **Delete save**. Stop, then Play again. The section should read
-   `saved 0s ago · file present · schema 1 · session new`, and the treasury 150 gold —
-   a new guild saves itself immediately so there is a stamp from the first frame.
+   press **Start over**. The guild resets there and then: the treasury returns to 150
+   gold, the roster empties, and the section reads
+   `saved 0s ago · file present · schema 1 · session new`. A new guild saves itself
+   immediately, so there is a stamp from the first frame.
+
+   > That button used to be **Delete save**, and it only deleted the file. The world
+   > carried on running, the next autosave wrote it straight back out, and the deletion
+   > undid itself within thirty seconds — so deleting and restarting produced the *old*
+   > guild. Found by walking through this very step. Wiping progress has to mean wiping
+   > the guild, not the file that describes it, which is why `StartNewGuild` resets the
+   > world and re-saves rather than calling `GameSaveService.Delete` on its own. The
+   > Week 3 settings screen's reset-progress option should call the same method.
 
 2. **Make a guild worth saving.** Build the Inn, hire a Militia Recruit, and send them
    on the Rat Infested Cellar. You should have one quest in flight and one standing
