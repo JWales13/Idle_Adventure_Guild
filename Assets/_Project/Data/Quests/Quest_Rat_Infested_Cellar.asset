@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f3a03622ed154187bea7bb70711ff2a, type: 3}
+  m_Name: Quest_Rat_Infested_Cellar
+  m_EditorClassIdentifier: IdleGuild.Quests::IdleGuild.Quests.QuestDefinition
+  _id: rat_infested_cellar
+  _displayName: Rat Infested Cellar Cleanup
+  _description: 
+  _questTier: 1
+  _minimumTierOrder: 0
+  _requiredAdventurers: 1
+  _recommendedPower: 4
+  _baseDurationSeconds: 45
+  _baseFailureChance: 0.05
+  _goldReward: 30
+  _reputationReward: 2

@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cee0f28fd24c14a29ad546d46f224f67, type: 3}
+  m_Name: Tier_City
+  m_EditorClassIdentifier: IdleGuild.Guild::IdleGuild.Guild.GuildTierDefinition
+  _id: city
+  _displayName: City
+  _order: 2
+  _questSlots: 3
+  _maxQuestTier: 3
+  _requirementsToAdvance:
+  - _building: {fileID: 11400000, guid: 3290872f038bc430f9dea3e256e800bf, type: 2}
+    _minimumLevel: 9
+  - _building: {fileID: 11400000, guid: bd6ef315d6a414d739084873b8c69477, type: 2}
+    _minimumLevel: 9
+  - _building: {fileID: 11400000, guid: 82c1ec95ef7c54fafb2abeb57b879109, type: 2}
+    _minimumLevel: 8
+  _reputationToAdvance: 9000

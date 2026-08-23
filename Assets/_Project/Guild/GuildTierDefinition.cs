@@ -41,7 +41,9 @@ namespace IdleGuild.Guild
         [Tooltip("Building levels required to advance. The design rule is that this spans multiple buildings.")]
         private BuildingLevelRequirement[] _requirementsToAdvance;
 
-        [SerializeField, Min(0)] private double _reputationToAdvance;
+        // Deliberately not [Min]: Unity's Min drawer edits through a float field and
+        // would truncate this double on every Inspector draw. Clamped in OnValidate.
+        [SerializeField] private double _reputationToAdvance;
 
         public string Id => _id;
         public string DisplayName => _displayName;
@@ -62,6 +64,11 @@ namespace IdleGuild.Guild
             if (string.IsNullOrWhiteSpace(_id))
             {
                 Debug.LogWarning($"{name}: Id is empty. Saves reference tiers by Id, so this asset cannot persist yet.", this);
+            }
+
+            if (_reputationToAdvance < 0d)
+            {
+                _reputationToAdvance = 0d;
             }
 
             if (_requirementsToAdvance is { Length: 1 })

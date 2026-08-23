@@ -1,0 +1,20 @@
+{
+    "name": "IdleGuild.App",
+    "rootNamespace": "IdleGuild.App",
+    "references": [
+        "IdleGuild.Core",
+        "IdleGuild.Guild",
+        "IdleGuild.Quests",
+        "IdleGuild.Adventurers",
+        "IdleGuild.Economy"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

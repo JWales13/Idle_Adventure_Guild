@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98564af1443fa40259307c657fb1dda0, type: 3}
+  m_Name: Building_TrainingRoom
+  m_EditorClassIdentifier: IdleGuild.Guild::IdleGuild.Guild.BuildingDefinition
+  _id: training_room
+  _displayName: Training Room
+  _description: 
+  _icon: {fileID: 0}
+  _minimumTierOrder: 0
+  _maxLevel: 10
+  _costToReachLevel:
+    BaseValue: 60
+    LinearPerLevel: 0
+    GrowthPerLevel: 0.6
+  _effects:
+  - Stat: 2
+    Kind: 0
+    ValuePerLevel:
+      BaseValue: 2
+      LinearPerLevel: 3
+      GrowthPerLevel: 0.15

@@ -30,7 +30,9 @@ namespace IdleGuild.Adventurers
         [Min(0)]
         private int _minimumTierOrder;
 
-        [SerializeField, Min(0)] private double _recruitCostGold;
+        // Deliberately not [Min]: Unity's Min drawer edits through a float field and
+        // would truncate this double on every Inspector draw. Clamped in OnValidate.
+        [SerializeField] private double _recruitCostGold;
 
         [Header("Combat")]
         [SerializeField]
@@ -38,6 +40,10 @@ namespace IdleGuild.Adventurers
         private ScalingCurve _powerByLevel;
 
         [SerializeField, Min(1)] private int _maxLevel = 10;
+
+        [SerializeField]
+        [Tooltip("Gold to train up to a given level. Evaluated at the target level, so level 2 is the first training cost.")]
+        private ScalingCurve _trainingCostToReachLevel;
 
         [SerializeField]
         [Tooltip("Seconds of rest after a quest, before the Inn's recovery speed is applied.")]
@@ -56,11 +62,31 @@ namespace IdleGuild.Adventurers
         /// <summary>Power from this archetype alone at the given level, excluding guild bonuses.</summary>
         public float BasePowerAt(int level) => _powerByLevel.Evaluate(level);
 
+        /// <summary>True when <paramref name="level"/> is a real level on this archetype.</summary>
+        public bool HasLevel(int level) => level >= 1 && level <= _maxLevel;
+
+        /// <summary>
+        /// Gold to train from the level below <paramref name="targetLevel"/> up to it.
+        /// Returns zero for levels off the end of the track, which callers should read as
+        /// "not trainable" rather than "free" — check <see cref="HasLevel"/> first. This
+        /// mirrors BuildingDefinition.CostToReach deliberately: two progression tracks
+        /// that behave the same way are two fewer rules to remember.
+        /// </summary>
+        public double TrainingCostToReach(int targetLevel)
+        {
+            return HasLevel(targetLevel) && targetLevel > 1 ? _trainingCostToReachLevel.Evaluate(targetLevel) : 0d;
+        }
+
         private void OnValidate()
         {
             if (string.IsNullOrWhiteSpace(_id))
             {
                 Debug.LogWarning($"{name}: Id is empty. Saves reference adventurers by Id, so this asset cannot persist yet.", this);
+            }
+
+            if (_recruitCostGold < 0d)
+            {
+                _recruitCostGold = 0d;
             }
         }
     }

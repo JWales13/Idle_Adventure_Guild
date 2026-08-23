@@ -49,8 +49,11 @@ namespace IdleGuild.Quests
         private float _baseFailureChance;
 
         [Header("Rewards")]
-        [SerializeField, Min(0)] private double _goldReward;
-        [SerializeField, Min(0)] private double _reputationReward;
+        // Deliberately not [Min]: Unity's Min drawer edits through a float field, which
+        // would silently truncate these doubles to float precision every time the asset
+        // is inspected. OnValidate enforces the floor instead.
+        [SerializeField] private double _goldReward;
+        [SerializeField] private double _reputationReward;
 
         public string Id => _id;
         public string DisplayName => _displayName;
@@ -69,6 +72,16 @@ namespace IdleGuild.Quests
             if (string.IsNullOrWhiteSpace(_id))
             {
                 Debug.LogWarning($"{name}: Id is empty. Saves reference quests by Id, so this asset cannot persist yet.", this);
+            }
+
+            if (_goldReward < 0d)
+            {
+                _goldReward = 0d;
+            }
+
+            if (_reputationReward < 0d)
+            {
+                _reputationReward = 0d;
             }
         }
     }

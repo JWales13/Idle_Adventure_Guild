@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8da4ac6d310ab416f90e287a5932ccce, type: 3}
+  m_Name: GameContent
+  m_EditorClassIdentifier: IdleGuild.App::IdleGuild.App.GameContent
+  _buildings:
+  - {fileID: 11400000, guid: 3290872f038bc430f9dea3e256e800bf, type: 2}
+  - {fileID: 11400000, guid: bd6ef315d6a414d739084873b8c69477, type: 2}
+  - {fileID: 11400000, guid: 82c1ec95ef7c54fafb2abeb57b879109, type: 2}
+  _tiers:
+  - {fileID: 11400000, guid: a6f617b0d0fd9471cb05e1e6d11862e3, type: 2}
+  - {fileID: 11400000, guid: ad296e34028ef4500a364896736aa1ce, type: 2}
+  - {fileID: 11400000, guid: 00ce04f9939164bd2b9c3905e6a4d749, type: 2}
+  - {fileID: 11400000, guid: 61cfcef717d644b17ac5818f65293fb5, type: 2}
+  _adventurers:
+  - {fileID: 11400000, guid: 6e9f97ffc30be41c7a862a3be6ad28db, type: 2}
+  - {fileID: 11400000, guid: d0279d3fabec24fbab645901b4a7e3f0, type: 2}
+  - {fileID: 11400000, guid: 889c1575ad09e4d4f8e203304c2e7966, type: 2}
+  _quests:
+  - {fileID: 11400000, guid: 02141a68b594043c9a74b63f809afff4, type: 2}
+  - {fileID: 11400000, guid: a4a53b14e84a64c7480cf4f6790cebbf, type: 2}
+  - {fileID: 11400000, guid: ea1f3a35a580145e48dd7ff6e0d5ba54, type: 2}
+  _startingGold: 150
+  _startingReputation: 0
+  _maximumOfflineSeconds: 28800
