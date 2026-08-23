@@ -1,5 +1,21 @@
 # Day 4–5 — Asset authoring values
 
+> ## ⚠ Superseded in part — read this first
+>
+> **Buildings, guild tiers and quests were re-costed on Days 8–9. The numbers in
+> sections 1, 2 and 4 below are the original first pass and are no longer what the
+> assets hold.** The current values, and the reasoning behind them, are in
+> **`Day08_Building_Trees.md`**.
+>
+> The rest of this document is still accurate and still worth having: section 3
+> (adventurers) is unchanged, section 5 (GameContent) is unchanged apart from the
+> starting numbers, and sections 6 and 7 — scene setup and the 11-step smoke test —
+> are the original Week 1 checkpoint and still pass.
+>
+> Kept rather than rewritten because the session log references it and because the
+> before-and-after is the whole argument of the Days 8–9 pass: these numbers maxed
+> every building two hours before the player could reach Capital.
+
 First-pass numbers for the assets that make the core loop exercisable. Balance is
 deliberately rough: the shape of the curve is what matters now, and Day 13 is the
 first real balancing pass.

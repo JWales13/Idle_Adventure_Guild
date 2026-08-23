@@ -354,7 +354,7 @@ Assets/_Project/
     Buildings/ Tiers/ Adventurers/ Quests/   and GameContent.asset alongside them
 ```
 
-**ScriptableObject assets are authored from `Docs/Day04_Asset_Values.md`**, which carries first-pass values for three buildings, four tiers, three adventurers, three quests and the GameContent catalogue, plus scene setup and a smoke test. Content declares its own availability via `MinimumTierOrder` rather than being listed on a tier asset, so adding content never edits an existing file — the exception being `GameContent`, which lists everything by design, since something has to.
+**ScriptableObject values live in two documents.** `Docs/Day08_Building_Trees.md` is current for buildings, guild tiers and quests. `Docs/Day04_Asset_Values.md` is current for adventurers and GameContent, and still holds the scene setup and the 11-step smoke test — its building, tier and quest tables are the superseded first pass and carry a banner saying so. Content declares its own availability via `MinimumTierOrder` rather than being listed on a tier asset, so adding content never edits an existing file — the exception being `GameContent`, which lists everything by design, since something has to.
 
 Three structural decisions, the first two from Day 1 and the third from Day 4–5, all flagged as reversible:
 
@@ -461,6 +461,11 @@ so changing them moves existing saves. Save files are plain text and trivially
 editable, a Day 20 hardening item. The debug console must be deleted or
 excluded before submission, hard deadline Day 22. Week 4 execution surface (device builds, TestFlight, App Store
 Connect) is not solvable from Cowork and needs deciding before Day 22.
+One documentation hazard worth knowing: Docs/Day04_Asset_Values.md is
+superseded in part — its building, tier and quest tables are the original
+first pass and no longer match the assets. It carries a banner saying so.
+Day08_Building_Trees.md is current for those three; Day04 is still current
+for adventurers, GameContent, the scene setup and the smoke test.
 
 Working arrangement (see §06): this runs in Claude Cowork, whose shell is a
 Linux VM with the project folder mounted — git exists but `unity` and `dotnet`
