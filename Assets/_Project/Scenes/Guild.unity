@@ -128,6 +128,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 477044918}
+  - component: {fileID: 477044920}
+  - component: {fileID: 477044919}
   m_Layer: 0
   m_Name: Game
   m_TagString: Untagged
@@ -150,6 +152,35 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &477044919
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 477044917}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ee79084e2ecd475caf934acba082db7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IdleGuild.App::IdleGuild.App.DebugConsoleOverlay
+  _bootstrap: {fileID: 477044920}
+  _panelWidthFraction: 0.45
+--- !u!114 &477044920
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 477044917}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46da5c3240bbd4bbaa0efb1f7cecce79, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: IdleGuild.App::IdleGuild.App.GameBootstrap
+  _content: {fileID: 11400000, guid: 6ba3ebd86d0e4400f9935bb6ad35e65b, type: 2}
+  _useFixedRandomSeed: 1
+  _randomSeed: 1
 --- !u!1 &1522585252
 GameObject:
   m_ObjectHideFlags: 0
