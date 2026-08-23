@@ -14,24 +14,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: IdleGuild.Guild::IdleGuild.Guild.BuildingDefinition
   _id: tavern
   _displayName: Tavern
-  _description: 
+  _description: 'Food, drink and a warm fire. A well-fed party fights for the guild
+    rather than for the coin, and word of a good table travels: better adventurers
+    come looking for work.'
   _icon: {fileID: 0}
   _minimumTierOrder: 0
-  _maxLevel: 10
+  _maxLevel: 90
   _costToReachLevel:
-    BaseValue: 75
+    BaseValue: 50
     LinearPerLevel: 0
-    GrowthPerLevel: 0.55
+    GrowthPerLevel: 0.15
   _effects:
   - Stat: 0
     Kind: 1
     ValuePerLevel:
-      BaseValue: 0.15
-      LinearPerLevel: 0.1
-      GrowthPerLevel: 0
+      BaseValue: 0.2
+      LinearPerLevel: 0
+      GrowthPerLevel: 0.08
   - Stat: 1
     Kind: 0
     ValuePerLevel:
       BaseValue: 0
-      LinearPerLevel: 0.5
+      LinearPerLevel: 0.13
       GrowthPerLevel: 0

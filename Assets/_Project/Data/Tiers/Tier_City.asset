@@ -19,9 +19,9 @@ MonoBehaviour:
   _maxQuestTier: 3
   _requirementsToAdvance:
   - _building: {fileID: 11400000, guid: 3290872f038bc430f9dea3e256e800bf, type: 2}
-    _minimumLevel: 9
+    _minimumLevel: 48
   - _building: {fileID: 11400000, guid: bd6ef315d6a414d739084873b8c69477, type: 2}
-    _minimumLevel: 9
+    _minimumLevel: 26
   - _building: {fileID: 11400000, guid: 82c1ec95ef7c54fafb2abeb57b879109, type: 2}
-    _minimumLevel: 8
-  _reputationToAdvance: 9000
+    _minimumLevel: 21
+  _reputationToAdvance: 28000

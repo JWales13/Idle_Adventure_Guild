@@ -14,24 +14,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: IdleGuild.Guild::IdleGuild.Guild.BuildingDefinition
   _id: inn
   _displayName: Inn
-  _description: 
+  _description: 'Beds, and how quickly they empty. Room count caps the roster; room
+    quality shortens the rest between quests, which is the difference between owning
+    adventurers and having them working.'
   _icon: {fileID: 0}
   _minimumTierOrder: 0
-  _maxLevel: 10
+  _maxLevel: 30
   _costToReachLevel:
-    BaseValue: 50
+    BaseValue: 40
     LinearPerLevel: 0
-    GrowthPerLevel: 0.5
+    GrowthPerLevel: 0.21
   _effects:
   - Stat: 3
     Kind: 0
     ValuePerLevel:
       BaseValue: 2
-      LinearPerLevel: 1
+      LinearPerLevel: 0.5
       GrowthPerLevel: 0
   - Stat: 4
     Kind: 1
     ValuePerLevel:
       BaseValue: 0.1
-      LinearPerLevel: 0.1
-      GrowthPerLevel: 0
+      LinearPerLevel: 0
+      GrowthPerLevel: 0.1

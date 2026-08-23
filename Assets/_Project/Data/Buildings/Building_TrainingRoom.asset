@@ -14,18 +14,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: IdleGuild.Guild::IdleGuild.Guild.BuildingDefinition
   _id: training_room
   _displayName: Training Room
-  _description: 
+  _description: 'Drills, sparring and a rack of practice weapons. Raises the Power
+    of every adventurer on the roster at once, which shortens quests and keeps the
+    harder ones survivable.'
   _icon: {fileID: 0}
   _minimumTierOrder: 0
-  _maxLevel: 10
+  _maxLevel: 40
   _costToReachLevel:
-    BaseValue: 60
+    BaseValue: 45
     LinearPerLevel: 0
-    GrowthPerLevel: 0.6
+    GrowthPerLevel: 0.19
   _effects:
   - Stat: 2
     Kind: 0
     ValuePerLevel:
       BaseValue: 2
-      LinearPerLevel: 3
-      GrowthPerLevel: 0.15
+      LinearPerLevel: 0
+      GrowthPerLevel: 0.14

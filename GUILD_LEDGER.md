@@ -175,6 +175,8 @@ where things stand in a sentence or two before writing any code.
 
 **Current status:** Week 1, Days 1–6 complete. Unity project at `~/Idle_Adventure_Guild` (Unity **6000.5.0f1**, Universal 2D / URP), published to a **private GitHub repo** and managed through **GitHub Desktop**. The core loop was finished on Days 4–5 and the 11-step smoke test in `Docs/Day04_Asset_Values.md` passed against the fourteen ScriptableObject assets, with the scene wired at `Assets/_Project/Scenes/Guild.unity` (a `Game` object carrying `GameBootstrap` and `DebugConsoleOverlay`).
 
+Days 8–9 rebuilt the building trees. The trees are now deliberately **asymmetric** — Tavern 90 levels, Training Room 40, Inn 30 — the gates are re-spaced onto each building's own scale, and the three MVP quests were re-costed to match. `Docs/Day08_Building_Trees.md` carries the tables, the reasoning and the spec Days 10–11 must hit; `Docs/tools/guild_model.py` is a runnable model of the loop that produced them.
+
 Day 7 added the interface. `IdleGuild.UI` moved to the top of the assembly graph and now holds USS design tokens, a component stylesheet, and grey-box screens for Guild Hall, quests and roster behind a bottom tab bar, with the upgrade panel as an overlay raised from a building. `GuildScreenController` is the one MonoBehaviour, mirroring `GameBootstrap`: events set a flag, a 100 ms tick reads live values and rebuilds structure only when something actually changed. `Docs/Day07_UI_Setup.md` carries the two Editor steps — a Panel Settings asset and the scene wiring — plus a 10-step pass.
 
 Day 6 added save/load. A versioned JSON file now carries the guild tier, every building level, all four balances, the roster with levels, activity and rest timers, the quest runs in flight with their dispatch-time snapshots, the standing orders and the lifetime clock counters. `ISaveStore` and `FileSaveStore` joined the ad and IAP interfaces in `Core/Services` as the persistence boundary; `App/Saves/` holds the wire format, capture, restore, the migration ladder and the `GameSaveService` policy layer. The last-seen timestamp has moved out of PlayerPrefs and into the file. The debug console gained a **Save** section, and `Docs/Day06_Save_Verification.md` carries the schema, the compatibility rules and a 10-step verification pass including corruption and content-removal cases. **Seven code assemblies build with zero CS errors and zero warnings**, verified after import — Core, the four features, App and now UI.
@@ -183,7 +185,7 @@ Day 6 added save/load. A versioned JSON file now carries the guild tier, every b
 
 The Week 1 checkpoint holds, minus the UI that Day 7 adds.
 
-**Next action:** Week 2, Days 8–9 — building set finalized. Full upgrade trees for Tavern, Training Room and Inn at Village tier. This is data work in `Docs/Day04_Asset_Values.md`'s successor rather than code: the curves exist and the ten levels behind them are first-pass numbers, so the job is deciding what each level should actually feel like and whether the tier gate lands where it should. Note that `BuildingDetailOverlay` now shows each effect at the current and next level, which makes a badly shaped curve visible in the game rather than only in the Inspector.
+**Next action:** Week 2, Days 10–11 — tier transitions. Village → Town → City → Capital, each unlocking new buildings, adventurers and quests purely through data assets. This is the real test of whether the modular architecture holds, and it now arrives with a specification rather than a blank page: **§4 of `Docs/Day08_Building_Trees.md` lists exactly what the tier-3 and tier-4 quests must pay**, because the building curves were tuned against them and City and Capital currently raise Max Quest Tier to 3 and 4 with nothing authored to fill them. It also names two problems Days 10–11 inherit — higher-rarity archetypes are currently pointless next to the Training Room's guild-wide bonus, and adventurer Max Level 10 saturates long before the buildings do.
 
 ### The central architectural bet, and how to check it still holds
 
@@ -201,6 +203,35 @@ Two zero-safety conventions protect against half-filled assets reading as silent
 - Multiplicative effects are **bonus fractions** accumulated onto 1.0 — `0.15` means +15%, and an unfilled field means "no effect", never "multiply everything by zero".
 
 A third convention arrived on Day 4–5: **a quest run's duration, failure chance and rewards are snapshotted when it starts**, not recomputed when it finishes. A timer therefore never moves under the player mid-run, an upgrade pays off from the next dispatch, and offline catch-up can resolve hours of runs without reconstructing what the guild's stats were at each moment in the past.
+
+### Why the building trees are different lengths
+
+Days 8–9 found this by modelling the whole arc, and it is a property of the simulation
+rather than a tuning choice, so it will still be true after Day 13 retunes every number.
+
+**Only the Tavern compounds.** Reward Yield multiplies gold without bound, so its cost
+can grow geometrically and level 80 is still worth buying. The other two buildings are
+bounded by the game's own clamps: Training Room power stops shortening a quest once the
+party reaches four times the recommended power, and Inn recovery can only ever remove
+the *rest* half of a cycle. Charging a geometric price for a bounded benefit is what
+made the top of a uniform 40-level tree literally unreachable — not expensive,
+unreachable, with time-per-level diverging and 200 simulated hours failing to close the
+last eleven levels.
+
+Hence Tavern 90 levels at 15% cost growth, Training Room 40 at 19%, Inn 30 at 21%. The
+Tavern is the spine the player keeps feeding; the other two are trees they finish. **The
+tier gate is what stops them tunnelling into the Tavern alone**, which is the job the
+multi-building rule was always there to do.
+
+Two checks worth repeating whenever a curve moves, both of which caught real failures:
+
+- **No dead levels.** Every effect must still improve measurably at max level. A
+  building whose effect saturates before its ceiling is the same bug as an unreachable
+  ceiling, wearing a different hat.
+- **The purchase-gap profile, not the tier times.** A long tail there means a stretch of
+  the game with nothing to buy. That is what the Day 4–5 numbers did — all three
+  buildings maxed at 2h15m with Capital still two hours away — and tier times alone
+  would never have shown it.
 
 ### The save format, and the rule that keeps it readable
 
@@ -355,6 +386,7 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 - **`Guild.unity` is not in Build Settings.** An empty scene list ships a black build, and it is the sort of thing found at the worst possible moment. Add it at index 0 well before the Day 25 TestFlight pass.
 - **The debug console must be deleted or excluded before submission.** `DebugConsoleOverlay` disables itself outside development builds, so it is not a shipping risk today, but leaving dev UI in a store binary is the kind of thing that reads badly in review. Hard deadline Day 22.
 - Building count (3 for MVP, architected to scale to 5) and building effects remain finalized.
+- **`Docs/tools/guild_model.py` is a copy of the balance numbers and will drift.** It replicates the loop well enough to have found the Day 4–5 structural failure, but it is a model, not a source of truth: update it in the same commit as any asset change. A drifted model is worse than no model, because its answers stay confident.
 
 **Resolved on Day 4–5:**
 
@@ -371,56 +403,62 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 
 ```
 I'm continuing work on Idle Adventurer's Guild, a solo Unity idle-tycoon game
-(fantasy adventurers' guild theme), targeting App Store submission with 22
+(fantasy adventurers' guild theme), targeting App Store submission with 20
 days left against the original 4-week deadline (target submission by Day 26,
 buffer through Day 28).
 
 The project lives at ~/Idle_Adventure_Guild. Read GUILD_LEDGER.md in the repo
 root in full before doing anything else — it is the source of truth. Pay
-particular attention to "The central architectural bet", "The save format, and
-the rule that keeps it readable" and "Working arrangement" in §06.
+particular attention to "The central architectural bet", "Why the building
+trees are different lengths" and "Working arrangement" in §06.
 
-Current position: Week 2, Days 8–9 — "Core Gameplay Complete"
-Last completed: Week 1 in full, Days 1–7. Unity 6000.5.0f1 / URP 2D, private
-GitHub repo via GitHub Desktop. Seven code assemblies: five feature assemblies
-depending on Core and nothing else, IdleGuild.App above them holding
-composition and cross-feature transactions, and IdleGuild.UI above that, the
-only assembly allowed to see the whole game. The core loop is written,
-compiling and smoke-tested against fourteen ScriptableObject assets, with the
-scene at Assets/_Project/Scenes/Guild.unity. Day 6 added versioned JSON
-save/load (Core/Services/ISaveStore + FileSaveStore, App/Saves/*), and Day 7
-added the grey-box UI Toolkit interface: USS design tokens, Guild Hall /
-Quests / Roster behind a bottom tab bar, and the upgrade panel as an overlay.
-Docs/Day06_Save_Verification.md and Docs/Day07_UI_Setup.md carry the schema,
-the Editor steps and a verification pass each.
-Next task: Days 8–9 — finalize the building set. Full upgrade trees for
-Tavern, Training Room and Inn at Village tier. This is data work rather than
-code: the ScalingCurve fields exist and hold first-pass numbers, so the job is
-deciding what each of the ten levels should feel like, whether the tier gate
-lands where it should, and whether the cost curve and the effect curve
-diverge in the right direction. BuildingDetailOverlay now shows each effect at
-the current and next level, so a badly shaped curve is visible in the game
-rather than only in the Inspector.
+Current position: Week 2, Days 10–11 — "Core Gameplay Complete"
+Last completed: Week 1 in full plus Days 8–9. Unity 6000.5.0f1 / URP 2D,
+private GitHub repo via GitHub Desktop. Seven code assemblies: five feature
+assemblies depending on Core and nothing else, IdleGuild.App above them
+holding composition and cross-feature transactions, and IdleGuild.UI above
+that. The core loop, versioned JSON save/load and a grey-box UI Toolkit
+interface are all written and compiling clean. Days 8–9 rebuilt the building
+trees from a modelled analysis of the whole arc: the trees are now
+asymmetric (Tavern 90 levels, Training Room 40, Inn 30), the tier gates are
+re-spaced onto each building's own scale, the reputation thresholds are
+derived from the model, and the three MVP quests were re-costed to match.
+Docs/Day08_Building_Trees.md has the tables and reasoning;
+Docs/tools/guild_model.py is a runnable model of the loop.
+Next task: Days 10–11 — tier transitions. Village → Town → City → Capital,
+each unlocking new buildings, adventurers and quests purely through data
+assets. This is the real test of whether the modular architecture holds. Read
+§4 of Docs/Day08_Building_Trees.md first: it specifies exactly what the tier-3
+and tier-4 quests must pay, because the building curves were tuned against
+them and City and Capital currently raise Max Quest Tier to 3 and 4 with
+nothing authored to fill them. It also names two problems to solve here —
+higher-rarity archetypes are pointless next to the Training Room's guild-wide
+bonus (a fully trained Wandering Ranger contributes 233 power against a +331
+guild bonus at Training Room 40), and adventurer Max Level 10 saturates long
+before the buildings do. Update Docs/tools/guild_model.py in the same commit
+as any asset change; a drifted model is worse than none.
 Deviations from the plan so far: none material. Day 1's "ad/IAP SDK package
 stubs" became interface stubs, with the real SDK arriving Week 3 behind those
 interfaces. Day 4–5 added IdleGuild.App above the features; Day 7 added
 IdleGuild.UI above App. Both are recorded as structural decisions in §06, and
-in both cases the features stayed Core-only.
-Known issues/blockers: neither the Day 6 save/load runtime pass nor the Day 7
-UI pass has been run — both are written up in Docs/ and are worth running
-before balancing on top of them. Git LFS must be set up before the first art
-commit on Day 15. Ad network and IAP provider still unchosen. Bundle ID and
-product name still template defaults — note these also set the save directory,
-so changing them moves existing saves. Guild.unity is not in Build Settings,
-which ships a black build if it is still missing at the Day 25 TestFlight
-pass. GameBootstrap has Use Fixed Random Seed available and, if ticked, makes
-every session and every reload roll identical quest outcomes — fine for
-verification, wrong for any balance judgement, which matters more now that
-balancing is the task. Save files are plain text and trivially editable, a Day
-20 hardening item. The debug console must be deleted or excluded before
-submission, hard deadline Day 22. Week 4 execution surface (device builds,
-TestFlight, App Store Connect) is not solvable from Cowork and needs deciding
-before Day 22.
+in both cases the features stayed Core-only. Days 8–9 touched quest assets on
+a buildings day, because a building tree cannot be balanced against fixed
+quest rewards.
+Known issues/blockers: three written verification passes have not been run —
+Day 6 save/load, Day 7 UI, Day 8–9 assets — all in Docs/. Day 7 also needs two
+Editor steps before the interface appears at all (a Panel Settings asset and
+the scene wiring, Docs/Day07_UI_Setup.md §2). Git LFS must be set up before
+the first art commit on Day 15. Ad network and IAP provider still unchosen.
+Bundle ID and product name still template defaults — note these also set the
+save directory, so changing them moves existing saves. Guild.unity is not in
+Build Settings, which ships a black build if it is still missing at the Day 25
+TestFlight pass. GameBootstrap has Use Fixed Random Seed available and, if
+ticked, makes every session and every reload roll identical quest outcomes —
+wrong for any balance judgement, which matters now that balancing is live.
+Save files are plain text and trivially editable, a Day 20 hardening item. The
+debug console must be deleted or excluded before submission, hard deadline
+Day 22. Week 4 execution surface (device builds, TestFlight, App Store
+Connect) is not solvable from Cowork and needs deciding before Day 22.
 
 Working arrangement (see §06): this runs in Claude Cowork, whose shell is a
 Linux VM with the project folder mounted — git exists but `unity` and `dotnet`
@@ -429,6 +467,9 @@ which leaves index locks that break my GitHub Desktop; tell me the commit
 message and I commit through the GUI. When you add scripts, ask me to focus
 the Unity Editor so it imports them, then verify by checking for
 Library/ScriptAssemblies/IdleGuild.*.dll and grepping Logs/ for "error CS".
+ScriptableObject values can be written directly into the .asset YAML rather
+than retyped through the Inspector, which is how Days 8–9 avoided a repeat of
+Day 4–5's transcription slips.
 
 Follow the Principles section of this doc (Clean Code, data-driven
 ScriptableObject architecture, event-driven decoupling, UI Toolkit/USS
@@ -447,6 +488,7 @@ where things stand in a sentence or two before writing any code.
 5. **W1D4–5 — Core loop logic** — The loop is written and compiles clean (six assemblies, zero CS errors, zero warnings). A seventh assembly, `IdleGuild.App`, was added above the features to hold the transactions that cross them — the features themselves stayed Core-only, so the compile-time wall and the Quest Board/Armory bet are intact, and the bet was explicitly re-checked: no field was added to `BuildingDefinition` and no branch to `GuildState.Aggregate`. Quests gained `QuestResolution` (duration scaling with the square root of party power, failure doubling at half the recommended power and vanishing at twice it, rewards scaled by Tavern yield), `ActiveQuest` with its outcome snapshotted at dispatch, and `QuestLog`. Adventurers gained an activity state, rest timers driven by the Inn, `AdventurerRoster` capped by Housing Capacity, and a per-adventurer training cost curve. App gained `GameContent`, `GameWorld`, `SimulationClock`, `QuestAssignment` plus the five services, `OfflineProgress`, `GameBootstrap` and `DebugConsoleOverlay`. The design decision worth remembering: the clock steps from event to event rather than in fixed slices, so eight hours of offline catch-up runs through exactly the same code as a single frame — there is no second offline formula that can drift from what the game pays while the player watches. Two things were found rather than built: `[Min]` on `double` fields was silently truncating costs to float precision through Unity's editor drawer, fixed before any asset existed; and Housing Capacity's zero base means a guild with no Inn can recruit nobody, resolved with starting gold rather than a code branch. Asset values, scene setup and an 11-step smoke test written to `Docs/Day04_Asset_Values.md`; the developer authored the fourteen assets in the Editor and the smoke test passed. Three things surfaced during that authoring pass and are worth knowing about. Reading the finished `.asset` YAML against the tables caught four transcription slips, one of them consequential: the Inn's Housing Capacity effect had received the *cost* curve, so a level-1 Inn granted 50 beds instead of 2 — a reminder that hand-copied curve fields are worth diffing rather than eyeballing, since a wrong effect looks exactly like a right one in the Inspector. Town and City had both kept Village's 3/3/3 gate, which would have collapsed the tier gate into a single check and let a player walk to Capital on Village-level buildings. And `GameContent.OnValidate` warned "no guild tiers listed" against a perfectly populated asset: it resolved `StartingTier`, which dereferences the tier references, and Unity leaves those reading null for a moment while it reimports a referenced asset — validation in `OnValidate` must count array entries, never follow references. Fixed by checking `Tiers.Length`.
 6. **W1D6 — Save/load** — Written and compiling clean: six assemblies, zero CS errors, zero warnings, verified after import; the 10-step runtime pass in `Docs/Day06_Save_Verification.md` was still outstanding when this entry was written. A versioned JSON save now carries the guild tier, every building level, all four balances, the roster with levels, activity and rest timers, the quest runs in flight with their dispatch-time snapshots, the standing orders and the lifetime clock counters. `ISaveStore` and `FileSaveStore` joined the ad and IAP interfaces in `Core/Services`; `App/Saves/` gained the wire format, capture, restore, the migration ladder and the `GameSaveService` policy layer. Existing classes needed four small seams and nothing more, which the Day 4–5 read-only-state discipline had already paid for: `GuildState.RestoreState`, `SimulationClock.RestoreCounters`, `GameContent.FindTier` and a `GameLoaded` event. **The architectural bet was re-checked and still holds** — save/load spans all five feature assemblies, which is exactly the kind of pressure that would have forced a cross-feature reference, and it did not: capture and restore live in App, the features stayed Core-only, and nothing was added to `BuildingDefinition` or branched in `GuildState.Aggregate`. Four decisions worth carrying forward. **`JsonUtility`, not Newtonsoft** — no package to add before submission and no IL2CPP reflection worries, at the price of roughly seven significant figures on doubles, which the one precision-critical value dodges by being a `long` tick count. **The compatibility rule is about the schema file rather than the migration code**: fields are only added, never removed or renamed, which is what lets an old save deserialise into today's classes at all and makes most future changes need no version bump. **Restore repairs rather than refuses** — a save is not trusted to match today's catalogue, since a quest renamed in Week 2 orphans every save in the wild, so anything unresolvable is dropped and counted in a report instead of throwing. And **restoration is quiet**, which is a Day 7 constraint as much as a Day 6 one: loading a level-4 Tavern must not announce four upgrades, so a screen cannot build its first frame from change events and has to read state directly on `GameLoaded`. Two smaller things: the PlayerPrefs stamp was deleted rather than migrated, because the builds that wrote it never persisted a guild and honouring it would pay offline earnings for a guild that was never there; and saving runs off pause, quit *and* a 30-second autosave, because iOS calls `OnApplicationQuit` only sometimes and a crash calls neither. `Docs/Day06_Save_Verification.md` carries the schema, the compatibility rules and a 10-step pass whose last three steps deliberately corrupt the save and delete content out from under it — the Day 20 hardening item, brought forward to the day the code was written.
 7. **W1D7 — UI Toolkit scaffolding** — Written and compiling clean: seven assemblies now, zero CS errors, zero warnings, verified after import; the 10-step pass and the two Editor setup steps were still outstanding when this entry was written. The grey-box interface exists: USS design tokens, a component stylesheet built entirely on them, and Guild Hall / Quests / Roster behind a bottom tab bar with the upgrade panel as an overlay raised from a building card. The structural decision of the day was **moving `IdleGuild.UI` above `App` and letting it reference everything** — a screen has to render a `BuildingDefinition` and call a service, which is the same cross-assembly pressure that created App, one layer up. The features stayed Core-only, so the bet is intact; the honest cost is that *views hold no rules* is now discipline rather than a compile error, and `GuildContext` exists to write that rule down where it will be read. Three things worth carrying forward. **Events set a flag and a 100 ms tick acts on it** — an idle game's numbers change continuously while its structure changes rarely, so polling values and rebuilding on demand beats either alone, and a handler that only sets a bool cannot take another subscriber down with it when `EventBus` abandons a publish on an exception. **The overlay reads effects off the asset** and evaluates the curve at the current and next level, so it explains a Tavern without knowing what a Tavern is — the data-driven architecture doing for the interface what it already does for the simulation, and the reason a badly shaped curve will now be visible in the game rather than only in the Inspector. And **every refusal says why**: the services' outcome enums become sentences through `Outcomes.Describe` and land in a toast, which is the payoff for those returns not being bools and the reason no disabled button in this game is silent. Two smaller decisions: the hierarchy is built in C# rather than UXML, on the reading that the styling principle is about USS versus the Inspector and is equally satisfied by code adding class names — with the side benefit that a mis-wired button fails at compile time instead of at runtime; and safe-area insets went in on the day the first screen was built rather than on Day 22, since the Editor reports the whole screen as safe and a tab bar under the home indicator is otherwise found during the bug bash with three weeks of screens stacked on it. Day 7 needs two Editor steps that cannot be done from a text editor — a Panel Settings asset and the scene wiring — both written up in `Docs/Day07_UI_Setup.md` along with a 10-step pass whose step 6 is the Week 1 checkpoint itself.
+8. **W2D8–9 — Building trees** — Data only; no code changed. The first-pass curves were modelled end to end and failed structurally rather than numerically: **all three buildings hit level 10 at 2h15m while Capital was still two hours away**, so the back half of the game had nothing to buy and gold ended at 22 million against a cost curve that had stopped. Sixty-four purchase decisions in the whole game. The cause was Max Level 10 stretched across four tiers. The obvious fix made it worse in an instructive way — a uniform 40-level tree at 34% cost growth left **the top eleven levels unreachable**, time-per-level diverging, 200 simulated hours failing to close them — which exposed the real finding: **only the Tavern compounds.** Reward Yield multiplies gold without bound; Training Room power stops shortening a quest at four times recommended power and Inn recovery can only remove the rest half of a cycle, so charging geometric prices for bounded benefits is what put the tail out of reach. The trees are therefore deliberately asymmetric — Tavern 90 levels at 15% growth as the compounding spine, Training Room 40 at 19%, Inn 30 at 21% — with the tier gate doing the job it was always designed for, stopping the player tunnelling into the Tavern alone. Result: 195 purchase decisions, Capital at 4h07m, everything maxed at 17h21m, longest stretch with nothing to buy down from hours to 52 minutes, and every effect still improving at max level. **The reputation thresholds are derived rather than chosen** — 75% of what the guild actually holds when the building half of each gate closes, so reputation confirms the player has been questing instead of becoming the wall, since a player blocked on gold can spend their way out and one blocked on reputation can only wait. Three things worth carrying forward. The three MVP quests had to be re-costed on a buildings day, because a building tree cannot be balanced against fixed quest rewards — buildings only matter as a multiplier on what a quest pays. **The values were written straight into the `.asset` YAML rather than retyped through the Inspector**, which is the direct lesson of Day 4–5's four transcription slips, one of which handed the Inn's Housing Capacity effect the cost curve and gave a level-1 Inn 50 beds. And the model is now in the repo at `Docs/tools/guild_model.py`, because the shape of a curve is not visible in the Inspector and no amount of staring at the asset would have shown any of this. Days 10–11 inherit a written spec for the tier-3 and tier-4 quests the curves were tuned against, plus two problems the modelling surfaced: higher-rarity archetypes are currently pointless next to the Training Room's guild-wide bonus, and adventurer Max Level 10 saturates long before the buildings do.
 
 ---
 

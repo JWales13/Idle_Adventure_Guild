@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: IdleGuild.Quests::IdleGuild.Quests.QuestDefinition
   _id: rat_infested_cellar
   _displayName: Rat Infested Cellar Cleanup
-  _description: 
+  _description: 'The brewer swears they are the size of dogs. They are not, but the cellar does need clearing.'
   _questTier: 1
   _minimumTierOrder: 0
   _requiredAdventurers: 1
   _recommendedPower: 4
   _baseDurationSeconds: 45
   _baseFailureChance: 0.05
-  _goldReward: 30
-  _reputationReward: 2
+  _goldReward: 48
+  _reputationReward: 3

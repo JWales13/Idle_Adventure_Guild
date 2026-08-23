@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: IdleGuild.Quests::IdleGuild.Quests.QuestDefinition
   _id: bandit_patrol
   _displayName: Bandit Patrol
-  _description: 
+  _description: 'Two weeks of missing carts on the north road. The reeve will pay for a week of quiet.'
   _questTier: 1
   _minimumTierOrder: 0
   _requiredAdventurers: 2
   _recommendedPower: 14
   _baseDurationSeconds: 90
   _baseFailureChance: 0.12
-  _goldReward: 90
-  _reputationReward: 6
+  _goldReward: 145
+  _reputationReward: 10

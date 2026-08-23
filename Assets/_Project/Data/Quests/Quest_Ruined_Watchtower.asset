@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: IdleGuild.Quests::IdleGuild.Quests.QuestDefinition
   _id: ruined_watchtower
   _displayName: Ruined Watchtower
-  _description: 
+  _description: 'Something has moved into the old tower, and the shepherds have stopped going near it.'
   _questTier: 2
   _minimumTierOrder: 1
   _requiredAdventurers: 2
-  _recommendedPower: 40
-  _baseDurationSeconds: 180
-  _baseFailureChance: 0.18
-  _goldReward: 320
-  _reputationReward: 20
+  _recommendedPower: 45
+  _baseDurationSeconds: 150
+  _baseFailureChance: 0.16
+  _goldReward: 375
+  _reputationReward: 25
