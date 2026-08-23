@@ -197,8 +197,22 @@ Two structural decisions made on Day 1, both flagged as reversible:
 - **Assembly definitions per feature.** Principle 01 says systems talk through events and interfaces rather than direct references. An `.asmdef` per feature turns that from a convention into a compile error — a feature that reaches into another feature's internals will not build. This is the mechanism that makes "add Quest Board and Armory without touching shipped code" checkable rather than aspirational.
 - **Features depend on `Core` and on nothing else.** No cross-feature references at all; anything shared travels through `Core` events and interfaces. Deliberately the strictest arrangement, because loosening it later is a one-line asmdef edit and tightening it later is a refactor. If it proves too strict during Day 4–5 loop work, add the reference and note it here.
 
+### Working arrangement
+
+Implementation runs in **Claude Cowork**, not a terminal session. Its shell is a Linux VM with the project folder mounted, which has two consequences that hold until decided otherwise:
+
+- **Claude writes and edits files; the developer runs every git command.** The bridge blocks file deletion, and git needs to unlink constantly (lock files, temp objects), so git *writes* from Claude's side leave stale `.git/*.lock` files and orphaned `tmp_obj_*` behind — which then block the developer's own git until cleared by hand. Day 1's commit was made this way once and cost two manual interventions; don't repeat it. Claude stages the work and states the intended commit message; the developer commits.
+- **Unity Editor and Xcode steps are manual.** `unity` and `dotnet` are not on Claude's PATH. Fine for Days 2–7, which are entirely file-level. **Week 4 (Days 22–26: device builds, TestFlight, App Store Connect) is not solvable from Cowork** and needs either a terminal session or the developer driving Xcode directly. Decide before Day 22, not on it.
+
+Recovery command if a git operation from Claude's side ever leaves debris:
+
+```
+cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/maintenance.lock && find .git/objects -name 'tmp_obj_*' -delete && git status
+```
+
 **Open decisions carried forward:**
 
+- **Week 4 execution surface undecided** — see Working arrangement. The hard deadline for this one is Day 22.
 - **Ad network not chosen** — Day 18 needs one (Unity LevelPlay / AdMob / Unity Ads). The `IAdService` boundary lets the choice wait, but not past Week 3.
 - **IAP provider not chosen** — same shape; `IPurchaseService` defers it to Day 19. Unity IAP is the path of least resistance given the project is already Unity.
 - **Bundle ID and product name still template defaults** — `DefaultCompany` / `Idle_Adventure_Guild` in ProjectSettings. Needed for the App Store Connect record and worth reserving early, per the §04 lead-time note.
@@ -232,10 +246,11 @@ the real SDK arrives Week 3 behind those interfaces. See Repository layout in
 Known issues/blockers: ad network and IAP provider still unchosen (needed by
 Week 3); bundle ID and product name still template defaults.
 
-Note on environment: if this session runs in Claude Cowork rather than a
-terminal, its shell is a Linux VM with the project folder mounted — git works,
-but `unity` and `dotnet` do not, so Editor and Xcode steps have to be driven
-manually. Say so early rather than assuming a macOS shell.
+Working arrangement (see §06): this runs in Claude Cowork, whose shell is a
+Linux VM with the project folder mounted. You write and edit files; I run all
+git commands myself — do not run git writes, they leave stale locks that block
+my terminal. Stage the work and tell me the commit message you'd use. Unity
+Editor and Xcode steps are mine to drive too.
 
 Follow the Principles section of this doc (Clean Code, data-driven
 ScriptableObject architecture, event-driven decoupling, UI Toolkit/USS
