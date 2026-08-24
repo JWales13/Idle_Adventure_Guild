@@ -66,7 +66,8 @@ namespace IdleGuild.Quests
 
         /// <summary>
         /// Chance this run fails. The base rate applies at exactly the recommended power,
-        /// doubles as the party falls to half of it, and reaches zero at twice it. The
+        /// rises linearly as the party falls short of it — 1.5x the base at half power,
+        /// 2x at no power at all — and reaches zero at twice it. The
         /// Armory's Failure Rate Reduction is subtracted afterwards; it reads zero until
         /// that building ships, which is what leaves a flat base rate for the MVP.
         /// </summary>

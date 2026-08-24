@@ -255,6 +255,15 @@ fill the stretches where only an expensive Tavern level was on offer.
 
 ## 8. Verification
 
+> **⚠ Steps 2, 3, 5, 6, 7 and 9 are now automated.** They live in the EditMode suite at
+> `Assets/_Project/Tests/Editor/` — see `Docs/Tests.md`. Run that instead: Window →
+> General → Test Runner → EditMode → Run All, about 50 ms. Step 1 has been run and passed.
+> What is left by hand is **step 4** (a pacing judgement), the *colour* half of **step 6**
+> (USS resolving a class is not something a test can see), and the *is-it-fair* half of
+> **step 8**, which needs a played-in save and belongs to Day 14. Roughly fifteen minutes
+> rather than forty.
+
+
 No Editor steps were needed to author any of this: every value was written straight into
 the `.asset` YAML, which is the Day 8–9 practice and the direct lesson of Day 4–5's four
 transcription slips. Focus the Editor to reimport, then:

@@ -1,0 +1,109 @@
+{
+    "SchemaVersion": 1,
+    "SavedAtUtcTicks": 639231370823688910,
+    "GameVersion": "1.0",
+    "GuildTierId": "metropolis",
+    "Buildings": [
+        {
+            "Id": "tavern",
+            "Level": 5
+        },
+        {
+            "Id": "training_room",
+            "Level": 4
+        },
+        {
+            "Id": "inn",
+            "Level": 5
+        },
+        {
+            "Id": "quest_board",
+            "Level": 3
+        }
+    ],
+    "Currencies": [
+        {
+            "Currency": 0,
+            "Amount": 24054.1755708456
+        },
+        {
+            "Currency": 1,
+            "Amount": 1678.1594064235687
+        },
+        {
+            "Currency": 2,
+            "Amount": 0.0
+        },
+        {
+            "Currency": 3,
+            "Amount": 0.0
+        }
+    ],
+    "Adventurers": [
+        {
+            "InstanceId": "5f1dc3394c2242aa94c864ca43b3b9d6",
+            "DefinitionId": "hedge_knight_retired",
+            "Level": 2,
+            "Activity": 2,
+            "ActiveQuestInstanceId": "",
+            "RestRemainingSeconds": 9.207020279876666
+        },
+        {
+            "InstanceId": "be3de9897d3244399d261e3ebc484d35",
+            "DefinitionId": "militia_recruit",
+            "Level": 2,
+            "Activity": 2,
+            "ActiveQuestInstanceId": "",
+            "RestRemainingSeconds": 9.207020279876666
+        },
+        {
+            "InstanceId": "2b9b5e846dfc43e1b4bf5dd4a443217a",
+            "DefinitionId": "militia_recruit",
+            "Level": 2,
+            "Activity": 1,
+            "ActiveQuestInstanceId": "ce2823e71675443f9e99496e64432dfc",
+            "RestRemainingSeconds": 0.0
+        }
+    ],
+    "QuestRuns": [
+        {
+            "InstanceId": "ce2823e71675443f9e99496e64432dfc",
+            "DefinitionId": "goblin_ambush",
+            "PartyInstanceIds": [
+                "2b9b5e846dfc43e1b4bf5dd4a443217a"
+            ],
+            "TotalSeconds": 34.13136431112282,
+            "RemainingSeconds": 4.085412941829567,
+            "FailureChance": 0.013086402788758278,
+            "GoldOnSuccess": 61.06069564819336,
+            "ReputationOnSuccess": 3.816293478012085
+        }
+    ],
+    "Assignments": [
+        {
+            "Id": "cc9eeeea9af34b33bdddd464d70dd7a5",
+            "QuestId": "bandit_patrol",
+            "MemberInstanceIds": [
+                "5f1dc3394c2242aa94c864ca43b3b9d6",
+                "be3de9897d3244399d261e3ebc484d35"
+            ],
+            "Repeat": true,
+            "ActiveQuestInstanceId": ""
+        },
+        {
+            "Id": "92e7b7cfade5410e99657ed412d6fad1",
+            "QuestId": "rat_infested_cellar",
+            "MemberInstanceIds": [
+                "2b9b5e846dfc43e1b4bf5dd4a443217a"
+            ],
+            "Repeat": true,
+            "ActiveQuestInstanceId": "ce2823e71675443f9e99496e64432dfc"
+        }
+    ],
+    "Clock": {
+        "TotalSecondsSimulated": 14481.663847340953,
+        "QuestsCompleted": 219,
+        "QuestsSucceeded": 207,
+        "QuestsFailed": 12
+    }
+}

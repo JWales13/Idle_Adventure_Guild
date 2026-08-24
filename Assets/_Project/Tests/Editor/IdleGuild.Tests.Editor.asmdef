@@ -1,0 +1,30 @@
+{
+    "name": "IdleGuild.Tests.Editor",
+    "rootNamespace": "IdleGuild.Tests",
+    "references": [
+        "IdleGuild.Core",
+        "IdleGuild.Economy",
+        "IdleGuild.Adventurers",
+        "IdleGuild.Quests",
+        "IdleGuild.Guild",
+        "IdleGuild.App",
+        "IdleGuild.UI",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
