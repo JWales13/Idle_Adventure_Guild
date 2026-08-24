@@ -1,7 +1,8 @@
 # The test suite
 
 An EditMode assembly at `Assets/_Project/Tests/Editor/`. Run it from
-**Window → General → Test Runner → EditMode → Run All**. It takes about 50 ms.
+**Window → General → Test Runner → EditMode → Run All**. **64 tests**, all green, in
+well under a second.
 
 There is no `dotnet` or `unity` on the Cowork shell, so tests are written there and run
 here. That loop is the same one compiling already uses.
@@ -63,6 +64,13 @@ that something else is wrong.
 | `PresentationTests` | step 6 (part) | every rarity has its own class, every refusal has a sentence, every stat has a player-facing name |
 | `SaveRoundTripTests` | step 2 (part) | capture → JSON → probe → restore, reset semantics, garbage refused, delete removing every copy |
 | `SaveFixtureTests` | step 2 (rest) | real save files this build did not write |
+| `RosterRatchetTests` | Day 12 | a full guild can always make room; both refusals, in the right order; a refused dismissal does not half-happen; no refund |
+| `PartyFormationTests` | Day 12 | the run in flight survives a re-form untouched; the new party goes out next; exact party size; the refuse → re-form → release → retire route end to end |
+
+Day 12's seventeen tests introduced no new `BalanceCanary`. Not one of them names a bed
+count, a recruit cost or a rarity threshold — the roster tests hire against the *gate*
+(`while Preview(...) == Recruited`) rather than against a number, precisely so that a
+Day 13 Inn of fourteen or eighteen beds leaves them just as true.
 
 ### Still manual, and why
 
@@ -73,8 +81,14 @@ that something else is wrong.
 - **Step 8 — is it *appropriately* hard.** The clamps are pinned. Whether Dragon's Roost
   reads as a fair fight at a guild that earned its way to Capital needs a played-in save,
   and belongs to Day 14.
+- **Day 12's four**, all the same species as step 6. `button--destructive` resolving to
+  the negative colour and a disabled Retire still looking disabled; a sixteen-row party
+  picker fitting the phone; the selected row being unambiguous at a glance; and whether
+  the retire confirmation reads as informative rather than as a scolding. Listed with
+  their reasoning in §8 of `Docs/Day12_Roster_And_Parties.md`.
 
-Call it fifteen minutes of hand-checking rather than forty.
+Call it twenty-five minutes of hand-checking rather than forty, and most of it wants
+Day 14's played-in save anyway.
 
 ---
 
@@ -105,6 +119,11 @@ actually needed repairing. It should report one unknown building, one dropped ad
 one dropped run, one dropped order, one member sent home and a tier fallen back — with
 building levels and balances untouched, because the guild around the damage is meant to be
 left standing.
+
+**The fixtures do run.** They were written and left unverified, and the Day 12 baseline
+of 47 — 43 plus these four — is the first positive record of them executing. Worth
+saying because the third fixture is still the only thing that has ever exercised the
+Day 6 repair path against a file that actually needed repairing.
 
 **Add a fixture whenever the format or the meaning of a value in it changes.** They cannot
 be recreated once lost, only approximated: the original Week-1 save was overwritten by an

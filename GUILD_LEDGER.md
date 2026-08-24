@@ -173,7 +173,21 @@ where things stand in a sentence or two before writing any code.
 
 ### Current status
 
-**Current status:** Week 2, Days 10–11 complete. Unity project at `~/Idle_Adventure_Guild` (Unity **6000.5.0f1**, Universal 2D / URP), published to a **private GitHub repo** and managed through **GitHub Desktop**. The core loop was finished on Days 4–5 and the 11-step smoke test in `Docs/Day04_Asset_Values.md` passed against the fourteen ScriptableObject assets, with the scene wired at `Assets/_Project/Scenes/Guild.unity` (a `Game` object carrying `GameBootstrap` and `DebugConsoleOverlay`).
+**Current status:** Week 2, Day 12 complete.
+
+Day 12 gave the game its first two reversible decisions. Retiring an adventurer
+(`RecruitmentService.PreviewDismissal` / `TryDismiss`) unwinds the bed ratchet, and
+re-forming a standing order's party (`QuestDispatchService.TryReformParty`) unwinds the
+frozen-party half of the same problem — with one party picker serving both a first
+dispatch and a re-form, showing party power and the resulting duration before the player
+commits. **No `.asset` file was touched, no save field was added, and
+`SaveSchema.CurrentVersion` did not move.** Four new files, ten changed; eight assemblies
+recompiled with zero `error CS` and zero new warnings, verified in `Logs/Editor.log`. The
+suite gained seventeen tests and **reports 64 green**. `Docs/Day12_Roster_And_Parties.md` carries the reasoning, the
+two behaviour narrowings, and a modelling correction that matters more than the code —
+see the resolved list below.
+
+**Week 2, Days 10–11.** Unity project at `~/Idle_Adventure_Guild` (Unity **6000.5.0f1**, Universal 2D / URP), published to a **private GitHub repo** and managed through **GitHub Desktop**. The core loop was finished on Days 4–5 and the 11-step smoke test in `Docs/Day04_Asset_Values.md` passed against the fourteen ScriptableObject assets, with the scene wired at `Assets/_Project/Scenes/Guild.unity` (a `Game` object carrying `GameBootstrap` and `DebugConsoleOverlay`).
 
 Days 10–11 filled the top two tiers, and **the architectural bet passed its stated test: eighteen changed paths, not one of them a `.cs` file.** The tier assets already raised Max Quest Tier and quest slots; what was missing was content to unlock. Two quests (`sunken_crypt`, `dragons_roost`) and two archetypes (Arcane Battlemage, Dragonsworn Champion) were authored, adventurer Max Level went 10 → 25 with re-spaced power and training curves across all five archetypes, and City's reputation gate re-derived from 28,000 to 65,000. The Epic and Legendary bands appeared in the game fully styled and explained without a line of UI being written — `Format.RarityClass`, `Outcomes.Describe` and the rarity tokens in `Tokens.uss` had all been written on Day 7 and never exercised. `Docs/Day10_Tier_Transitions.md` carries the tables, the reasoning and a 9-step verification pass. **Step 1 has been run and passes** — all nine changed assets imported clean, no `OnValidate` warning from any of them, and `Library/ScriptAssemblies/IdleGuild.*.dll` were last written more than two hours before the first asset was, so Unity did not recompile at all. Steps 2–9 are Editor-side and still outstanding. A **separate follow-up commit** then fixed the long-standing `OnValidate` false alarms that step 1 surfaced — see the resolved list below. A third commit replaced most of that pass with tests: an eighth assembly, `IdleGuild.Tests.Editor`, holding **43 EditMode tests that run in 46 ms and all pass**, plus three checked-in save fixtures. `Docs/Tests.md` is the standing reference for it. Steps 4, the colour half of 6 and the is-it-fair half of 8 stay manual — about fifteen minutes rather than forty.
 
@@ -189,7 +203,11 @@ The passes earned their keep immediately. Step 1 of the Day 6 document found a r
 
 The Week 1 checkpoint holds, minus the UI that Day 7 adds.
 
-**Next action:** Week 2, Day 12 — recruitment and assignment UI. Run the EditMode suite first (Test Runner → Run All, ~50 ms) as a baseline, and again before committing. It arrives with two requirements Days 10–11 discovered rather than invented, both written up in §6 of `Docs/Day10_Tier_Transitions.md`: **a dismiss/retire action** (`AdventurerRoster.Remove` exists and nothing calls it, so filling a bed is currently irreversible and can lock a player out of the Legendary archetype for good), and **re-forming a standing order's party must be easy to reach** (`QuestAssignment` holds its party for the life of the order, so a newly hired Champion is inert until the player cancels and re-dispatches). Day 13's balance pass then has a model that reports two player profiles rather than one.
+**Next action:** Week 2, Day 13 — first balancing pass. Run the EditMode suite first as a baseline and again before committing, as always.
+
+Day 13 inherits a live question rather than a clean slate, and it is written up in §7 of `Docs/Day12_Roster_And_Parties.md`. Adding the retire action to `guild_model.py` moved the pacing figures **on unchanged assets**: patient 5h53m → 5h41m to Capital and 20h31m → **22h50m** to everything-maxed, impatient 4h30m → 4h16m and 15h30m → **17h45m**. Those four numbers, not the Days 10–11 ones, are what a retune compares against. Two findings come with them. **Retiring makes the game about two hours longer** — it is a gold sink, full price again and the replacement restarts at level 1 — and **the impatient player still never fields a Legendary**, because by the time they can afford a Champion their Battlemages have out-trained a level-1 one. So Day 12 rescued them from wasted beds and not from the archetype ceiling.
+
+Treat the two model runs as a bracket on one policy decision rather than as an answer: ranking swaps by fully-trained potential gives sixteen Legendaries and a 28-hour game, strict immediate improvement gives no Legendary and 17h45m, and a real player who wants a Champion sits between. Deciding which the game should encourage is Day 13's job.
 
 ### The central architectural bet, and how to check it still holds
 
@@ -255,8 +273,20 @@ Champion.
 The content is authored so that both outcomes are playable, and the roster screen shows
 the locked archetype with its reason so the choice is legible rather than hidden. But
 **an irreversible decision made on incomplete information is a trap wearing a decision's
-clothes**, which is why Day 12 owes the game a dismiss action. It is a service method
+clothes**, which is why Day 12 owed the game a dismiss action. It is a service method
 around a method that already exists, plus a confirm dialog.
+
+**Day 12 shipped it, and the model then said something more interesting than "fixed".**
+`TryDismiss` refuses while the adventurer is out on a quest or committed to a standing
+order — refusing rather than cascading, because removing a member of a live order would
+leave `TryStartRun` failing silently for the rest of the run, which is this document's
+own destructive-action-that-undoes-itself lesson wearing yet another hat. Re-forming is
+what releases them, which is why the two halves shipped together. What the model then
+showed is that **the ratchet was two locks, not one, and only the structural one is
+gone**: beds free up, but a player whose Battlemages are trained will not swap them for a
+level-1 Champion, so the top band stays out of reach on economic grounds. See §7 of
+`Docs/Day12_Roster_And_Parties.md`. The general shape survives the fix: a reversible
+decision is not the same as a cheap one.
 
 The same shape appears once more nearby: **a `QuestAssignment` holds its party for the
 life of the order.** Hiring someone better changes nothing until the player cancels the
@@ -382,6 +412,8 @@ Assets/_Project/
       HallView.cs / BuildingCard.cs                   home: tier gate, stats, buildings
       BuildingDetailOverlay.cs                        the upgrade panel, and Week 3's overlay pattern
       QuestsView.cs / RosterView.cs                   work, and people
+      ConfirmOverlay.cs                               one question, two answers; ConfirmRequest
+      PartyOverlay.cs                                 who goes, for a new order and an existing one
   Data/          ScriptableObject asset instances
     Buildings/ Tiers/ Adventurers/ Quests/   and GameContent.asset alongside them
 ```
@@ -415,13 +447,25 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 - **Week 4 execution surface undecided** — see Working arrangement. Hard deadline Day 22.
 - **Ad network not chosen** — Day 18 needs one (Unity LevelPlay / AdMob / Unity Ads). The `IAdService` boundary lets the choice wait, but not past Week 3.
 - **IAP provider not chosen** — same shape; `IPurchaseService` defers it to Day 19. Unity IAP is the path of least resistance given the project is already Unity.
-- **Bundle ID and product name still template defaults** — `DefaultCompany` / `Idle_Adventure_Guild` in ProjectSettings. Needed for the App Store Connect record and worth reserving early, per the §04 lead-time note.
+- **Bundle ID and product name still template defaults** — `DefaultCompany` / `Idle_Adventure_Guild` in ProjectSettings. Needed for the App Store Connect record and worth reserving early, per the §04 lead-time note. **They are also the save directory**, confirmed in the log as `~/Library/Application Support/DefaultCompany/Idle_Adventure_Guild/`, so changing either strands every existing save — including any worth keeping as a test fixture. Capture what you want to keep *before* renaming, since §4 of `Docs/Tests.md` is right that a save file cannot be recreated once lost.
 - **The save file is plain text and trivially editable**, timestamp included, which means free offline earnings for anyone who opens it. A Week 3 hardening item with a soft deadline of Day 20, and the fix is a checksum rather than encryption — the goal is to make casual editing visible, not to defeat a determined player. Quarantined `guild_save.json.corrupt-*` files are also never cleaned up automatically; decide by Day 20 whether to cap them.
 - **The debug console must be deleted or excluded before submission.** `DebugConsoleOverlay` disables itself outside development builds, so it is not a shipping risk today, but leaving dev UI in a store binary is the kind of thing that reads badly in review. Hard deadline Day 22.
 - Building count (3 for MVP, architected to scale to 5) and building effects remain finalized.
 - **`Docs/tools/guild_model.py` is a copy of the balance numbers and will drift.** It replicates the loop well enough to have found the Day 4–5 structural failure, but it is a model, not a source of truth: update it in the same commit as any asset change. A drifted model is worse than no model, because its answers stay confident. **It is also a copy of a *player*, and that half drifts too** — Days 10–11 found its hiring rule had never once bought a non-Common adventurer, so a question about rarity it appeared to answer, it had never actually asked. When a run says content is pointless, check the policy can reach that content before believing it.
-- **A dismiss/retire action is owed to the roster, deadline Day 12.** See "The roster is a one-way ratchet" above. Without it, filling the last bed with the wrong archetype permanently locks a player out of the Capital-tier unlock.
+- **The model's swap policy is Day 13's to settle.** `guild_model.py` now has a retire rule, and the choice inside it moves the endgame by ten hours: ranking swaps by fully-trained potential churns the roster to sixteen Legendaries and a 28-hour game, while requiring an immediate improvement gives no Legendary at all and 17h45m. The committed version is the second, because the first throws away every level of training bought along the way and is an arbitrage bug rather than a player. Neither is *right*; §7 of `Docs/Day12_Roster_And_Parties.md` has the bracket.
 - **`AssetValidation` is the eighth thing in Core and the first that exists only for the editor.** It is small, it is `[Conditional("UNITY_EDITOR")]` so it compiles out of a player build, and every feature already depends on Core — but it is worth naming here rather than letting it arrive unannounced, because Core is the assembly the whole architecture leans on and the bar for adding to it should stay high. If a second editor-only utility ever wants to join it, that is the moment to give them their own editor assembly instead.
+
+**Resolved on Day 12:**
+
+- **The four `SaveFixtureTests` do run.** Carried into this session as "written and compile clean, but no record of them ever having been run — confirm the suite reports 47 rather than 43 before trusting them." The Day 12 baseline reported 47, and the post-change run reports 64 against seventeen added tests. So the fixtures are live, including the one pointing at content no build has ever had — still the only thing that has ever exercised the Day 6 repair path against a file that actually needed repairing.
+
+- **The roster is no longer a one-way ratchet, and the model says the fix is narrower than it looks.** `TryDismiss` and `TryReformParty` are both service methods over machinery that already existed, and the interesting part was never the code. Retiring **refuses** while somebody is out on a quest or belongs to a standing order rather than cascading through their order, because the cascade's naive form — remove the member, leave the order standing — is this project's own recurring failure: `TryStartRun` would have returned false for the rest of the run with a standing order on screen that simply never went out again. Re-forming is what releases them, so the two halves are one route and there is a test that walks it end to end. Nothing is refunded; reversibility was what the roster lacked, not a rebate. **What the model then found is worth more than the feature**: adding the action moved everything-maxed from 20h31m to 22h50m and 15h30m to 17h45m *on unchanged assets*, because retiring is a gold sink, and the impatient player **still** never fields a Legendary — beds free up, but trained Battlemages out-earn a level-1 Champion, so the structural lock became an economic one. **A reversible decision is not the same as a cheap one**, and Day 13 inherits the question of which way that should lean.
+
+- **Re-forming a party mid-run was free, and the reason is a Day 4–5 decision paying out a second time.** `ActiveQuest` snapshots its own party at dispatch and `SimulationClock.SendPartyToRest` sends *that* snapshot home rather than reading the assignment — so replacing an order's party leaves the run in flight untouched: no recall mid-dungeon, no timer moving under the player, no reward recomputed. `QuestAssignment.MemberInstanceIds` was documented as fixed for the life of the *assignment*; it was always really fixed for the life of a *run*, and nobody had needed to notice. Deliberately **not** gated on the order being idle, because the window between runs of a repeating order is a few seconds of rest and an edit a player can only make by catching that window is an edit they will never make.
+
+- **Two behaviour narrowings that went past the brief, both reversible and both written down.** A party is now **exactly** the size the quest asks for rather than at least — previously unreachable, because no caller could assemble an over-size party by hand and so nothing had to say no; the picker can, and every duration and failure figure in the game was derived against the number on the asset. Widening it is Quest Board territory and a design decision for a later day, not a side effect of building a screen. And **"Send a party" now takes the strongest free adventurers rather than the first on the roster**, which is both better and what `guild_model.py` already assumed — the two disagreeing is how a modelled arc stops describing the real one.
+
+- **Nothing to migrate, and the reason is worth stating.** `SavedAssignment.MemberInstanceIds` is unchanged in name, type and meaning: on disk it has always meant *who is on this order*, and all that changed is that the running game can now write a different answer into it. So no version bump and no new fixture — §4 of `Docs/Tests.md` asks for one when the format or the meaning of a value changes, and neither did. `SaveRestore` still builds assignments directly rather than through `TryDispatch`, so a save holding an over-size party would still load and still run; **restoring repairs rather than refuses**, and refusing a guild over a party-size rule invented on Day 12 would be the wrong trade.
 
 **Resolved on Days 10–11:**
 
@@ -454,7 +498,7 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 
 ```
 I'm continuing work on Idle Adventurer's Guild, a solo Unity idle-tycoon game
-(fantasy adventurers' guild theme), targeting App Store submission with 18
+(fantasy adventurers' guild theme), targeting App Store submission with 17
 days left against the original 4-week deadline (target submission by Day 26,
 buffer through Day 28).
 
@@ -464,83 +508,111 @@ particular attention to "The central architectural bet", "The roster is a
 one-way ratchet" and "Working arrangement" in section 06, then read
 Docs/Tests.md, which is short and changes how you verify things.
 
-Current position: Week 2, Day 12 - "Core Gameplay Complete"
+Current position: Week 2, Day 13 - "Core Gameplay Complete"
 Last completed: Week 1 in full, Days 8-9 (building trees), Days 10-11 (tier
-transitions), and an unplanned follow-up that turned most of the Days 10-11
-verification pass into tests. Unity 6000.5.0f1 / URP 2D, private GitHub repo
-via GitHub Desktop. Eight assemblies now: five feature assemblies depending on
-Core and nothing else, IdleGuild.App above them holding composition and
-cross-feature transactions, IdleGuild.UI above that, and IdleGuild.Tests.Editor
-above everything with nothing referencing it. Days 10-11 filled the City and
-Capital tiers with two quests (sunken_crypt, dragons_roost) and two archetypes
-(Arcane Battlemage, Epic; Dragonsworn Champion, Legendary), raised adventurer
-Max Level from 10 to 25 with re-spaced power and training curves on all five
-archetypes, and re-derived City's reputation gate to 65,000 - all data, zero
-.cs changed, which was the architectural test that day existed to run.
-Docs/Day10_Tier_Transitions.md has the tables and the reasoning;
-Docs/Day08_Building_Trees.md is still current for the three building trees;
-Docs/tools/guild_model.py is a runnable model of the loop.
-Next task: Day 12 - recruitment and assignment UI. Read section 6 of
-Docs/Day10_Tier_Transitions.md first: it names two requirements this day
-inherits, both found by modelling rather than invented. (1) The roster needs a
-dismiss/retire action. AdventurerRoster.Remove already exists and only save
-restoration calls it, so filling a bed is currently irreversible - and since
-the Inn caps at 16 beds while a Capital guild fields 12, a player who spends
-spare beds on Epics during City can never hire a Legendary at all. (2)
-QuestAssignment holds its party for the life of the order, so a newly hired
-Champion is inert until the player cancels and re-dispatches; re-forming a
-party has to be easy to reach or the best hire in the game sits on the bench.
-Both are UI-and-service work, not data.
-Testing: there is an EditMode suite at Assets/_Project/Tests/Editor/ - 43 tests
-that run in about 46 ms, all passing as of the last run. Run it (Window >
-General > Test Runner > EditMode > Run All) before you start and before you
-commit. Two things to know before touching it. It asserts SHAPE rather than
-NUMBERS on purpose, so a balance pass should not make it flicker; the handful
-that do assert values are tagged [Category("BalanceCanary")] and are expected
-to be updated deliberately. And it loads the real .asset files through
-AssetDatabase rather than building fixtures in code, because every content
-failure this project has had was a wrong value in a shipped asset and a
-hand-built fixture would repeat the same misreading. Docs/Tests.md explains the
-rest, including the three save fixtures and why they are permanent.
+transitions), an unplanned follow-up that turned most of that verification pass
+into tests, and Day 12 (recruitment and assignment UI). Unity 6000.5.0f1 /
+URP 2D, private GitHub repo via GitHub Desktop. Eight assemblies: five feature
+assemblies depending on Core and nothing else, IdleGuild.App above them holding
+composition and cross-feature transactions, IdleGuild.UI above that, and
+IdleGuild.Tests.Editor above everything with nothing referencing it. Day 12
+shipped the two reversible decisions Days 10-11 asked for - retiring an
+adventurer, and re-forming a standing order's party - plus one party picker
+serving both a first dispatch and a re-form. Four new files, ten changed, no
+.asset touched and no save field added. Docs/Day12_Roster_And_Parties.md has the
+reasoning; Docs/Day10_Tier_Transitions.md is still current for adventurers,
+quests and the City reputation gate; Docs/Day08_Building_Trees.md for the
+building trees and the tier gates' building requirements.
+
+Next task: Day 13 - first balancing pass. Shape of the curve matters more than
+exact numbers. Read section 7 of Docs/Day12_Roster_And_Parties.md first, because
+this day does not start from a clean slate. Adding a retire rule to
+Docs/tools/guild_model.py moved the pacing figures ON UNCHANGED ASSETS: patient
+5h53m -> 5h41m to Capital and 20h31m -> 22h50m to everything-maxed, impatient
+4h30m -> 4h16m and 15h30m -> 17h45m. Those four are what a retune compares
+against, not the Days 10-11 ones. Two findings come with them. Retiring makes
+the game about two hours longer, because it is a gold sink - full recruit price
+again and the replacement restarts at level 1. And the impatient player STILL
+never fields a Legendary: beds free up and the Commons vanish from their final
+roster, but by the time they can afford a Champion their Battlemages have
+out-trained a level-1 one, so Day 12 turned a structural lock into an economic
+one. Treat the two model runs as a bracket on one policy decision rather than an
+answer - ranking swaps by fully-trained potential gives sixteen Legendaries and
+a 28-hour game, requiring an immediate improvement gives no Legendary and
+17h45m, and a real player who wants a Champion sits between. Deciding which the
+game should encourage is this day's job. Also worth re-checking on a balance
+day: the purchase-gap profile, which Days 8-9 said the model exists to protect
+(90th percentile was 5-7 minutes, worst gap 25).
+
+Testing: there is an EditMode suite at Assets/_Project/Tests/Editor/ - 64 tests,
+all green, running in well under a second. Run it (Window > General > Test Runner >
+EditMode > Run All) before you start and before you commit. Two things to know
+before touching it. It asserts SHAPE rather than NUMBERS on purpose, so a
+balance pass should not make it flicker; the handful that do assert values are
+tagged [Category("BalanceCanary")] and are expected to be updated deliberately -
+this day is exactly when that happens, and updating one is part of the work
+while updating an invariant is a warning that something else is wrong. And it
+loads the real .asset files through AssetDatabase rather than building fixtures
+in code, because every content failure this project has had was a wrong value in
+a shipped asset and a hand-built fixture would repeat the same misreading.
+Docs/Tests.md explains the rest, including the three save fixtures and why they
+are permanent. Note that none of Day 12's seventeen new tests is a BalanceCanary
+- they name no bed count, recruit cost or rarity threshold - so they should not
+move today.
+
 Deviations from the plan so far: none material. Day 1's "ad/IAP SDK package
 stubs" became interface stubs, with the real SDK arriving Week 3 behind those
 interfaces. Day 4-5 added IdleGuild.App above the features; Day 7 added
 IdleGuild.UI above App; Days 10-11 added IdleGuild.Tests.Editor above
-everything. All three are recorded as structural decisions in section 06, and
-in every case the features stayed Core-only. Days 8-9 touched quest assets on a
-buildings day. Days 10-11 deviated from the written tier-4 quest spec in
-section 3 of Day08_Building_Trees.md - Recommended Power 420 became 1,250, with
-gold and reputation raised to match - because at 420 every party a finished
-guild can field is already past QuestResolution's 4x speed clamp, so rarity and
-the last fifteen Training Room levels buy nothing measurable. That document
-explicitly authorised the change and warned the City and Capital tiers would
-move; they did. The test suite itself was not on the roadmap.
+everything. In every case the features stayed Core-only. Days 8-9 touched quest
+assets on a buildings day. Days 10-11 deviated from the written tier-4 quest
+spec in Day08_Building_Trees.md section 3 - Recommended Power 420 became 1,250
+with gold and reputation raised to match - because at 420 every party a finished
+guild can field is already past QuestResolution's 4x speed clamp. That document
+authorised the change. The test suite itself was not on the roadmap. Day 12
+narrowed two behaviours beyond its brief, both recorded in section 5 of its doc:
+a quest party must now be EXACTLY the size the quest asks for rather than at
+least (previously unreachable, since no caller could build an over-size party by
+hand, and every duration figure was derived against that number - widening it is
+Quest Board territory), and "send a party" now picks the strongest free
+adventurers rather than the first on the roster.
+
 Known issues/blockers: three steps of the Days 10-11 pass are still manual and
 still outstanding - step 4 (Town in about ten minutes, a pacing judgement), the
 colour half of step 6 (whether USS actually paints Epic purple), and the
-is-it-fair half of step 8 (whether Dragon's Roost reads as a fair fight at a
-guild that earned its way to Capital, which needs a played-in save and belongs
-to Day 14). About fifteen minutes. Everything else in that pass is now a test.
-Also: the four SaveFixtureTests were written and compile clean but I have no
-record of them being run - confirm the suite reports 47 rather than 43 before
-trusting them. Still open: Git LFS must be set up before the first art commit
-on Day 15 - its deadline is the commit, not the day. Ad network and IAP
-provider unchosen. Bundle ID and product name still template defaults - note
-these also set the save directory, so changing them moves existing saves. Save
-files are plain text and trivially editable, a Day 20 hardening item, along
-with capping the guild_save.json.corrupt-* quarantine files. The debug console
-must be deleted or excluded before submission, hard deadline Day 22. Week 4
-execution surface (device builds, TestFlight, App Store Connect) is not
-solvable from Cowork and needs deciding before Day 22.
+is-it-fair half of step 8 (Dragon's Roost at a guild that earned its way to
+Capital, which needs a played-in save and belongs to Day 14). Day 12 added four
+more of the same kind, listed at the end of section 8 of its doc: the
+destructive button reading as destructive, a sixteen-row party picker fitting
+the phone, the selected state being unambiguous, and whether the retire
+confirmation reads as informative rather than as a scolding. Call it
+twenty-five minutes of hand-checking in total, and most of it wants Day 14's
+played-in save anyway. Still open: Git LFS must be set up before the first art
+commit on Day 15 - its deadline is the commit, not the day. Ad network and IAP
+provider unchosen. Bundle ID and product name are still template defaults, and
+they are also the save directory
+(~/Library/Application Support/DefaultCompany/Idle_Adventure_Guild/), so
+changing either strands every existing save - capture anything worth keeping as
+a fixture BEFORE renaming. Save files are plain text and trivially editable, a
+Day 20 hardening item, along with capping the guild_save.json.corrupt-*
+quarantine files. The debug console must be deleted or excluded before
+submission, hard deadline Day 22. Week 4 execution surface (device builds,
+TestFlight, App Store Connect) is not solvable from Cowork and needs deciding
+before Day 22.
+
 Two documentation hazards worth knowing. Asset values live in three documents
 and the newest wins: Day10_Tier_Transitions.md is current for adventurers,
 quests and the City reputation gate; Day08_Building_Trees.md for the building
-trees and the tier gates' building requirements; Day04 only for GameContent,
-the scene setup and the smoke test. And the pacing figures published on Days
-8-9 (Capital 4h07m, everything maxed 17h21m) were about 13% optimistic - the
-model judged every party by the strongest party's power. Corrected, unchanged
-Day 8-9 assets give 4h41m and 19h37m, and those are the numbers to compare
-against.
+trees and the tier gates' building requirements; Day04 only for GameContent, the
+scene setup and the smoke test. Day12_Roster_And_Parties.md contains no asset
+values at all, so it does not enter that ordering - but it does carry the
+current pacing figures, which supersede the ones published on Days 10-11. And
+guild_model.py is a copy of both the balance numbers and the player, and both
+halves drift: Days 8-9 found it judging every party by the strongest party's
+power, Days 10-11 found its hiring rule had never once bought a non-Common
+adventurer, and Day 12 found it simulating a bed ratchet the game no longer has.
+When a run says something is pointless, check the policy can reach it before
+believing the answer.
 
 Working arrangement (see section 06): this runs in Claude Cowork, whose shell
 is a Linux VM with the project folder mounted - git exists but `unity` and
@@ -550,9 +622,11 @@ the commit message and I commit through the GUI. When you add scripts, ask me
 to focus the Unity Editor so it imports them, then verify by checking for
 Library/ScriptAssemblies/IdleGuild.*.dll and grepping Logs/ for "error CS".
 Tests are the same loop: you write them, I run them and paste failures.
-ScriptableObject values can be written directly into the .asset YAML rather
-than retyped through the Inspector, which is how Days 8-9 and 10-11 avoided a
-repeat of Day 4-5's transcription slips.
+guild_model.py runs fine on the Cowork shell (python3, no dependencies, about a
+third of a second), so model runs do not need me. ScriptableObject values can be
+written directly into the .asset YAML rather than retyped through the Inspector,
+which is how Days 8-9 and 10-11 avoided a repeat of Day 4-5's transcription
+slips.
 
 Follow the Principles section of this doc (Clean Code, data-driven
 ScriptableObject architecture, event-driven decoupling, UI Toolkit/USS
@@ -576,6 +650,8 @@ where things stand in a sentence or two before writing any code.
 10. **W2D10–11 — Tier transitions** — Data only, and that is the headline: **eighteen changed paths and not one `.cs` among them**, which is the test Day 1 set for this day and the strongest evidence yet that the modular architecture is real rather than aspirational. Two quest assets (`sunken_crypt`, `dragons_roost`) and two archetypes (Arcane Battlemage, Dragonsworn Champion) filled the City and Capital tiers that had been raising Max Quest Tier to 3 and 4 with nothing to unlock. Three properties made it free, all of them already present: content declares its own availability through `MinimumTierOrder`, `QuestResolution.IsAvailable` reads the hardest tier off `IGuildStats` rather than off the tier asset, and the Day 7 UI had been written for five rarities and had simply never been shown two of them — the Epic and Legendary bands arrived styled, gated and explained with no interface work at all. The day's real finding was that **"higher-rarity archetypes are pointless" was a conclusion the model had never earned**: its hiring rule bought the cheapest available archetype, so across a 26-hour simulated game it purchased Militia Recruits and *nothing else* — the Hedge Knight and Wandering Ranger were never bought once. Fixing the policy exposed the larger problem underneath the power numbers: **the Inn's 16 beds against the 12 a Capital guild fields, with no way to dismiss anyone, make the roster a one-way ratchet**, so a player who spends spare beds during City can never hire the Legendary that Capital unlocks. The content is authored so both outcomes finish and the roster screen shows the lock with its reason, but the fix is a dismiss action and it is now owed to Day 12, alongside the second half of the same problem — `QuestAssignment` holds its party for life, so a late hire is inert until the player re-dispatches. Adventurer Max Level went 10 → 25, chosen by running 20/25/30 rather than picked: 30 pushes the strongest endgame party past the 4× speed clamp, which is the dead-levels failure Days 8–9 caught in the buildings wearing different clothes. The five archetypes are now one rule applied five times — each band doubles the archetype's power and costs five times the hire — which holds rarity visible against the Training Room's flat +331 and *widens* as the bands climb. Two spec deviations, both forced and both authorised by §3: the tier-4 quest's Recommended Power went 420 → 1,250, because at 420 every party a finished guild can field is already past the clamp and rarity buys nothing measurable; and City's reputation gate re-derived 28,000 → 65,000 under the unchanged 75% rule, because the old figure predated any asset paying tier-3 reputation. A modelling correction came out of the same work and is worth more than the content: **the model judged every party by the strongest party's power**, which was exact only while all adventurers were identical, and correcting it moves the *published Day 8–9* figures to 4h41m and 19h37m. The purchase-gap profile — the number Days 8–9 said the model exists to protect — improved sharply, 90th percentile from 19 minutes to 5–7 and worst gap from 59 to 25, because 300-odd training purchases now fill the stretches where only an expensive Tavern level was on offer. `Docs/Day10_Tier_Transitions.md` carries the tables and a 9-step pass; `guild_model.py` was updated in the same commit and now reports a patient and an impatient player, because the bed ratchet makes patience a genuine fork.
 11. **W2D10–11 follow-up — `OnValidate` deferred** — Running step 1 of the Days 10–11 pass confirmed the data-only claim about as hard as it can be confirmed: nine assets imported clean, no warnings from any of them, and the seven `IdleGuild.*.dll` untouched — Unity found no reason to compile, rather than compiling and finding nothing wrong. What the step *did* turn up was ~3,800 lines back in `Editor.log`: every definition asset warning about itself on assets that are plainly correct, because **`OnValidate` runs while Unity is still deserialising the object** and every serialised field reads as its default in that window. Day 4–5 had diagnosed half of it and moved `GameContent` off `StartingTier` onto `Tiers.Length`; the length reads zero too, so the fix never took and nobody noticed because the console was already noisy. Fixed in a separate commit — six files, one of them new — so the Days 10–11 commit stays honestly data-only: `Core/AssetValidation.WhenLoaded` queues each self-check for the next editor tick via `EditorApplication.delayCall`, de-duplicated per asset, `[Conditional("UNITY_EDITOR")]` so nothing reaches a player build, with clamps left inline where they belong. The lesson is worth more than the fix: **a check that cannot tell a half-loaded object from a half-filled one is not a check**, and its real cost is teaching you to ignore the console before the day you need it.
 12. **W2D10–11 follow-up — a test suite** — Prompted by the obvious question after writing a nine-step manual pass: can't we build tests? Mostly yes, and the part that resists is informative. Seven of the nine steps were mechanical and were going to be re-run on Days 13, 14, 21 and 23; they are now an eighth assembly, `IdleGuild.Tests.Editor`, with **43 tests that run in 46 ms and passed on the first run**. It references all seven assemblies and nothing references it, so it sits above UI the way UI sits above App and the architectural bet is untouched. Two arguments carried it over the schedule cost: this project's one real bug — the debug console's delete undoing itself — is exactly a round-trip assertion, and every content failure so far was a wrong *value* in a shipped asset, which is why the tests load the real `.asset` files through `AssetDatabase` rather than constructing content a fixture would have got wrong in the same way. **The rule that makes them survive a balance pass is to assert the shape rather than the number** — no dead levels, gates that only tighten, a ladder that doubles, an opening that is solvent — with the value-asserting handful tagged `BalanceCanary` so Day 13 can find them in one filter. Save compatibility got its own answer: round-tripping today's writer into today's reader proves only that they agree with each other, so `Tests/Editor/Fixtures/` now holds three real files, including one pointing at content no build has ever had — the first thing ever to exercise the Day 6 repair path against a file that actually needed repairing. The Week-1 save intended as the first fixture had already been overwritten by an autosave, which is the lesson in miniature: **a save file is the only record of what an earlier build wrote, and it stops existing the moment the current build runs.** Writing the tests found two things before any of them ran — `QuestResolution.FailureChance`'s comment claimed the rate doubles at half power when the formula gives 1.5x and only doubles at zero, and `Object.GetInstanceID()` is deprecated in Unity 6 with its `[Obsolete]` marked as an *error*, which is worth carrying into Week 3 when the ad and IAP SDKs arrive. `Docs/Tests.md` is the standing reference; `Docs/Day10_Tier_Transitions.md` §8 now says which of its steps survive by hand.
+
+13. **W2D12 — Recruitment and assignment UI** — The game's first two reversible decisions, both named by Days 10–11 and neither invented. Written and compiling clean: eight assemblies, zero `error CS`, zero new warnings, verified in `Logs/Editor.log`; four new files, ten changed, **no `.asset` touched and no save field added**. The suite reports **64 green**, up from 47 — which incidentally closes an open question from the previous handoff, since 47 is only reachable if the four `SaveFixtureTests` are running, and nobody had a record of them ever having run. Retiring is `RecruitmentService.TryDismiss` over the `AdventurerRoster.Remove` that had existed since Day 4–5 with only save restoration calling it, and the design question was never the code but what it should do to a member of a live standing order. It **refuses**, naming the order, because the cascading version's naive form — drop the member, leave the order — is this project's own recurring failure wearing another hat: `TryStartRun` would have returned false for the rest of the run with an order on screen that simply never went out again. Re-forming a party is what releases them, so the two halves are one route and a test walks it end to end. Re-forming turned out to cost nothing structurally, because a Day 4–5 decision paid out a second time: `ActiveQuest` snapshots its own party and the clock sends *that* snapshot home, so replacing an order's party never disturbs the run in flight — `QuestAssignment` was documented as holding its party for the life of the *assignment* when it had always really been for the life of a *run*. One party picker serves both a first dispatch and a re-form, and finally gives `PartyPower` and `PreviewDurationSeconds` the callers they have lacked since Day 4–5; they are what turn *swap the Recruit for the Champion* from a guess into a comparison made before committing. Two narrowings went past the brief and are recorded as such: a party is now **exactly** the size the quest asks for, which was unreachable before a screen could build one by hand and which every duration figure in the game was derived against; and "send a party" takes the strongest free adventurers rather than the first on the roster, which `guild_model.py` already assumed. **The day's real finding came from the model rather than the game.** Its comment block still asserted that an impatient player "can never hire a Champion at all", so it was simulating a wall that no longer existed. Adding a retire rule took two attempts and the failed one is the useful half: ranking swaps by fully-trained potential — how every *other* hiring decision in the model is made — churns the entire roster to sixteen Legendaries once gold stops being scarce, throwing away every level of training bought along the way and putting everything-maxed at **28h16m**, eight hours longer than before the action existed. That is an arbitrage bug, not a player. Requiring the replacement to be better *the day it arrives* fixes it with no threshold and no magic number, and on **unchanged assets** moves the published figures to 5h41m / **22h50m** patient and 4h16m / **17h45m** impatient. Two things follow, and Day 13 inherits both. **Retiring makes the game about two hours longer** — it is a gold sink, full price again and a level-1 replacement — and **the impatient player still never fields a Legendary**: beds free up and the Commons vanish from their roster, but trained Battlemages out-earn a fresh Champion, so the structural lock simply became an economic one. Deliberately not tuned away; the two runs are a bracket on one policy decision and choosing inside it is a balance question. The general shape worth carrying: **a reversible decision is not the same as a cheap one.**
 
 ---
 

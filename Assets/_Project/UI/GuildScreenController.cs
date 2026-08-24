@@ -59,6 +59,8 @@ namespace IdleGuild.UI
         private QuestsView _quests;
         private RosterView _roster;
         private BuildingDetailOverlay _buildingDetail;
+        private PartyOverlay _party;
+        private ConfirmOverlay _confirm;
 
         private IVisualElementScheduledItem _tick;
         private GuildScreen _screen = GuildScreen.Hall;
@@ -140,8 +142,8 @@ namespace IdleGuild.UI
 
             _treasury = new TreasuryBar();
             _hall = new HallView(OnBuildingSelected);
-            _quests = new QuestsView();
-            _roster = new RosterView();
+            _quests = new QuestsView(ChoosePartyFor);
+            _roster = new RosterView(AskToConfirm);
 
             VisualElement content = Ui.Box("guild-content");
             content.Add(_hall);
@@ -151,12 +153,21 @@ namespace IdleGuild.UI
             _toast = new ToastBar();
             _tabs = new TabBar(Show);
             _buildingDetail = new BuildingDetailOverlay();
+            _party = new PartyOverlay();
+            _confirm = new ConfirmOverlay();
 
             _root.Add(_treasury);
             _root.Add(content);
             _root.Add(_toast);
             _root.Add(_tabs);
+
+            // Overlays are added last and in the order they may stack. UI Toolkit paints
+            // siblings in tree order, so the confirmation goes on top of the party picker
+            // rather than behind it — which matters the day an overlay raises a dialog of
+            // its own, and costs nothing before then.
             _root.Add(_buildingDetail);
+            _root.Add(_party);
+            _root.Add(_confirm);
 
             Show(_screen);
 
@@ -173,8 +184,10 @@ namespace IdleGuild.UI
             EventBus.Subscribe<BuildingUpgraded>(OnStructureChanged);
             EventBus.Subscribe<GuildTierAdvanced>(OnStructureChanged);
             EventBus.Subscribe<AdventurerRecruited>(OnStructureChanged);
+            EventBus.Subscribe<AdventurerDismissed>(OnStructureChanged);
             EventBus.Subscribe<QuestStarted>(OnStructureChanged);
             EventBus.Subscribe<QuestCompleted>(OnStructureChanged);
+            EventBus.Subscribe<QuestPartyReformed>(OnStructureChanged);
         }
 
         private void Unsubscribe()
@@ -183,8 +196,10 @@ namespace IdleGuild.UI
             EventBus.Unsubscribe<BuildingUpgraded>(OnStructureChanged);
             EventBus.Unsubscribe<GuildTierAdvanced>(OnStructureChanged);
             EventBus.Unsubscribe<AdventurerRecruited>(OnStructureChanged);
+            EventBus.Unsubscribe<AdventurerDismissed>(OnStructureChanged);
             EventBus.Unsubscribe<QuestStarted>(OnStructureChanged);
             EventBus.Unsubscribe<QuestCompleted>(OnStructureChanged);
+            EventBus.Unsubscribe<QuestPartyReformed>(OnStructureChanged);
         }
 
         private void OnGameLoaded(GameLoaded loaded)
@@ -247,6 +262,7 @@ namespace IdleGuild.UI
             _quests.Refresh(_context);
             _roster.Refresh(_context);
             _buildingDetail.Refresh(_context);
+            _party.Refresh(_context);
         }
 
         private void Show(GuildScreen screen)
@@ -264,6 +280,24 @@ namespace IdleGuild.UI
             {
                 _buildingDetail.Open(_context, building);
             }
+        }
+
+        /// <summary>
+        /// Raise the party picker for a quest or for an existing order. The screens ask
+        /// through this rather than owning an overlay of their own, so the picker is one
+        /// element that two screens borrow instead of two elements that can disagree.
+        /// </summary>
+        private void ChoosePartyFor(PartyRequest request)
+        {
+            if (_context != null)
+            {
+                _party.Open(_context, request);
+            }
+        }
+
+        private void AskToConfirm(ConfirmRequest request)
+        {
+            _confirm.Ask(request);
         }
 
         private void Report(string message, bool succeeded)

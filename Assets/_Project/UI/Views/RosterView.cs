@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using IdleGuild.Adventurers;
 using IdleGuild.App;
@@ -7,26 +8,41 @@ using UnityEngine.UIElements;
 namespace IdleGuild.UI.Views
 {
     /// <summary>
-    /// People: who works here, what they can do, and who else could be persuaded to
-    /// join.
+    /// People: who works here, what they can do, who else could be persuaded to join,
+    /// and — since Day 12 — who can be let go.
     ///
     /// Hiring and the roster share a screen because the three gates in front of
     /// recruitment — the guild's tier, the Tavern's pull, the Inn's beds — are only
     /// legible next to the roster they constrain. A separate hiring screen would show a
     /// greyed-out button with no visible reason beside it.
+    ///
+    /// Retiring belongs on the same screen for the same reason, and it is here because
+    /// the Inn tops out at sixteen beds while a Capital guild fields twelve. Without a
+    /// way out, a bed spent on the wrong archetype during City was spent for the rest of
+    /// the run, and the player who filled their spare beds with Epics could never hire
+    /// the Legendary that Capital exists to unlock. The bed count at the top of this
+    /// screen is the number that decision is made against, which is why the two sit
+    /// together.
     /// </summary>
     public sealed class RosterView : ScrollView
     {
         private readonly List<MemberCard> _members = new List<MemberCard>();
         private readonly List<HireCard> _hires = new List<HireCard>();
+        private readonly Action<ConfirmRequest> _ask;
 
         private GuildContext _context;
         private VisualElement _summary;
         private VisualElement _membersContainer;
 
-        public RosterView()
+        /// <param name="ask">
+        /// Raises a confirmation over whatever is on screen. Passed in rather than owned
+        /// so this view never holds a reference to the chrome around it, which is the
+        /// same arrangement <c>GuildContext.Report</c> uses for the toast.
+        /// </param>
+        public RosterView(Action<ConfirmRequest> ask)
             : base(ScrollViewMode.Vertical)
         {
+            _ask = ask;
             AddToClassList("guild-screen");
         }
 
@@ -123,6 +139,71 @@ namespace IdleGuild.UI.Views
             _context.Report(Outcomes.Describe(outcome, member.Definition.DisplayName), Outcomes.Succeeded(outcome));
         }
 
+        /// <summary>
+        /// Ask before retiring, or explain why it cannot happen yet.
+        ///
+        /// The button stays enabled when the answer is no, which is the one place this
+        /// screen departs from the disabled-button-with-a-reason-beside-it pattern used
+        /// everywhere else. Printing "wait for them to come home" under every adventurer
+        /// currently out on a quest would put a refusal on most of the roster most of the
+        /// time; a player who wants to know taps and is told exactly, and the answer is
+        /// still the service's rather than this view's.
+        /// </summary>
+        private void RetireById(string instanceId)
+        {
+            Adventurer member = _context?.World.Roster.Find(instanceId);
+            if (member == null)
+            {
+                return;
+            }
+
+            DismissOutcome state = _context.Recruitment.PreviewDismissal(member);
+            if (state != DismissOutcome.Dismissed)
+            {
+                _context.Report(
+                    Outcomes.Describe(state, member.Definition.DisplayName, OrderNameFor(_context, instanceId)),
+                    false);
+                return;
+            }
+
+            AdventurerDefinition archetype = member.Definition;
+            _ask?.Invoke(new ConfirmRequest(
+                $"Retire {archetype.DisplayName}?",
+                "They leave the guild for good and their bed at the Inn opens up. Hiring another " +
+                $"{archetype.DisplayName} costs {Format.Amount(archetype.RecruitCostGold)} gold, and they would " +
+                "start again at level 1.",
+                "Retire",
+                () => ConfirmRetire(instanceId),
+                true));
+        }
+
+        /// <summary>
+        /// Resolved by instance id a second time, at the moment the player confirms rather
+        /// than when the dialog was raised. A quest can complete and a save can load
+        /// between the two, and the roster this card was built against is not guaranteed
+        /// to be the roster the confirmation lands on.
+        /// </summary>
+        private void ConfirmRetire(string instanceId)
+        {
+            Adventurer member = _context?.World.Roster.Find(instanceId);
+            if (member == null)
+            {
+                return;
+            }
+
+            string name = member.Definition.DisplayName;
+            string orderName = OrderNameFor(_context, instanceId);
+
+            DismissOutcome outcome = _context.Recruitment.TryDismiss(member);
+            _context.Report(Outcomes.Describe(outcome, name, orderName), Outcomes.Succeeded(outcome));
+        }
+
+        private static string OrderNameFor(GuildContext context, string instanceId)
+        {
+            QuestAssignment order = context.World.FindAssignmentFor(instanceId);
+            return order?.Quest != null ? order.Quest.DisplayName : null;
+        }
+
         private void Hire(AdventurerDefinition definition)
         {
             if (_context == null)
@@ -165,6 +246,17 @@ namespace IdleGuild.UI.Views
                 VisualElement actions = Ui.Box("card__row");
                 _train = Ui.Action(string.Empty, () => owner.TrainById(instanceId), "button--wide");
                 actions.Add(_train);
+
+                // Not held as a field: its label and its enabled state never change, and a
+                // private field assigned once and never read is a warning in a project
+                // that has none.
+                actions.Add(Ui.Action(
+                    "Retire",
+                    () => owner.RetireById(instanceId),
+                    "button--small",
+                    "button--spaced",
+                    "button--destructive"));
+
                 Add(actions);
             }
 
@@ -190,9 +282,15 @@ namespace IdleGuild.UI.Views
                 };
                 _activity.EnableInClassList("badge--active", member.Activity == AdventurerActivity.Idle);
 
+                // The standing order is named on the line rather than left to the badge:
+                // somebody resting between runs of a repeating order reads as "Idle", and
+                // idle is the one word that does not explain why they cannot be sent
+                // anywhere else or retired.
+                string order = OrderNameFor(context, _instanceId);
                 _detail.text =
                     $"Level {member.Level} / {member.Definition.MaxLevel} · " +
-                    $"power {member.PowerWith(context.Stats):0.#}";
+                    $"power {member.PowerWith(context.Stats):0.#}" +
+                    (order == null ? string.Empty : $" · {order} order");
 
                 TrainingOutcome state = context.Training.Preview(member);
                 _train.text = state == TrainingOutcome.MaxLevel

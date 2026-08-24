@@ -416,3 +416,112 @@
 .button--spaced {
     margin-left: var(--space-sm);
 }
+
+.overlay__panel--tall {
+    max-height: 100%;
+}
+
+/*
+ * The list inside a tall panel is the part that gives. Without this the body keeps
+ * its Day 7 fixed ceiling and a sixteen-bed roster pushes the buttons off the phone.
+ */
+.overlay__body--flexible {
+    flex-shrink: 1;
+    max-height: none;
+}
+
+/* ----------------------------------------------------------------- party ----- */
+
+.party-row {
+    flex-direction: row;
+    align-items: center;
+    background-color: var(--color-surface-raised);
+    border-width: 1px;
+    border-color: var(--color-border);
+    border-radius: var(--radius-md);
+    padding-top: var(--space-sm);
+    padding-right: var(--space-md);
+    padding-bottom: var(--space-sm);
+    padding-left: var(--space-md);
+    margin-bottom: var(--space-sm);
+    transition-property: background-color, border-color;
+    transition-duration: 0.12s;
+}
+
+.party-row:hover {
+    border-color: var(--color-border-strong);
+}
+
+/*
+ * Somebody who cannot join this party is dimmed rather than hidden. A player choosing
+ * three of twelve needs to see that the Champion exists and is busy — a list that
+ * silently omitted them would read as a roster that had lost someone.
+ */
+.party-row:disabled {
+    opacity: 0.45;
+}
+
+.party-row--selected {
+    background-color: var(--color-surface-overlay);
+    border-color: var(--color-accent);
+}
+
+/*
+ * The tick is a filled box rather than a glyph, so selection still reads after Week 3
+ * swaps in a display font that has never heard of whichever character we picked.
+ */
+.party-row__mark {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    margin-right: var(--space-md);
+    border-width: 2px;
+    border-color: var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-surface-sunken);
+}
+
+.party-row__mark--checked {
+    border-color: var(--color-accent);
+    background-color: var(--color-accent);
+}
+
+.party-row__text {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.party-row__name {
+    font-size: var(--text-body);
+    -unity-font-style: bold;
+}
+
+.party-row__meta {
+    font-size: var(--text-caption);
+    color: var(--color-text-muted);
+    white-space: normal;
+}
+
+/* --------------------------------------------------- destructive actions ----- */
+
+/*
+ * Declared after the base button states on purpose: equal specificity resolves by
+ * source order in USS, so this has to sit below .button:hover to win. It stays below
+ * .button:disabled in specificity, which is what keeps a disabled Retire looking like
+ * every other disabled button rather than like a live one.
+ */
+.button--destructive {
+    background-color: var(--color-surface-overlay);
+    border-color: var(--color-negative);
+    color: var(--color-negative);
+}
+
+.button--destructive:hover {
+    background-color: var(--color-negative);
+    color: var(--color-text-inverse);
+}
+
+.button--destructive:active {
+    background-color: var(--color-negative);
+    color: var(--color-text-inverse);
+}

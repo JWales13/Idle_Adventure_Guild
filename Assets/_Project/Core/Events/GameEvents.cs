@@ -103,6 +103,48 @@ namespace IdleGuild.Core.Events
         public string InstanceId { get; }
     }
 
+    /// <summary>Raised when an adventurer leaves the roster at the player's request.</summary>
+    /// <remarks>
+    /// Deliberately distinct from save restoration dropping a member it could not resolve.
+    /// This one means a bed was freed by a decision, which is the thing a screen wants to
+    /// redraw for and the thing Week 3's analytics pass will want to count. Restoration
+    /// stays quiet for the same reason it announces no upgrades: loading a guild that once
+    /// retired somebody is not retiring them again.
+    /// </remarks>
+    public readonly struct AdventurerDismissed
+    {
+        public AdventurerDismissed(string definitionId, string instanceId)
+        {
+            DefinitionId = definitionId;
+            InstanceId = instanceId;
+        }
+
+        /// <summary>Identifies which AdventurerDefinition asset they came from.</summary>
+        public string DefinitionId { get; }
+
+        /// <summary>Identifies the member who left. No longer resolvable on the roster.</summary>
+        public string InstanceId { get; }
+    }
+
+    /// <summary>Raised when a standing order's party is replaced, from its next run onwards.</summary>
+    /// <remarks>
+    /// Structural rather than cosmetic: the order's card names its members, and a re-form
+    /// that did not announce itself would leave that card listing the old party until some
+    /// unrelated event happened to redraw it.
+    /// </remarks>
+    public readonly struct QuestPartyReformed
+    {
+        public QuestPartyReformed(string assignmentId, string questDefinitionId)
+        {
+            AssignmentId = assignmentId;
+            QuestDefinitionId = questDefinitionId;
+        }
+
+        public string AssignmentId { get; }
+
+        public string QuestDefinitionId { get; }
+    }
+
     /// <summary>Raised when adventurers are dispatched on a quest.</summary>
     public readonly struct QuestStarted
     {

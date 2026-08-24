@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Text;
+using IdleGuild.Adventurers;
 using IdleGuild.App;
 using IdleGuild.Quests;
 using UnityEngine.UIElements;
@@ -19,19 +22,31 @@ namespace IdleGuild.UI.Views
     /// promise and a worse first experience: the player taps once, sees a party leave,
     /// comes back later to gold. Recall is how they stop it, and it lets the current run
     /// finish rather than abandoning it.
+    ///
+    /// Day 12 gave the order card the other action it was missing. An order used to hold
+    /// its party for life, so a card that said "3 adventurer(s)" was describing a
+    /// decision the player could no longer see or change — which is how the best hire in
+    /// the game ended up on the bench. It now names them and offers to re-form them.
     /// </summary>
     public sealed class QuestsView : ScrollView
     {
         private readonly List<OfferCard> _offers = new List<OfferCard>();
         private readonly List<RunRow> _runs = new List<RunRow>();
+        private readonly Action<PartyRequest> _chooseParty;
 
         private GuildContext _context;
         private VisualElement _runsContainer;
         private VisualElement _ordersContainer;
 
-        public QuestsView()
+        /// <param name="chooseParty">
+        /// Raises the party picker over whatever is on screen. Passed in for the same
+        /// reason the roster's confirmation is: a view does not reach for the chrome
+        /// around it.
+        /// </param>
+        public QuestsView(Action<PartyRequest> chooseParty)
             : base(ScrollViewMode.Vertical)
         {
+            _chooseParty = chooseParty;
             AddToClassList("guild-screen");
         }
 
@@ -105,6 +120,13 @@ namespace IdleGuild.UI.Views
             }
         }
 
+        /// <summary>
+        /// Order cards are rebuilt rather than refreshed, because the only things about
+        /// them that change — the party and whether the order still exists — are both
+        /// announced as events. <c>QuestPartyReformed</c> exists precisely so that a
+        /// re-formed party is not left listing its old members until something unrelated
+        /// happens to redraw this screen.
+        /// </summary>
         private void RebuildOrders(GuildContext context)
         {
             _ordersContainer.Clear();
@@ -117,11 +139,11 @@ namespace IdleGuild.UI.Views
 
             foreach (QuestAssignment assignment in context.World.Assignments)
             {
-                _ordersContainer.Add(BuildOrderCard(assignment));
+                _ordersContainer.Add(BuildOrderCard(context, assignment));
             }
         }
 
-        private VisualElement BuildOrderCard(QuestAssignment assignment)
+        private VisualElement BuildOrderCard(GuildContext context, QuestAssignment assignment)
         {
             VisualElement card = Ui.Box("card");
 
@@ -130,43 +152,81 @@ namespace IdleGuild.UI.Views
             header.Add(Ui.Text(assignment.Repeat ? "Repeating" : "One-off", "badge"));
             card.Add(header);
 
-            card.Add(Ui.Text(
-                $"{assignment.MemberInstanceIds.Count} adventurer(s) · " +
-                $"{(assignment.IsRunning ? "out now" : "resting between runs")}",
-                "card__meta"));
+            card.Add(Ui.Text(PartyNames(context, assignment), "card__meta"));
+            card.Add(Ui.Text(assignment.IsRunning ? "Out now." : "Resting between runs.", "card__meta"));
 
             VisualElement actions = Ui.Box("card__row");
-            actions.Add(Ui.Action("Recall", () => Recall(assignment), "button--wide"));
+            actions.Add(Ui.Action("Re-form party", () => ReformParty(assignment.Id), "button--wide"));
+            actions.Add(Ui.Action("Recall", () => Recall(assignment.Id), "button--small", "button--spaced"));
             card.Add(actions);
 
             return card;
         }
 
-        private void Recall(QuestAssignment assignment)
+        /// <summary>
+        /// The party, by name. An order whose party could not be resolved should not
+        /// exist — save restoration drops an assignment whose members it cannot find
+        /// rather than leaving a partial one — so the fallback here is a guard against a
+        /// future bug rather than a case that happens today.
+        /// </summary>
+        private static string PartyNames(GuildContext context, QuestAssignment assignment)
         {
-            if (_context == null)
+            if (assignment.MemberInstanceIds.Count == 0)
+            {
+                return "Nobody assigned.";
+            }
+
+            StringBuilder names = new StringBuilder();
+            foreach (string memberId in assignment.MemberInstanceIds)
+            {
+                if (names.Length > 0)
+                {
+                    names.Append(", ");
+                }
+
+                Adventurer member = context.World.Roster.Find(memberId);
+                names.Append(member != null ? member.Definition.DisplayName : "someone no longer on the roster");
+            }
+
+            return names.ToString();
+        }
+
+        /// <summary>
+        /// Orders are addressed by id rather than by reference for the same reason roster
+        /// cards are: a save loaded between building this card and tapping it rebuilds
+        /// every assignment object in the world.
+        /// </summary>
+        private void ReformParty(string assignmentId)
+        {
+            QuestAssignment assignment = _context?.World.FindAssignment(assignmentId);
+            if (assignment == null)
+            {
+                _context?.Report(Outcomes.Describe(DispatchOutcome.UnknownOrder, string.Empty), false);
+                return;
+            }
+
+            _chooseParty?.Invoke(PartyRequest.ForExistingOrder(assignment));
+        }
+
+        private void Recall(string assignmentId)
+        {
+            QuestAssignment assignment = _context?.World.FindAssignment(assignmentId);
+            if (assignment == null)
             {
                 return;
             }
 
-            _context.Dispatch.Cancel(assignment.Id);
-            _context.Report(
-                $"The {assignment.Quest.DisplayName} party will stand down after this run.",
-                true);
+            string questName = assignment.Quest.DisplayName;
+            _context.Dispatch.Cancel(assignmentId);
+            _context.Report($"The {questName} party will stand down after this run.", true);
         }
 
         private void Dispatch(QuestDefinition quest)
         {
-            if (_context == null)
-            {
-                return;
-            }
-
-            DispatchOutcome outcome = _context.Dispatch.TryDispatchAvailableParty(quest, true, out QuestAssignment _);
-            _context.Report(Outcomes.Describe(outcome, quest.DisplayName), Outcomes.Succeeded(outcome));
+            _chooseParty?.Invoke(PartyRequest.ForNewOrder(quest));
         }
 
-        /// <summary>A job the guild can take on, and the button that takes it on.</summary>
+        /// <summary>A job the guild can take on, and the button that opens the party picker for it.</summary>
         private sealed class OfferCard : VisualElement
         {
             private readonly QuestDefinition _quest;

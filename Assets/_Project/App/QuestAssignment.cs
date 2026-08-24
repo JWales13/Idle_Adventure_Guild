@@ -16,7 +16,7 @@ namespace IdleGuild.App
     /// </summary>
     public sealed class QuestAssignment
     {
-        private readonly string[] _memberInstanceIds;
+        private string[] _memberInstanceIds;
 
         public QuestAssignment(string id, QuestDefinition quest, IReadOnlyList<string> memberInstanceIds, bool repeat)
         {
@@ -29,18 +29,21 @@ namespace IdleGuild.App
             Quest = quest != null ? quest : throw new ArgumentNullException(nameof(quest));
             Repeat = repeat;
 
-            _memberInstanceIds = new string[memberInstanceIds?.Count ?? 0];
-            for (int index = 0; index < _memberInstanceIds.Length; index++)
-            {
-                _memberInstanceIds[index] = memberInstanceIds[index];
-            }
+            SetParty(memberInstanceIds);
         }
 
         public string Id { get; }
 
         public QuestDefinition Quest { get; }
 
-        /// <summary>The party, by adventurer instance id. Fixed for the life of the assignment.</summary>
+        /// <summary>
+        /// The party, by adventurer instance id.
+        ///
+        /// Fixed for the life of a <i>run</i>, not of the order — a distinction that only
+        /// became visible on Day 12. <see cref="ActiveQuest"/> snapshots its own party at
+        /// dispatch and the clock sends that snapshot home, so replacing this list never
+        /// disturbs a run already in flight. It decides who goes out next time.
+        /// </summary>
         public IReadOnlyList<string> MemberInstanceIds => _memberInstanceIds;
 
         /// <summary>
@@ -53,6 +56,30 @@ namespace IdleGuild.App
         public string ActiveQuestInstanceId { get; private set; }
 
         public bool IsRunning => !string.IsNullOrEmpty(ActiveQuestInstanceId);
+
+        /// <summary>
+        /// Replace the party, from the next run onwards.
+        ///
+        /// Day 12 made this settable, and the reason is worth keeping written down: an
+        /// order whose party could never change meant that hiring somebody better did
+        /// nothing at all until the player worked out for themselves that they had to
+        /// cancel the order and dispatch again. The best adventurer in the game could sit
+        /// on the bench indefinitely with nothing on screen saying why.
+        ///
+        /// Who may join is not decided here. <see cref="QuestDispatchService.TryReformParty"/>
+        /// is the only thing that should call this — as everywhere else in the model, the
+        /// data holds no rules.
+        /// </summary>
+        public void SetParty(IReadOnlyList<string> memberInstanceIds)
+        {
+            string[] replacement = new string[memberInstanceIds?.Count ?? 0];
+            for (int index = 0; index < replacement.Length; index++)
+            {
+                replacement[index] = memberInstanceIds[index];
+            }
+
+            _memberInstanceIds = replacement;
+        }
 
         public void MarkStarted(string questInstanceId)
         {

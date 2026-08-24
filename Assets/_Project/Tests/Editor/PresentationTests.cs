@@ -80,6 +80,38 @@ namespace IdleGuild.Tests
 
                 Assert.That(string.IsNullOrWhiteSpace(Outcomes.Describe(outcome, "Sunken Crypt")), Is.False);
             }
+
+            foreach (DismissOutcome outcome in System.Enum.GetValues(typeof(DismissOutcome)))
+            {
+                if (outcome == DismissOutcome.Dismissed)
+                {
+                    continue;
+                }
+
+                Assert.That(string.IsNullOrWhiteSpace(Outcomes.Describe(outcome, "Militia Recruit")), Is.False,
+                    $"{outcome} has no sentence, and retiring is the one action in the game a " +
+                    "player cannot undo by tapping again.");
+            }
+        }
+
+        /// <summary>
+        /// The commitment refusal names the order when it can, and still reads as a
+        /// sentence when it cannot.
+        ///
+        /// Both forms exist because the roster screen knows which order is in the way and
+        /// a bare enum-to-string call does not. Naming it is the difference between a
+        /// player going straight to the right card and hunting through every standing
+        /// order they have.
+        /// </summary>
+        [Test]
+        public void ACommitmentRefusalNamesTheOrderWhenItKnowsIt()
+        {
+            string anonymous = Outcomes.Describe(DismissOutcome.OnStandingOrder, "Militia Recruit");
+            string named = Outcomes.Describe(DismissOutcome.OnStandingOrder, "Militia Recruit", "Sunken Crypt");
+
+            Assert.That(string.IsNullOrWhiteSpace(anonymous), Is.False);
+            Assert.That(named, Does.Contain("Sunken Crypt"));
+            Assert.That(named, Is.Not.EqualTo(anonymous));
         }
 
         [Test]

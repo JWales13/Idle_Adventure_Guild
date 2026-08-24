@@ -206,7 +206,10 @@ class World:
 #      archetype affordable right now rather than waiting for a better one
 #   3. spend a spare bed only on an upgrade, and wait for the right one
 #   4. push whichever tier-gate building is still short
-#   5. otherwise buy the cheapest thing available
+#   5. once beds run out, retire the weakest benched adventurer for a better archetype
+#      - but only when the replacement is stronger the day it arrives, not merely
+#        stronger eventually
+#   6. otherwise buy the cheapest thing available
 #
 # Rule 2's "income before everything else" is not a nicety. With gates first, the
 # model poured its 150 starting gold into Inn levels, never bought an adventurer, and
@@ -215,12 +218,18 @@ class World:
 # non-Common adventurer in a 26-hour game.
 #
 # PATIENT is the one genuine fork in player behaviour and it is worth reporting both
-# ways, because no adventurer can be dismissed: a bed, once filled, is filled for
-# good. A patient player leaves spare beds empty through City because the roster
+# ways. A patient player leaves spare beds empty through City because the roster
 # screen shows the Dragonsworn Champion greyed out with the reason, and ends the game
-# with four of them. An impatient one spends those beds on Battlemages and can never
-# hire a Champion at all. Both finish; the gap between them is the cost of not having
-# a dismiss action, and the argument for Day 12 shipping one.
+# with four of them. An impatient one spends those beds on Battlemages instead.
+#
+# Day 12 changed what that costs. Before it, the impatient player could never hire a
+# Champion at all - a bed, once filled, was filled for the rest of the run - and the
+# gap between the two profiles was the price of not having a dismiss action. That
+# action now exists, so the impatient player can retire a benched Battlemage and buy
+# the Champion; what they cannot get back is the gold they already spent. The fork is
+# therefore still real and no longer permanent, which is exactly the change Day 12 was
+# for, and the two arms below should be read as "how expensive was the detour" rather
+# than as "which endgame did you lock yourself out of".
 
 PATIENT = True
 
@@ -267,6 +276,38 @@ def purchase(w):
                         continue
                     reserve = w.c["adventurers"][aid]["cost"]
 
+        if pool and w.roster and len(w.roster) >= beds:
+            # Rule 5, added on Day 12: a full Inn is no longer a wall. The weakest
+            # member of the bench can be retired to make room for a better archetype.
+            #
+            # Only somebody idle and free of standing orders can go, because that is
+            # what the service allows, and nothing is refunded.
+            #
+            # The second condition is the one that took a run to find. Comparing what
+            # the two archetypes reach fully trained - which is how every other hiring
+            # decision here is made - churns the whole roster to Legendary the moment
+            # gold is abundant, throwing away every level of training bought along the
+            # way and adding eight hours to the game. That is not a player, it is an
+            # arbitrage bug. A player swaps somebody out when the replacement is better
+            # *now*, so the incumbent's current power has to lose to a level-1 recruit
+            # of the better archetype. Sunk training is thereby respected without
+            # anybody having to name a level threshold.
+            best = max(pool, key=w.potential)
+            committed = {i for o in w.orders for i in o["party"]}
+            benched = [i for i, m in enumerate(w.roster)
+                       if i not in committed and m["activity"] == "idle"]
+            if benched:
+                weakest = min(benched, key=lambda i: w.potential(w.roster[i]["defId"]))
+                incumbent = w.roster[weakest]
+                fresh = dict(defId=best, level=1)
+                if w.potential(best) > w.potential(incumbent["defId"]) and \
+                        w.power_of(fresh) > w.power_of(incumbent) and \
+                        w.gold >= w.c["adventurers"][best]["cost"]:
+                    retire(w, weakest)
+                    w.gold -= w.c["adventurers"][best]["cost"]
+                    w.roster.append(dict(defId=best, level=1, activity="idle", timer=0.0))
+                    continue
+
         spendable = w.gold - reserve
         options = []
         for bid, b in w.c["buildings"].items():
@@ -289,6 +330,18 @@ def purchase(w):
             w.levels[key] += 1
         else:
             w.roster[key]["level"] += 1
+
+
+def retire(w, index):
+    """Let one roster member go, and repair the indices the standing orders hold.
+
+    Orders address their party by roster position, so removing anybody shifts everyone
+    after them. The game has no such problem - it addresses adventurers by instance id,
+    which is why a card can survive a save being loaded underneath it - and this is the
+    model paying for a shortcut taken back when nobody could ever leave the roster."""
+    del w.roster[index]
+    for o in w.orders:
+        o["party"] = [i - 1 if i > index else i for i in o["party"]]
 
 
 def reform(w):
@@ -458,7 +511,7 @@ if __name__ == "__main__":
 
     profiles = []
     for patient, label in ((True, "patient player: keeps spare beds for the Dragonsworn Champion"),
-                           (False, "impatient player: spends them on Battlemages in City, never hires a Champion")):
+                           (False, "impatient player: spends them on Battlemages in City, then buys back in")):
         PATIENT = patient
         globals()["PATIENT"] = patient
         profiles.append(run(c, label))

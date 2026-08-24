@@ -149,15 +149,19 @@ namespace IdleGuild.App
         }
 
         /// <summary>
-        /// True when this adventurer already belongs to a standing order. Idle alone is
-        /// not enough to be dispatchable: a member resting between runs of a repeating
+        /// The standing order this adventurer belongs to, or null. Idle alone is not
+        /// enough to be dispatchable: a member resting between runs of a repeating
         /// assignment is idle, and must not be poached into a second party.
+        ///
+        /// It hands back the order rather than a bool because every refusal in this game
+        /// names what is in the way. "Committed to the Sunken Crypt order" is a sentence
+        /// the player can act on; "unavailable" is not.
         /// </summary>
-        public bool IsAssigned(string adventurerInstanceId)
+        public QuestAssignment FindAssignmentFor(string adventurerInstanceId)
         {
             if (string.IsNullOrEmpty(adventurerInstanceId))
             {
-                return false;
+                return null;
             }
 
             foreach (QuestAssignment assignment in _assignments)
@@ -166,12 +170,18 @@ namespace IdleGuild.App
                 {
                     if (memberId == adventurerInstanceId)
                     {
-                        return true;
+                        return assignment;
                     }
                 }
             }
 
-            return false;
+            return null;
+        }
+
+        /// <summary>True when this adventurer already belongs to a standing order.</summary>
+        public bool IsAssigned(string adventurerInstanceId)
+        {
+            return FindAssignmentFor(adventurerInstanceId) != null;
         }
 
         /// <summary>Drop every standing order. For save loading, which rebuilds them from scratch.</summary>

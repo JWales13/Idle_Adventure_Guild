@@ -27,13 +27,38 @@ namespace IdleGuild.App
         Unaffordable
     }
 
+    /// <summary>Why an adventurer did or did not leave the roster.</summary>
+    public enum DismissOutcome
+    {
+        Dismissed,
+
+        /// <summary>Nobody with that instance id is on the roster.</summary>
+        UnknownAdventurer,
+
+        /// <summary>They are out in the field. A party is not disbanded mid-dungeon.</summary>
+        OnQuest,
+
+        /// <summary>They belong to a standing order, which has to release them first.</summary>
+        OnStandingOrder
+    }
+
     /// <summary>
-    /// Hiring, and the three separate gates that stand in front of it.
+    /// Hiring, the three separate gates that stand in front of it, and — since Day 12 —
+    /// the way back out.
     ///
     /// Tier decides whether an archetype exists yet, the Tavern decides how good a
     /// recruit the guild can attract, and the Inn decides whether there is anywhere to
     /// put them. Keeping the three distinct is what stops one building becoming the
     /// only one worth levelling.
+    ///
+    /// Retiring lives here rather than on the roster because it is the inverse of the
+    /// same transaction and answers to the same resource. The Inn tops out at sixteen
+    /// beds and a Capital guild fields twelve, so before this existed a bed spent on the
+    /// wrong archetype was spent for the rest of the run — a player who filled their
+    /// spare beds with Epics during City could never hire the Legendary that Capital
+    /// unlocks, no matter how much gold they ended up with. The content is authored so
+    /// that both outcomes are playable, but an irreversible decision made on incomplete
+    /// information is a trap wearing a decision's clothes.
     /// </summary>
     public sealed class RecruitmentService
     {
@@ -116,6 +141,66 @@ namespace IdleGuild.App
 
             EventBus.Publish(new AdventurerRecruited(definition.Id, instanceId));
             return RecruitOutcome.Recruited;
+        }
+
+        /// <summary>
+        /// What <see cref="TryDismiss"/> would return, without changing anything.
+        ///
+        /// The two refusals are checked in the order the player can clear them. Being out
+        /// on a quest is the nearer obstacle and resolves itself with time; belonging to a
+        /// standing order is the one that needs a decision. Somebody who is both is told
+        /// about the quest, because until that run lands nothing they do to the order
+        /// helps. Pinned by a test, so a later reorder is a failure rather than a subtly
+        /// unhelpful sentence.
+        /// </summary>
+        public DismissOutcome PreviewDismissal(Adventurer member)
+        {
+            if (member == null || _world.Roster.Find(member.InstanceId) == null)
+            {
+                return DismissOutcome.UnknownAdventurer;
+            }
+
+            if (member.Activity == AdventurerActivity.OnQuest)
+            {
+                return DismissOutcome.OnQuest;
+            }
+
+            if (_world.IsAssigned(member.InstanceId))
+            {
+                return DismissOutcome.OnStandingOrder;
+            }
+
+            return DismissOutcome.Dismissed;
+        }
+
+        /// <summary>
+        /// Retire one adventurer, freeing their bed.
+        ///
+        /// Nothing is refunded. A rebate would make hiring and firing a free churn loop,
+        /// and what the roster was missing was reversibility rather than a refund — the
+        /// player who guessed wrong needs a way back, not a way to guess for nothing.
+        ///
+        /// Refusing while they are committed is what keeps this from being the destructive
+        /// action that undoes itself. Removing a member of a standing order would leave
+        /// <c>QuestDispatchService.TryStartRun</c> failing silently for the rest of the
+        /// run, with an order on screen that simply never goes out again;
+        /// <c>TryReformParty</c> is the way to release them, and the refusal says so.
+        /// </summary>
+        public DismissOutcome TryDismiss(Adventurer member)
+        {
+            DismissOutcome preview = PreviewDismissal(member);
+            if (preview != DismissOutcome.Dismissed)
+            {
+                return preview;
+            }
+
+            if (!_world.Roster.Remove(member.InstanceId))
+            {
+                return DismissOutcome.UnknownAdventurer;
+            }
+
+            EventBus.Publish(new AdventurerDismissed(member.Definition.Id, member.InstanceId));
+            return DismissOutcome.Dismissed;
         }
     }
 }
