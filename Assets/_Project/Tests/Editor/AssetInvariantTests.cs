@@ -321,6 +321,94 @@ namespace IdleGuild.Tests
             }
         }
 
+        /// <summary>
+        /// The ladder as five figures rather than as a ratio, because the invariant above
+        /// compares bands against each other and a slip that scaled all five the same way
+        /// would sail past it. This project's most expensive failures have all been one
+        /// wrong number in one shipped asset — Day 4–5 handed the Inn its own cost curve
+        /// as its bed curve and nothing caught it until the YAML was read back by hand.
+        ///
+        /// Level 2 is the first trainable level, so its cost is the base times one step of
+        /// growth. Expected to move on Day 21; updating it is part of that work.
+        /// </summary>
+        [Test]
+        [Category("BalanceCanary")]
+        public void TheTrainingLadderReadsAsWritten()
+        {
+            (string Id, double FirstLevel)[] expected =
+            {
+                ("militia_recruit", 26.8d),
+                ("hedge_knight", 53.6d),
+                ("wandering_ranger", 107.2d),
+                ("arcane_battlemage", 214.4d),
+                ("dragonsworn_champion", 428.8d),
+            };
+
+            foreach ((string id, double firstLevel) in expected)
+            {
+                Assert.That(Shipped.Adventurer(id).TrainingCostToReach(2), Is.EqualTo(firstLevel).Within(0.05d),
+                    $"{id}'s first training level. The bases double per band with power — 20 / 40 / 80 / " +
+                    "160 / 320 at 34% growth — so that a bed costs what it delivers whatever is sleeping in it.");
+            }
+        }
+
+        /// <summary>
+        /// A band that doubles power must not cost more than double the gold to realise
+        /// it. Otherwise rarity is taxed twice — once at the Tavern gate that unlocks it
+        /// and again on every training level for the rest of the run — and the whole
+        /// ladder above Common becomes a trap the player pays to walk into.
+        ///
+        /// This is the defect Day 13 found, and it had survived three days of looking
+        /// straight at it. The training bases tripled per band (20 / 60 / 180 / 540 /
+        /// 1620) while power doubled, so a Legendary bed cost 81x a Common bed and
+        /// returned 16x the power — 6,268 gold per point against 1,236. Days 8–9, 10–11
+        /// and 12 each concluded that "higher rarities feel pointless" and each looked
+        /// for the reason in the power numbers, the recruitment gates and the player
+        /// policy in turn. It was in the price list the whole time.
+        ///
+        /// Deliberately an invariant rather than a BalanceCanary: it names no figure, and
+        /// any future retune that keeps rarity honest will pass it untouched. The 10%
+        /// slack is for the recruit-cost ladder, which climbs 5x per band but is around
+        /// 1% of what a bed costs over its life. The failure this guards against is 50%
+        /// per band, so the margin is wide on purpose.
+        /// </summary>
+        [Test]
+        public void AHigherRarityBandNeverCostsMoreGoldPerPointOfPower()
+        {
+            List<AdventurerDefinition> ladder = new List<AdventurerDefinition>(Shipped.Content.Adventurers);
+            ladder.Sort((left, right) => left.Rarity.CompareTo(right.Rarity));
+
+            for (int index = 1; index < ladder.Count; index++)
+            {
+                AdventurerDefinition lower = ladder[index - 1];
+                AdventurerDefinition upper = ladder[index];
+
+                double cheaper = GoldPerPointOfPower(lower);
+                double dearer = GoldPerPointOfPower(upper);
+
+                Assert.That(dearer, Is.LessThanOrEqualTo(cheaper * 1.10d),
+                    $"A bed holding {upper.Id} costs {dearer:N0} gold per point of power against " +
+                    $"{cheaper:N0} for {lower.Id}. Beds are capped, so rarity is what a player buys when " +
+                    "they cannot buy another body — charging a premium for it on top makes the band " +
+                    "above strictly worse than the one below.");
+            }
+        }
+
+        /// <summary>
+        /// What one bed costs over the life of the guild, against what it delivers: the
+        /// hire plus every training level, divided by the power the archetype reaches.
+        /// </summary>
+        private static double GoldPerPointOfPower(AdventurerDefinition archetype)
+        {
+            double lifetime = archetype.RecruitCostGold;
+            for (int level = 2; level <= archetype.MaxLevel; level++)
+            {
+                lifetime += archetype.TrainingCostToReach(level);
+            }
+
+            return lifetime / archetype.BasePowerAt(archetype.MaxLevel);
+        }
+
         private static bool GrantsHousing(BuildingDefinition building)
         {
             foreach (BuildingEffect effect in building.Effects)

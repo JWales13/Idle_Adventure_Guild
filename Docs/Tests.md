@@ -1,7 +1,7 @@
 # The test suite
 
 An EditMode assembly at `Assets/_Project/Tests/Editor/`. Run it from
-**Window → General → Test Runner → EditMode → Run All**. **64 tests**, all green, in
+**Window → General → Test Runner → EditMode → Run All**. **66 tests**, all green, in
 well under a second.
 
 There is no `dotnet` or `unity` on the Cowork shell, so tests are written there and run
@@ -47,9 +47,19 @@ The exceptions are tagged:
 
 Filter on that in the Test Runner and you have the list of tests that assert *values* —
 the opening quest's `52s / 6% / 48 g`, the Inn's 2 / 12 / 16 beds, the ×2.00 rarity ladder,
-Dragon's Roost at `720s / 40%` against a starter party. **These are expected to be updated
-by a balance pass.** Updating one is part of that work; updating an invariant is a warning
-that something else is wrong.
+the training ladder's `26.8 / 53.6 / 107.2 / 214.4 / 428.8`, Dragon's Roost at `720s / 40%`
+against a starter party. **These are expected to be updated by a balance pass.** Updating
+one is part of that work; updating an invariant is a warning that something else is wrong.
+
+**Day 13 moved no canary, and that was the finding.** The first balance pass changed five
+numbers — the per-band training bases — and not one canary so much as flickered, because
+there had never been a canary on a training cost. The ladder tripled per band while power
+doubled, so a Legendary bed cost 81x a Common bed for 16x the power, and Days 8–9, 10–11
+and 12 each concluded "higher rarities feel pointless" while looking somewhere else for
+the reason. **A canary set that watches the wrong values is quieter than no canary set,
+because its silence reads as a pass.** Two tests closed it:
+`AHigherRarityBandNeverCostsMoreGoldPerPointOfPower` as an invariant, and
+`TheTrainingLadderReadsAsWritten` as the canary that should have existed since Days 10–11.
 
 ---
 
@@ -64,8 +74,11 @@ that something else is wrong.
 | `PresentationTests` | step 6 (part) | every rarity has its own class, every refusal has a sentence, every stat has a player-facing name |
 | `SaveRoundTripTests` | step 2 (part) | capture → JSON → probe → restore, reset semantics, garbage refused, delete removing every copy |
 | `SaveFixtureTests` | step 2 (rest) | real save files this build did not write |
+| `AssetInvariantTests` (Day 13) | — | a band never costs more gold per point of power than the band below; the training ladder as five figures |
 | `RosterRatchetTests` | Day 12 | a full guild can always make room; both refusals, in the right order; a refused dismissal does not half-happen; no refund |
 | `PartyFormationTests` | Day 12 | the run in flight survives a re-form untouched; the new party goes out next; exact party size; the refuse → re-form → release → retire route end to end |
+
+Day 13 added two tests to `AssetInvariantTests` and changed nothing else in the suite.
 
 Day 12's seventeen tests introduced no new `BalanceCanary`. Not one of them names a bed
 count, a recruit cost or a rarity threshold — the roster tests hire against the *gate*

@@ -173,7 +173,38 @@ where things stand in a sentence or two before writing any code.
 
 ### Current status
 
-**Current status:** Week 2, Day 12 complete.
+**Current status:** Week 2, Day 13 complete.
+
+Day 13 was the first balancing pass, and it answered the question it was handed by
+dissolving it. The ten-hour policy bracket Day 12 left behind was not a question about
+the player: **the rarity ladder tripled in training cost per band while power only
+doubled**, so a Legendary bed cost 81x a Common bed to realise and returned 16x the
+power — 6,268 gold per point of power against 1,236. Setting the per-band training
+multiple to 2 makes gold-per-power flat across all five bands, and the three swap
+policies that spanned ten hours then agree inside eighty minutes. **Five numbers on five
+`.asset` files, no game `.cs` touched, no save field moved, and not one `BalanceCanary`
+needed updating** — which is itself the finding, since no canary had ever watched a
+training cost. The suite went 64 → 66 and no existing test moved.
+`Docs/Day13_First_Balance_Pass.md` carries the reasoning, the collapse table and one
+deferred design decision.
+
+**Verified, not just written.** The suite was run and **reports 66 green**. The log
+confirms the data-only claim the same way Days 10–11 confirmed theirs: the five changed
+assets imported with **no `OnValidate` warning**, and the **seven game DLLs did not
+recompile at all** — they are timestamped 03:47 and 03:59 against asset edits at 16:51,
+and only `IdleGuild.Tests.Editor.dll` moved (16:58), which is the one file that changed.
+Two things in `Editor.log` look alarming and are both historical, worth naming so the
+next session does not re-investigate them: three `error CS` on `AssetValidation.cs:52`
+are the `Object.GetInstanceID()` deprecation already recorded in §6 of `Docs/Tests.md`,
+from before the Days 10–11 follow-up fixed it, and seven `GameContent: no guild tiers
+listed` warnings carry `SerializedObjectReferenceBinding` in their stacks — somebody
+dragging a reference in the Inspector, from before `AssetValidation.WhenLoaded` deferred
+those checks. Nothing of ours appears in the last 6,000 lines of the log.
+
+**Current pacing, superseding Day 12's four figures:** patient Capital **5h54m** and
+everything-maxed **18h14m**, impatient **6h56m** and **19h33m**, both profiles finishing
+with sixteen Legendaries. Purchase gaps are the best recorded — median 1.5 min, 90th
+percentile 4, worst 19.
 
 Day 12 gave the game its first two reversible decisions. Retiring an adventurer
 (`RecruitmentService.PreviewDismissal` / `TryDismiss`) unwinds the bed ratchet, and
@@ -203,11 +234,20 @@ The passes earned their keep immediately. Step 1 of the Day 6 document found a r
 
 The Week 1 checkpoint holds, minus the UI that Day 7 adds.
 
-**Next action:** Week 2, Day 13 — first balancing pass. Run the EditMode suite first as a baseline and again before committing, as always.
+**Next action:** Week 2, Day 14 — full playtest, Village to Capital, logging every
+friction point and bug for Week 3. Run the EditMode suite first as a baseline and again
+before committing, as always.
 
-Day 13 inherits a live question rather than a clean slate, and it is written up in §7 of `Docs/Day12_Roster_And_Parties.md`. Adding the retire action to `guild_model.py` moved the pacing figures **on unchanged assets**: patient 5h53m → 5h41m to Capital and 20h31m → **22h50m** to everything-maxed, impatient 4h30m → 4h16m and 15h30m → **17h45m**. Those four numbers, not the Days 10–11 ones, are what a retune compares against. Two findings come with them. **Retiring makes the game about two hours longer** — it is a gold sink, full price again and the replacement restarts at level 1 — and **the impatient player still never fields a Legendary**, because by the time they can afford a Champion their Battlemages have out-trained a level-1 one. So Day 12 rescued them from wasted beds and not from the archetype ceiling.
-
-Treat the two model runs as a bracket on one policy decision rather than as an answer: ranking swaps by fully-trained potential gives sixteen Legendaries and a 28-hour game, strict immediate improvement gives no Legendary and 17h45m, and a real player who wants a Champion sits between. Deciding which the game should encourage is Day 13's job.
+Day 14 starts from a stable set of numbers rather than an open question, and it is owed
+three things by earlier days. It is the day the **twenty-five minutes of accumulated
+hand-checking** finally has a played-in save to run against — Days 10–11's step 4, the
+colour half of step 6 and the is-it-fair half of step 8, plus Day 12's four. It should
+also judge whether a Dragonsworn Champion **feels** like the reward Capital exists to
+hand over, because §6 of `Docs/Day13_First_Balance_Pass.md` argues that it currently
+should not: the Training Room's bonus is flat, so it compresses the authored 16x rarity
+ladder to 3.7x by the time the guild is finished, and a level-1 Champion arrives weaker
+than a maxed Militia Recruit. That is a deferred decision with a written cost, not a
+mystery — see the open list.
 
 ### The central architectural bet, and how to check it still holds
 
@@ -294,8 +334,23 @@ standing order and re-dispatches. That is defensible — the alternative is part
 silently reshuffling under the player — but it means the assignment screen has to make
 re-forming a party easy to find, or the best hire in the game sits on the bench.
 
+**Day 13 finished it, and the economic lock turned out to be six percent wide.** A
+level-1 Dragonsworn Champion is 379.4 power against a maxed Militia Recruit's 403.0 at a
+finished Training Room — it wins at **level 3**, for about a thousand gold. The model
+had a swap rule that only ever compared a level-1 hire against a trained incumbent, so
+it reported a wall two training levels thick as impassable. Underneath that, the
+training ladder tripled per band against power that doubled, which is what made the top
+band genuinely expensive rather than merely late. With both fixed, **both player
+profiles finish with sixteen Legendaries** and the fork costs eighty minutes rather than
+an endgame. The ratchet is now fully unwound: not structural since Day 12, not economic
+since Day 13.
+
 Worth stating as a general shape, because it will recur: **a permanent purchase gated
-on a resource that stops growing is a decision the player can only get wrong once.**
+on a resource that stops growing is a decision the player can only get wrong once.** And
+its companion, which took four days to earn: **a decision that is reversible, legible
+and correctly priced is the only one a player can actually make** — Days 10–11 supplied
+the legibility, Day 12 the reversibility, and Day 13 found that the price had been wrong
+the whole time and was doing more damage than either.
 
 ### The save format, and the rule that keeps it readable
 
@@ -451,9 +506,21 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 - **The save file is plain text and trivially editable**, timestamp included, which means free offline earnings for anyone who opens it. A Week 3 hardening item with a soft deadline of Day 20, and the fix is a checksum rather than encryption — the goal is to make casual editing visible, not to defeat a determined player. Quarantined `guild_save.json.corrupt-*` files are also never cleaned up automatically; decide by Day 20 whether to cap them.
 - **The debug console must be deleted or excluded before submission.** `DebugConsoleOverlay` disables itself outside development builds, so it is not a shipping risk today, but leaving dev UI in a store binary is the kind of thing that reads badly in review. Hard deadline Day 22.
 - Building count (3 for MVP, architected to scale to 5) and building effects remain finalized.
-- **`Docs/tools/guild_model.py` is a copy of the balance numbers and will drift.** It replicates the loop well enough to have found the Day 4–5 structural failure, but it is a model, not a source of truth: update it in the same commit as any asset change. A drifted model is worse than no model, because its answers stay confident. **It is also a copy of a *player*, and that half drifts too** — Days 10–11 found its hiring rule had never once bought a non-Common adventurer, so a question about rarity it appeared to answer, it had never actually asked. When a run says content is pointless, check the policy can reach that content before believing it.
-- **The model's swap policy is Day 13's to settle.** `guild_model.py` now has a retire rule, and the choice inside it moves the endgame by ten hours: ranking swaps by fully-trained potential churns the roster to sixteen Legendaries and a 28-hour game, while requiring an immediate improvement gives no Legendary at all and 17h45m. The committed version is the second, because the first throws away every level of training bought along the way and is an arbitrage bug rather than a player. Neither is *right*; §7 of `Docs/Day12_Roster_And_Parties.md` has the bracket.
+- **`Docs/tools/guild_model.py` is a copy of the balance numbers and will drift.** It replicates the loop well enough to have found the Day 4–5 structural failure, but it is a model, not a source of truth: update it in the same commit as any asset change. A drifted model is worse than no model, because its answers stay confident. **It is also a copy of a *player*, and that half drifts too** — Days 10–11 found its hiring rule had never once bought a non-Common adventurer, so a question about rarity it appeared to answer, it had never actually asked. When a run says content is pointless, check the policy can reach that content before believing it. **Day 13 is the case that points the other way and is worth holding beside it:** the policy was blamed for four days for what the *content* was doing, and the rule that had never bought a Champion was correct about the game as priced. So the check runs both directions — a model that says something is pointless is claiming a fact about the content *and* about the player, and either half can be the one that is lying.
+- **The Training Room's power bonus is flat, and that is a levelling mechanic pointed the wrong way.** `Adventurer.PowerWith` **adds** `AdventurerPower` to every adventurer, and a flat bonus is by construction worth most to the weakest person it touches: +331 on a maxed Militia Recruit's 71.6 is +462%, on a maxed Champion's 1,145.6 it is +29%. So the building whose stated job is raising each adventurer's Power is in practice an **equaliser**, and the authored 16x rarity ladder is worth **x3.7** by the time the guild is finished (x16.0 / x14.8 / x12.2 / x7.7 / x3.7 at Training Room 0 / 10 / 20 / 30 / 40). The same shape has an uglier second face: a new hire arrives carrying the full guild bonus for free, so a **25-gold Militia Recruit is worth +331 power at a finished guild — 0.1 gold per point** — against 1,576 to 7,977 gold per point for a training level. Only the Inn's sixteen-bed cap stops that being the dominant strategy. Making the bonus multiplicative fixes both halves and is what the building already claims to do; it costs one line in `Adventurer.PowerWith`, a neutral base of 1.0 in `GuildState`, a `ModifierKind` on the asset, re-derived Recommended Power on all five quests, re-spaced tier gates, four canaries, and about seven hours of tail before any re-tuning. **Deferred to Day 21** — the compression bites hardest at Training Room 30–40, by which point the roster has converged to Legendary anyway, so what it costs today is feel at the climax rather than balance. §6 of `Docs/Day13_First_Balance_Pass.md` has the numbers. Note that it changes what a **stat** means rather than what content consumes it, which is the harder version of the architectural bet, and that `GuildStat` is persisted by ordinal — reinterpret the value, never renumber the enum, and add a save fixture on the day it happens.
 - **`AssetValidation` is the eighth thing in Core and the first that exists only for the editor.** It is small, it is `[Conditional("UNITY_EDITOR")]` so it compiles out of a player build, and every feature already depends on Core — but it is worth naming here rather than letting it arrive unannounced, because Core is the assembly the whole architecture leans on and the bar for adding to it should stay high. If a second editor-only utility ever wants to join it, that is the moment to give them their own editor assembly instead.
+
+**Resolved on Day 13:**
+
+- **The ten-hour bracket was a price tag, not a policy question.** Day 12 handed over two model runs as the extremes of one decision and asked Day 13 to choose between them. Neither was choosable, because the ladder underneath both was priced wrong: **each rarity band doubled power and tripled training cost** — bases 20 / 60 / 180 / 540 / 1620 at a common 34% growth — so gold per point of power climbed 1,236 → 1,854 → 2,782 → 4,175 → **6,268** across the five archetypes, and a Legendary bed cost **81x** a Common bed for **16x** the power. Rarity was strictly dominated on the gold axis for the entire game. That is what made the greedy rule look like an arbitrage bug: it was buying the best archetype available, which is what a player does, and being charged ten hours for it. **The behaviour was never wrong; the price of the behaviour was.** With the bases at 20 / 40 / 80 / 160 / 320 the multiple matches — each band doubles power and doubles the gold to train it out — g/power is flat at 1,236 → 1,249, and strict, greedy and pragmatic policies land inside eighty minutes of each other with greedy and pragmatic one minute apart. **The general shape is worth more than the fix: a ratio authored in one place and paid for in another will not be checked by anybody looking at either.** Power lives on `_powerByLevel`, price on `_trainingCostToReachLevel`, and in four days of hunting this exact symptom nothing had ever divided one by the other.
+
+- **Three days had each blamed something else, and each was true and none was the reason.** Days 8–9 blamed the Training Room's guild-wide bonus, Days 10–11 blamed the Inn's bed ratchet, Day 12 blamed an economic ceiling it had itself created by removing the structural one. All three looked at power, at gates and at the player. None looked at the price list. Worth remembering the next time a symptom survives three fixes: **a diagnosis that keeps being nearly right is a sign the search is in the wrong file, not that the fix was too small.**
+
+- **The "economic lock" on the top rarity band was six percent wide.** `guild_model.py`'s swap rule required a **level-1** replacement to already beat the incumbent. At a maxed Training Room a level-1 Dragonsworn Champion is 379.4 against a maxed Militia Recruit's 403.0 — it wins at **level 3**, two training levels and about a thousand gold at a point in the game where the guild earns that in seconds. So Day 12's report that the structural lock had become an economic one described a rule that never looked past level 1. `switching_cost()` replaces it with the hire plus training the replacement to the first level that beats what the incumbent has already been trained to — no threshold, no magic number, and sunk training respected without the rule being blind to the fact that replacements can be trained too. **Both of Day 12's rules were straw players standing either side of the real one**: the rejected one ignored the price of catching up, the shipped one priced it at infinity.
+
+- **That no canary moved is the finding, not the reassurance.** A pass that moved everything-maxed by four and a half hours and collapsed a ten-hour spread to eighty minutes disturbed no value-asserting test, because **no canary had ever watched a training cost** — five of the seven watch quest resolution, one the Inn's beds, one the rarity *power* ladder. Two tests close it, deliberately of different kinds: `AHigherRarityBandNeverCostsMoreGoldPerPointOfPower` is an **invariant** that any honest future retune passes untouched, and `TheTrainingLadderReadsAsWritten` is the **canary** that catches one mistyped figure in one asset — which the invariant would sail past, since a slip scaling all five bands equally leaves every ratio intact. **A canary set that does not watch a value is quieter than no canary set, because its silence reads as a pass.**
+
+- **The patient/impatient fork is now a schedule rather than a destination.** Both profiles finish with sixteen Legendaries; impatience costs about eighty minutes and buys nothing that cannot be bought later, and — for the first time — the impatient player reaches Capital **later** (6h56m against 5h54m) because they spent gold on Battlemages they went on to retire. That ordering is what Day 12's retire action was reaching for and never showed. Below a ×2 band multiple it inverts again: at ×1.75 and ×1.50 the impatient player finishes the game *first*, which is why ×2 is the value and not merely a value.
 
 **Resolved on Day 12:**
 
@@ -498,7 +565,7 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 
 ```
 I'm continuing work on Idle Adventurer's Guild, a solo Unity idle-tycoon game
-(fantasy adventurers' guild theme), targeting App Store submission with 17
+(fantasy adventurers' guild theme), targeting App Store submission with 16
 days left against the original 4-week deadline (target submission by Day 26,
 buffer through Day 28).
 
@@ -508,57 +575,68 @@ particular attention to "The central architectural bet", "The roster is a
 one-way ratchet" and "Working arrangement" in section 06, then read
 Docs/Tests.md, which is short and changes how you verify things.
 
-Current position: Week 2, Day 13 - "Core Gameplay Complete"
+Current position: Week 2, Day 14 - "Core Gameplay Complete"
 Last completed: Week 1 in full, Days 8-9 (building trees), Days 10-11 (tier
 transitions), an unplanned follow-up that turned most of that verification pass
-into tests, and Day 12 (recruitment and assignment UI). Unity 6000.5.0f1 /
-URP 2D, private GitHub repo via GitHub Desktop. Eight assemblies: five feature
-assemblies depending on Core and nothing else, IdleGuild.App above them holding
-composition and cross-feature transactions, IdleGuild.UI above that, and
-IdleGuild.Tests.Editor above everything with nothing referencing it. Day 12
-shipped the two reversible decisions Days 10-11 asked for - retiring an
-adventurer, and re-forming a standing order's party - plus one party picker
-serving both a first dispatch and a re-form. Four new files, ten changed, no
-.asset touched and no save field added. Docs/Day12_Roster_And_Parties.md has the
-reasoning; Docs/Day10_Tier_Transitions.md is still current for adventurers,
-quests and the City reputation gate; Docs/Day08_Building_Trees.md for the
-building trees and the tier gates' building requirements.
+into tests, Day 12 (recruitment and assignment UI) and Day 13 (first balancing
+pass). Unity 6000.5.0f1 / URP 2D, private GitHub repo via GitHub Desktop. Eight
+assemblies: five feature assemblies depending on Core and nothing else,
+IdleGuild.App above them holding composition and cross-feature transactions,
+IdleGuild.UI above that, and IdleGuild.Tests.Editor above everything with
+nothing referencing it. Day 13 was data only - five numbers on five .asset
+files, no game .cs, no save field, and no BalanceCanary updated. It found that
+each rarity band doubled power but TRIPLED training cost, so a Legendary bed
+cost 81x a Common bed for 16x the power; the bases are now 20/40/80/160/320 and
+gold-per-power is flat across all five archetypes.
+Docs/Day13_First_Balance_Pass.md has the reasoning and one deferred decision;
+Docs/Day12_Roster_And_Parties.md for retiring and party re-forming;
+Docs/Day10_Tier_Transitions.md is still current for adventurers, quests and the
+City reputation gate; Docs/Day08_Building_Trees.md for the building trees and
+the tier gates' building requirements.
 
-Next task: Day 13 - first balancing pass. Shape of the curve matters more than
-exact numbers. Read section 7 of Docs/Day12_Roster_And_Parties.md first, because
-this day does not start from a clean slate. Adding a retire rule to
-Docs/tools/guild_model.py moved the pacing figures ON UNCHANGED ASSETS: patient
-5h53m -> 5h41m to Capital and 20h31m -> 22h50m to everything-maxed, impatient
-4h30m -> 4h16m and 15h30m -> 17h45m. Those four are what a retune compares
-against, not the Days 10-11 ones. Two findings come with them. Retiring makes
-the game about two hours longer, because it is a gold sink - full recruit price
-again and the replacement restarts at level 1. And the impatient player STILL
-never fields a Legendary: beds free up and the Commons vanish from their final
-roster, but by the time they can afford a Champion their Battlemages have
-out-trained a level-1 one, so Day 12 turned a structural lock into an economic
-one. Treat the two model runs as a bracket on one policy decision rather than an
-answer - ranking swaps by fully-trained potential gives sixteen Legendaries and
-a 28-hour game, requiring an immediate improvement gives no Legendary and
-17h45m, and a real player who wants a Champion sits between. Deciding which the
-game should encourage is this day's job. Also worth re-checking on a balance
-day: the purchase-gap profile, which Days 8-9 said the model exists to protect
-(90th percentile was 5-7 minutes, worst gap 25).
+Next task: Day 14 - full playtest, Village to Capital, logging every friction
+point and bug for Week 3. This is the day the accumulated hand-checking finally
+has a played-in save to run against: three steps from Days 10-11 (step 4, Town
+in about ten minutes; the colour half of step 6, whether USS actually paints
+Epic purple; the is-it-fair half of step 8, Dragon's Roost at a guild that
+earned its way to Capital) and four from Day 12 (the destructive button reading
+as destructive, a sixteen-row party picker fitting the phone, the selected state
+being unambiguous, and whether the retire confirmation reads as informative
+rather than as a scolding). Call it twenty-five minutes inside a longer session.
+Current modelled pacing to compare the played arc against: patient Capital 5h54m
+and everything-maxed 18h14m, impatient 6h56m and 19h33m, both finishing with
+sixteen Legendaries; Town at 8m and City at 1h08m. Purchase gaps are median 1.5
+min, 90th percentile 4, worst 19. A real playthrough will not reach Capital in
+one sitting, so the debug console's grants are the tool - but note that anything
+granted invalidates the pacing comparison, so log which is which.
 
-Testing: there is an EditMode suite at Assets/_Project/Tests/Editor/ - 64 tests,
+One judgement Day 14 is specifically asked to make, from section 6 of
+Docs/Day13_First_Balance_Pass.md: does a Dragonsworn Champion FEEL like the
+reward Capital exists to hand over? The document argues it currently should not.
+Adventurer.PowerWith adds the Training Room's bonus FLAT, which is worth +462%
+to a maxed Militia Recruit and +29% to a maxed Champion - an equaliser wearing a
+levelling mechanic's clothes. It compresses the authored 16x rarity ladder to
+x3.7 by the time the guild is finished, and a level-1 Champion arrives WEAKER
+than a maxed Militia Recruit (379.4 against 403.0), winning only at level 3.
+Making the bonus multiplicative is one line in Adventurer.PowerWith plus a
+neutral base of 1.0 in GuildState, a ModifierKind on the Training Room asset,
+re-derived Recommended Power on all five quests, re-spaced tier gates and four
+canaries - deliberately deferred to Day 21, with the numbers written down. Day
+14's job is not to do it but to say whether the deferral still looks right after
+playing it.
+
+Testing: there is an EditMode suite at Assets/_Project/Tests/Editor/ - 66 tests,
 all green, running in well under a second. Run it (Window > General > Test Runner >
-EditMode > Run All) before you start and before you commit. Two things to know
-before touching it. It asserts SHAPE rather than NUMBERS on purpose, so a
-balance pass should not make it flicker; the handful that do assert values are
-tagged [Category("BalanceCanary")] and are expected to be updated deliberately -
-this day is exactly when that happens, and updating one is part of the work
-while updating an invariant is a warning that something else is wrong. And it
-loads the real .asset files through AssetDatabase rather than building fixtures
-in code, because every content failure this project has had was a wrong value in
-a shipped asset and a hand-built fixture would repeat the same misreading.
-Docs/Tests.md explains the rest, including the three save fixtures and why they
-are permanent. Note that none of Day 12's seventeen new tests is a BalanceCanary
-- they name no bed count, recruit cost or rarity threshold - so they should not
-move today.
+EditMode > Run All) before you start and before you commit. It asserts SHAPE
+rather than NUMBERS on purpose; the eight that assert values are tagged
+[Category("BalanceCanary")] and are expected to be updated deliberately by a
+balance pass, while updating an invariant is a warning that something else is
+wrong. It loads the real .asset files through AssetDatabase rather than building
+fixtures in code, because every content failure this project has had was a wrong
+value in a shipped asset. Docs/Tests.md explains the rest, including the three
+save fixtures and why they are permanent. Day 14 is a playtest rather than a
+code day, so the suite should not move at all - if it does, the playthrough
+found something.
 
 Deviations from the plan so far: none material. Day 1's "ad/IAP SDK package
 stubs" became interface stubs, with the real SDK arriving Week 3 behind those
@@ -572,47 +650,39 @@ guild can field is already past QuestResolution's 4x speed clamp. That document
 authorised the change. The test suite itself was not on the roadmap. Day 12
 narrowed two behaviours beyond its brief, both recorded in section 5 of its doc:
 a quest party must now be EXACTLY the size the quest asks for rather than at
-least (previously unreachable, since no caller could build an over-size party by
-hand, and every duration figure was derived against that number - widening it is
-Quest Board territory), and "send a party" now picks the strongest free
-adventurers rather than the first on the roster.
+least, and "send a party" now picks the strongest free adventurers rather than
+the first on the roster. Day 13 stayed inside its brief and deferred the one
+change that would have left it - see above.
 
-Known issues/blockers: three steps of the Days 10-11 pass are still manual and
-still outstanding - step 4 (Town in about ten minutes, a pacing judgement), the
-colour half of step 6 (whether USS actually paints Epic purple), and the
-is-it-fair half of step 8 (Dragon's Roost at a guild that earned its way to
-Capital, which needs a played-in save and belongs to Day 14). Day 12 added four
-more of the same kind, listed at the end of section 8 of its doc: the
-destructive button reading as destructive, a sixteen-row party picker fitting
-the phone, the selected state being unambiguous, and whether the retire
-confirmation reads as informative rather than as a scolding. Call it
-twenty-five minutes of hand-checking in total, and most of it wants Day 14's
-played-in save anyway. Still open: Git LFS must be set up before the first art
-commit on Day 15 - its deadline is the commit, not the day. Ad network and IAP
-provider unchosen. Bundle ID and product name are still template defaults, and
-they are also the save directory
-(~/Library/Application Support/DefaultCompany/Idle_Adventure_Guild/), so
-changing either strands every existing save - capture anything worth keeping as
-a fixture BEFORE renaming. Save files are plain text and trivially editable, a
-Day 20 hardening item, along with capping the guild_save.json.corrupt-*
-quarantine files. The debug console must be deleted or excluded before
-submission, hard deadline Day 22. Week 4 execution surface (device builds,
-TestFlight, App Store Connect) is not solvable from Cowork and needs deciding
-before Day 22.
+Known issues/blockers: Git LFS must be set up before the first art commit on
+Day 15 - its deadline is the commit, not the day, and it is now the nearest
+hard deadline in the project. Ad network and IAP provider unchosen. Bundle ID
+and product name are still template defaults, and they are also the save
+directory (~/Library/Application Support/DefaultCompany/Idle_Adventure_Guild/),
+so changing either strands every existing save - capture anything worth keeping
+as a fixture BEFORE renaming, which now specifically includes whatever Day 14's
+playthrough produces, since a played-in save is the one thing the fixture set
+still lacks. Save files are plain text and trivially editable, a Day 20
+hardening item, along with capping the guild_save.json.corrupt-* quarantine
+files. The debug console must be deleted or excluded before submission, hard
+deadline Day 22. Week 4 execution surface (device builds, TestFlight, App Store
+Connect) is not solvable from Cowork and needs deciding before Day 22.
 
 Two documentation hazards worth knowing. Asset values live in three documents
-and the newest wins: Day10_Tier_Transitions.md is current for adventurers,
-quests and the City reputation gate; Day08_Building_Trees.md for the building
-trees and the tier gates' building requirements; Day04 only for GameContent, the
-scene setup and the smoke test. Day12_Roster_And_Parties.md contains no asset
-values at all, so it does not enter that ordering - but it does carry the
-current pacing figures, which supersede the ones published on Days 10-11. And
-guild_model.py is a copy of both the balance numbers and the player, and both
-halves drift: Days 8-9 found it judging every party by the strongest party's
-power, Days 10-11 found its hiring rule had never once bought a non-Common
-adventurer, and Day 12 found it simulating a bed ratchet the game no longer has.
-When a run says something is pointless, check the policy can reach it before
-believing the answer.
+and the newest wins: Day13_First_Balance_Pass.md is current for the five
+adventurer training curves and nothing else; Day10_Tier_Transitions.md for
+everything else about adventurers, quests and the City reputation gate;
+Day08_Building_Trees.md for the building trees and the tier gates' building
+requirements; Day04 only for GameContent, the scene setup and the smoke test.
+Day12_Roster_And_Parties.md contains no asset values at all. Pacing figures
+supersede in publication order and Day 13's are current. And guild_model.py is a
+copy of both the balance numbers and the player, and both halves drift: Days 8-9
+found it judging every party by the strongest party's power, Days 10-11 found
+its hiring rule had never once bought a non-Common adventurer, Day 12 found it
+simulating a bed ratchet the game no longer has, and Day 13 found that its swap
+rule had been blamed for four days for what the CONTENT was doing. When a run
+says something is pointless, check both halves - the policy might not reach the
+content, or the content might deserve it.
 
 Working arrangement (see section 06): this runs in Claude Cowork, whose shell
 is a Linux VM with the project folder mounted - git exists but `unity` and
@@ -625,7 +695,7 @@ Tests are the same loop: you write them, I run them and paste failures.
 guild_model.py runs fine on the Cowork shell (python3, no dependencies, about a
 third of a second), so model runs do not need me. ScriptableObject values can be
 written directly into the .asset YAML rather than retyped through the Inspector,
-which is how Days 8-9 and 10-11 avoided a repeat of Day 4-5's transcription
+which is how Days 8-9, 10-11 and 13 avoided a repeat of Day 4-5's transcription
 slips.
 
 Follow the Principles section of this doc (Clean Code, data-driven
@@ -652,6 +722,8 @@ where things stand in a sentence or two before writing any code.
 12. **W2D10–11 follow-up — a test suite** — Prompted by the obvious question after writing a nine-step manual pass: can't we build tests? Mostly yes, and the part that resists is informative. Seven of the nine steps were mechanical and were going to be re-run on Days 13, 14, 21 and 23; they are now an eighth assembly, `IdleGuild.Tests.Editor`, with **43 tests that run in 46 ms and passed on the first run**. It references all seven assemblies and nothing references it, so it sits above UI the way UI sits above App and the architectural bet is untouched. Two arguments carried it over the schedule cost: this project's one real bug — the debug console's delete undoing itself — is exactly a round-trip assertion, and every content failure so far was a wrong *value* in a shipped asset, which is why the tests load the real `.asset` files through `AssetDatabase` rather than constructing content a fixture would have got wrong in the same way. **The rule that makes them survive a balance pass is to assert the shape rather than the number** — no dead levels, gates that only tighten, a ladder that doubles, an opening that is solvent — with the value-asserting handful tagged `BalanceCanary` so Day 13 can find them in one filter. Save compatibility got its own answer: round-tripping today's writer into today's reader proves only that they agree with each other, so `Tests/Editor/Fixtures/` now holds three real files, including one pointing at content no build has ever had — the first thing ever to exercise the Day 6 repair path against a file that actually needed repairing. The Week-1 save intended as the first fixture had already been overwritten by an autosave, which is the lesson in miniature: **a save file is the only record of what an earlier build wrote, and it stops existing the moment the current build runs.** Writing the tests found two things before any of them ran — `QuestResolution.FailureChance`'s comment claimed the rate doubles at half power when the formula gives 1.5x and only doubles at zero, and `Object.GetInstanceID()` is deprecated in Unity 6 with its `[Obsolete]` marked as an *error*, which is worth carrying into Week 3 when the ad and IAP SDKs arrive. `Docs/Tests.md` is the standing reference; `Docs/Day10_Tier_Transitions.md` §8 now says which of its steps survive by hand.
 
 13. **W2D12 — Recruitment and assignment UI** — The game's first two reversible decisions, both named by Days 10–11 and neither invented. Written and compiling clean: eight assemblies, zero `error CS`, zero new warnings, verified in `Logs/Editor.log`; four new files, ten changed, **no `.asset` touched and no save field added**. The suite reports **64 green**, up from 47 — which incidentally closes an open question from the previous handoff, since 47 is only reachable if the four `SaveFixtureTests` are running, and nobody had a record of them ever having run. Retiring is `RecruitmentService.TryDismiss` over the `AdventurerRoster.Remove` that had existed since Day 4–5 with only save restoration calling it, and the design question was never the code but what it should do to a member of a live standing order. It **refuses**, naming the order, because the cascading version's naive form — drop the member, leave the order — is this project's own recurring failure wearing another hat: `TryStartRun` would have returned false for the rest of the run with an order on screen that simply never went out again. Re-forming a party is what releases them, so the two halves are one route and a test walks it end to end. Re-forming turned out to cost nothing structurally, because a Day 4–5 decision paid out a second time: `ActiveQuest` snapshots its own party and the clock sends *that* snapshot home, so replacing an order's party never disturbs the run in flight — `QuestAssignment` was documented as holding its party for the life of the *assignment* when it had always really been for the life of a *run*. One party picker serves both a first dispatch and a re-form, and finally gives `PartyPower` and `PreviewDurationSeconds` the callers they have lacked since Day 4–5; they are what turn *swap the Recruit for the Champion* from a guess into a comparison made before committing. Two narrowings went past the brief and are recorded as such: a party is now **exactly** the size the quest asks for, which was unreachable before a screen could build one by hand and which every duration figure in the game was derived against; and "send a party" takes the strongest free adventurers rather than the first on the roster, which `guild_model.py` already assumed. **The day's real finding came from the model rather than the game.** Its comment block still asserted that an impatient player "can never hire a Champion at all", so it was simulating a wall that no longer existed. Adding a retire rule took two attempts and the failed one is the useful half: ranking swaps by fully-trained potential — how every *other* hiring decision in the model is made — churns the entire roster to sixteen Legendaries once gold stops being scarce, throwing away every level of training bought along the way and putting everything-maxed at **28h16m**, eight hours longer than before the action existed. That is an arbitrage bug, not a player. Requiring the replacement to be better *the day it arrives* fixes it with no threshold and no magic number, and on **unchanged assets** moves the published figures to 5h41m / **22h50m** patient and 4h16m / **17h45m** impatient. Two things follow, and Day 13 inherits both. **Retiring makes the game about two hours longer** — it is a gold sink, full price again and a level-1 replacement — and **the impatient player still never fields a Legendary**: beds free up and the Commons vanish from their roster, but trained Battlemages out-earn a fresh Champion, so the structural lock simply became an economic one. Deliberately not tuned away; the two runs are a bracket on one policy decision and choosing inside it is a balance question. The general shape worth carrying: **a reversible decision is not the same as a cheap one.**
+14. **W2D13 — First balancing pass** — Data only, and smaller than any day so far: **five numbers on five `.asset` files, no game `.cs`, no save field, and not one `BalanceCanary` updated.** The day was handed a ten-hour policy bracket by Day 12 and asked to choose inside it, and the answer was that it was not a policy question. **Each rarity band doubled power and tripled training cost** — bases 20 / 60 / 180 / 540 / 1620 at a common 34% growth — so gold per point of power climbed 1,236 → 1,854 → 2,782 → 4,175 → **6,268** and a Legendary bed cost **81x** a Common bed to realise while returning **16x** the power. Rarity was strictly dominated on the gold axis for the whole game, which is what made Day 12's greedy rule look like an arbitrage bug: it was buying the best archetype available, which is what a player does, and being charged ten hours for it. **The behaviour was never wrong; the price of the behaviour was.** Bases are now 20 / 40 / 80 / 160 / 320 — each band doubles power and doubles the gold to train it out — g/power comes out flat at 1,236 → 1,249, and the three swap policies that spanned ten hours land inside **eighty minutes**, with greedy and pragmatic one minute apart. Pacing: patient Capital **5h54m** / maxed **18h14m**, impatient **6h56m** / **19h33m**, both finishing with sixteen Legendaries, purchase gaps the best recorded at median 1.5 min / 90th pct 4 / worst 19 against the 5–7 and 25 Days 8–9 asked for. **Three earlier days had each blamed something else and each was true and none was the reason** — Days 8–9 the Training Room's guild-wide bonus, Days 10–11 the Inn's bed ratchet, Day 12 an economic ceiling it created by removing the structural one. All three looked at power, gates and the player; none looked at the price list, because **a ratio authored in one place and paid for in another will not be checked by anybody looking at either.** The model's half of it was six percent wide: its swap rule required a *level-1* replacement to beat the incumbent, and a level-1 Champion is 379.4 against a maxed Recruit's 403.0 — it wins at **level 3** for about a thousand gold, so a wall two training levels thick had been reported as impassable. `switching_cost()` now prices the catch-up, with no threshold and no magic number. The suite went **64 → 66** with no existing test moved, deliberately in two kinds: `AHigherRarityBandNeverCostsMoreGoldPerPointOfPower` as an invariant any honest retune passes untouched, and `TheTrainingLadderReadsAsWritten` as the canary for one mistyped figure in one asset, which the invariant would sail past. **That no canary moved is the finding rather than the reassurance** — no canary had ever watched a training cost, and **a canary set that does not watch a value is quieter than no canary set, because its silence reads as a pass.** One thing was found and deliberately not fixed: `Adventurer.PowerWith` adds the Training Room's bonus **flat**, so it is worth +462% to a maxed Militia Recruit and +29% to a maxed Champion — an equaliser wearing a levelling mechanic's clothes, compressing the authored 16x ladder to **x3.7** at a finished guild, and making a 25-gold recruit worth +331 power at 0.1 gold per point against 1,576–7,977 for a training level. Making it multiplicative is one line plus a re-derivation of every quest's Recommended Power and the tier gates; **deferred to Day 21** with the numbers written down, because the compression bites at Training Room 30–40 where the roster has converged anyway, so today it costs feel rather than balance. `Docs/Day13_First_Balance_Pass.md` carries all of it.
+
 
 ---
 

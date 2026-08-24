@@ -24,7 +24,7 @@ MonoBehaviour:
     GrowthPerLevel: 0.05
   _maxLevel: 25
   _trainingCostToReachLevel:
-    BaseValue: 180
+    BaseValue: 80
     LinearPerLevel: 0
     GrowthPerLevel: 0.34
   _baseRecoverySeconds: 75
