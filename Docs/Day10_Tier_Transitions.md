@@ -259,10 +259,18 @@ No Editor steps were needed to author any of this: every value was written strai
 the `.asset` YAML, which is the Day 8–9 practice and the direct lesson of Day 4–5's four
 transcription slips. Focus the Editor to reimport, then:
 
-1. **The new assets import clean.** No `OnValidate` warnings in the console. In
-   particular `GameContent` should not warn — it now lists five adventurers and five
-   quests. Confirm `Library/ScriptAssemblies/IdleGuild.*.dll` is untouched and `Logs/`
-   has no `error CS`: nothing here should have caused a recompile at all.
+1. **The new assets import clean. ✅ Passed.** All nine changed assets went through
+   `NativeFormatImporter` as "static dependencies only", with no `OnValidate` warning
+   from any of them and no `error CS` anywhere in `Logs/`. The strongest part of the
+   result is what *didn't* happen: `Library/ScriptAssemblies/IdleGuild.*.dll` were last
+   written more than two hours before the first asset was — Unity found no reason to
+   compile anything, which is better evidence for the zero-code claim than a clean build
+   would have been.
+
+   This step did surface something, though it predates the day's work by about 3,800
+   lines of `Editor.log`: a pile of `OnValidate` warnings against assets that are
+   plainly fine — `Tier_City: Id is empty`, `GameContent: no guild tiers listed`,
+   `Tier_Village: only one building gates advancement`. See §9.
 
 2. **Nothing changed for an existing save.** Load a Week-1 save. Adventurers keep their
    levels and now read `Level n / 25` with a Train button live again. Building levels,
@@ -303,3 +311,40 @@ transcription slips. Focus the Editor to reimport, then:
    step must still move, and every band must still read ×2.00 archetype. If a number in
    this document and a number in that output disagree, the document is wrong — but a
    drifted model is worse than none, so fix them in the same commit either way.
+
+
+---
+
+## 9. Follow-up: the `OnValidate` warnings that cry wolf
+
+Found while running step 1, fixed immediately afterwards in a **separate commit**, so
+the data-only claim in §1 stays true of the commit it describes.
+
+Every definition asset's `OnValidate` was reporting nonsense on assets that are
+correct: an empty Id on `Tier_City`, no tiers listed on a fully populated
+`GameContent`, a single-building gate on `Tier_Village`, which requires three.
+
+**`OnValidate` fires while Unity is still deserialising the object** — during an
+import-worker pass and on every domain reload — and in that window every serialised
+field reads as its type default. So `_id` is null, `_effects` is empty, and
+`_requirementsToAdvance` has whatever length it has not yet been given.
+
+Day 4–5 met half of this and fixed `GameContent` by counting `Tiers.Length` instead of
+dereferencing `StartingTier`, on the reading that references go null while their target
+reimports. That was true but not the whole cause: **the array reads empty in the same
+window**, so the warning came back and had been firing ever since. The distinction was
+never *what* the check looks at — it is *when* the check runs.
+
+`Core/AssetValidation.WhenLoaded` now defers each self-check by one editor tick via
+`EditorApplication.delayCall`, by which point the asset is loaded and a warning means
+something. It de-duplicates per asset, because `OnValidate` fires several times per
+import and each firing logged the same line again — which was most of the volume. It is
+`[Conditional("UNITY_EDITOR")]`, so neither the call nor the delegate it allocates
+reaches a player build. **Clamps stayed inline**: clamping a field that currently reads
+zero to zero is harmless, and a clamp has to apply the moment a value is typed.
+
+Worth keeping because it is not really a Unity quirk: **a check that cannot tell a
+half-loaded object from a half-filled one is not a check.** The cost was never the noise
+— it is that a warning which cries wolf on every reload teaches you to scroll past the
+console, which is exactly where a real one will be sitting on the day Day 13 starts
+moving numbers again.

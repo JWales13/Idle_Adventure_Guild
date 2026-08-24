@@ -1,3 +1,4 @@
+using IdleGuild.Core;
 using UnityEngine;
 
 namespace IdleGuild.Guild
@@ -61,14 +62,19 @@ namespace IdleGuild.Guild
 
         private void OnValidate()
         {
-            if (string.IsNullOrWhiteSpace(_id))
-            {
-                Debug.LogWarning($"{name}: Id is empty. Saves reference tiers by Id, so this asset cannot persist yet.", this);
-            }
-
             if (_reputationToAdvance < 0d)
             {
                 _reputationToAdvance = 0d;
+            }
+
+            AssetValidation.WhenLoaded(this, WarnOnIncompleteAsset);
+        }
+
+        private void WarnOnIncompleteAsset()
+        {
+            if (string.IsNullOrWhiteSpace(_id))
+            {
+                Debug.LogWarning($"{name}: Id is empty. Saves reference tiers by Id, so this asset cannot persist yet.", this);
             }
 
             if (_requirementsToAdvance is { Length: 1 })

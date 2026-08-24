@@ -1,4 +1,5 @@
 using IdleGuild.Adventurers;
+using IdleGuild.Core;
 using IdleGuild.Guild;
 using IdleGuild.Quests;
 using UnityEngine;
@@ -164,12 +165,19 @@ namespace IdleGuild.App
                 _startingReputation = 0d;
             }
 
-            // Counted by array length rather than by resolving StartingTier. When Unity
-            // reimports a tier asset, this object's references to it read as null for a
-            // moment, and OnValidate fires inside that window — so dereferencing them
-            // here reported an empty list when the list was perfectly fine. Length
-            // survives the reimport; the contents do not. A genuinely empty slot is
-            // caught at startup instead, where GameWorld throws with the same message.
+            AssetValidation.WhenLoaded(this, WarnOnIncompleteAsset);
+        }
+
+        // Day 4–5 moved these checks off StartingTier and onto array lengths, because
+        // OnValidate fires while Unity has the referenced tier assets reloading and the
+        // references read null. That was half the story: the arrays themselves read
+        // empty in the same window, so a fully populated catalogue went on warning that
+        // it had no tiers. Both checks are correct — they just cannot run until the
+        // asset has finished loading, which is what AssetValidation is for. Length is
+        // still the right thing to count: a genuinely empty slot is caught at startup,
+        // where GameWorld throws with the same message.
+        private void WarnOnIncompleteAsset()
+        {
             if (Tiers.Length == 0)
             {
                 Debug.LogWarning($"{name}: no guild tiers listed, so there is nothing for a new guild to start at.", this);

@@ -1,3 +1,4 @@
+using IdleGuild.Core;
 using UnityEngine;
 
 namespace IdleGuild.Quests
@@ -69,11 +70,6 @@ namespace IdleGuild.Quests
 
         private void OnValidate()
         {
-            if (string.IsNullOrWhiteSpace(_id))
-            {
-                Debug.LogWarning($"{name}: Id is empty. Saves reference quests by Id, so this asset cannot persist yet.", this);
-            }
-
             if (_goldReward < 0d)
             {
                 _goldReward = 0d;
@@ -82,6 +78,16 @@ namespace IdleGuild.Quests
             if (_reputationReward < 0d)
             {
                 _reputationReward = 0d;
+            }
+
+            AssetValidation.WhenLoaded(this, WarnOnIncompleteAsset);
+        }
+
+        private void WarnOnIncompleteAsset()
+        {
+            if (string.IsNullOrWhiteSpace(_id))
+            {
+                Debug.LogWarning($"{name}: Id is empty. Saves reference quests by Id, so this asset cannot persist yet.", this);
             }
         }
     }

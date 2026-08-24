@@ -65,7 +65,14 @@ namespace IdleGuild.Guild
             return targetLevel >= 1 && targetLevel <= _maxLevel;
         }
 
+        // Nothing to clamp here, so OnValidate only queues the self-check. See
+        // AssetValidation for why it cannot run inline.
         private void OnValidate()
+        {
+            AssetValidation.WhenLoaded(this, WarnOnIncompleteAsset);
+        }
+
+        private void WarnOnIncompleteAsset()
         {
             if (string.IsNullOrWhiteSpace(_id))
             {

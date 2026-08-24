@@ -79,14 +79,19 @@ namespace IdleGuild.Adventurers
 
         private void OnValidate()
         {
-            if (string.IsNullOrWhiteSpace(_id))
-            {
-                Debug.LogWarning($"{name}: Id is empty. Saves reference adventurers by Id, so this asset cannot persist yet.", this);
-            }
-
             if (_recruitCostGold < 0d)
             {
                 _recruitCostGold = 0d;
+            }
+
+            AssetValidation.WhenLoaded(this, WarnOnIncompleteAsset);
+        }
+
+        private void WarnOnIncompleteAsset()
+        {
+            if (string.IsNullOrWhiteSpace(_id))
+            {
+                Debug.LogWarning($"{name}: Id is empty. Saves reference adventurers by Id, so this asset cannot persist yet.", this);
             }
         }
     }
