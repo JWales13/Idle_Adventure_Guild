@@ -10,21 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 42ff3d8b658364f4e8870d30f1e3185d, type: 3}
-  m_Name: Adventurer_WanderingRanger
+  m_Name: Adventurer_DragonswornChampion
   m_EditorClassIdentifier: IdleGuild.Adventurers::IdleGuild.Adventurers.AdventurerDefinition
-  _id: wandering_ranger
-  _displayName: Wandering Ranger
+  _id: dragonsworn_champion
+  _displayName: Dragonsworn Champion
   _portrait: {fileID: 0}
-  _rarity: 2
-  _minimumTierOrder: 1
-  _recruitCostGold: 600
+  _rarity: 4
+  _minimumTierOrder: 3
+  _recruitCostGold: 15000
   _powerByLevel:
-    BaseValue: 12
-    LinearPerLevel: 3.2
+    BaseValue: 48
+    LinearPerLevel: 12.8
     GrowthPerLevel: 0.05
   _maxLevel: 25
   _trainingCostToReachLevel:
-    BaseValue: 180
+    BaseValue: 1620
     LinearPerLevel: 0
     GrowthPerLevel: 0.34
-  _baseRecoverySeconds: 75
+  _baseRecoverySeconds: 105

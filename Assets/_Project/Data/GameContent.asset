@@ -25,10 +25,14 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 6e9f97ffc30be41c7a862a3be6ad28db, type: 2}
   - {fileID: 11400000, guid: d0279d3fabec24fbab645901b4a7e3f0, type: 2}
   - {fileID: 11400000, guid: 889c1575ad09e4d4f8e203304c2e7966, type: 2}
+  - {fileID: 11400000, guid: 1e8ec9e42dd94283a0ec2369b6063236, type: 2}
+  - {fileID: 11400000, guid: 3c3bb1b32a1042f4a10a8d83661b1974, type: 2}
   _quests:
   - {fileID: 11400000, guid: 02141a68b594043c9a74b63f809afff4, type: 2}
   - {fileID: 11400000, guid: a4a53b14e84a64c7480cf4f6790cebbf, type: 2}
   - {fileID: 11400000, guid: ea1f3a35a580145e48dd7ff6e0d5ba54, type: 2}
+  - {fileID: 11400000, guid: 951c47655fd74ef591358c5a9b974fa5, type: 2}
+  - {fileID: 11400000, guid: a4fc2329fa854517b5d81e0c7dd36730, type: 2}
   _startingGold: 150
   _startingReputation: 0
   _maximumOfflineSeconds: 28800

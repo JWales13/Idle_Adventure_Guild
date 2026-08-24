@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f3a03622ed154187bea7bb70711ff2a, type: 3}
+  m_Name: Quest_Dragons_Roost
+  m_EditorClassIdentifier: IdleGuild.Quests::IdleGuild.Quests.QuestDefinition
+  _id: dragons_roost
+  _displayName: Dragon's Roost
+  _description: 'It has been up there longer than the Capital has had walls. The guild has never had a party good enough to ask it to leave.'
+  _questTier: 4
+  _minimumTierOrder: 3
+  _requiredAdventurers: 3
+  _recommendedPower: 1250
+  _baseDurationSeconds: 360
+  _baseFailureChance: 0.2
+  _goldReward: 3600
+  _reputationReward: 240

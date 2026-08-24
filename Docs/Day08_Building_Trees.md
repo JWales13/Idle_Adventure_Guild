@@ -122,6 +122,20 @@ All three also gained a description, which the upgrade and quest cards now show.
 
 ## 3. What Days 10–11 must deliver
 
+> **⚠ Superseded by `Day10_Tier_Transitions.md`.** The two quests specified below were
+> authored on Days 10–11, and the tier-4 numbers changed: Recommended Power is **1,250**,
+> not 420, with gold 3,600 and reputation 240. At 420, every party a finished guild can
+> field is already past `QuestResolution.MaximumSpeedMultiplier`, so the rarity ladder and
+> the last fifteen Training Room levels buy nothing measurable — the ceiling sat below
+> where the game ends. City's reputation gate moved with it, 28,000 → **65,000**, exactly
+> as the paragraph below warns it would. The quest table in §2 is also superseded for
+> nothing; the three original quests are unchanged. Everything in §1 and §2 about the
+> **building** trees is still current.
+>
+> The two problems named at the end of this section were both addressed. See
+> `Day10_Tier_Transitions.md` §2 and §3.
+
+
 The building curves were tuned against a four-tier arc, but **the tier-3 and tier-4
 quests do not exist yet**. City and Capital raise Max Quest Tier to 3 and 4 with nothing
 authored to fill them, so today's model stands in for them. If Day 10–11 ships different

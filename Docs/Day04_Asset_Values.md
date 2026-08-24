@@ -2,15 +2,21 @@
 
 > ## ⚠ Superseded in part — read this first
 >
-> **Buildings, guild tiers and quests were re-costed on Days 8–9. The numbers in
-> sections 1, 2 and 4 below are the original first pass and are no longer what the
-> assets hold.** The current values, and the reasoning behind them, are in
-> **`Day08_Building_Trees.md`**.
+> **Buildings, guild tiers and quests were re-costed on Days 8–9, and adventurers
+> and quests again on Days 10–11. The numbers in sections 1, 2, 3 and 4 below are
+> the original first pass and are no longer what the assets hold.** The current
+> values, and the reasoning behind them, are in **`Day08_Building_Trees.md`** for the
+> three building trees and the tier gates' building requirements, and in
+> **`Day10_Tier_Transitions.md`** for adventurers, quests and the City reputation
+> gate. Where those two disagree, the newer one wins.
 >
-> The rest of this document is still accurate and still worth having: section 3
-> (adventurers) is unchanged, section 5 (GameContent) is unchanged apart from the
-> starting numbers, and sections 6 and 7 — scene setup and the 11-step smoke test —
-> are the original Week 1 checkpoint and still pass.
+> Section 3 in particular is now wrong in a way that matters: adventurer Max Level
+> is 25, not 10, and every power and training curve was re-spaced onto that scale.
+>
+> What is still accurate: section 5 (GameContent) apart from the starting numbers
+> and the catalogue now listing five adventurers and five quests, and sections 6 and
+> 7 — scene setup and the 11-step smoke test — which are the original Week 1
+> checkpoint and still pass.
 >
 > Kept rather than rewritten because the session log references it and because the
 > before-and-after is the whole argument of the Days 8–9 pass: these numbers maxed

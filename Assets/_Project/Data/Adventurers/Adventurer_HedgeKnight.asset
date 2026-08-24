@@ -20,11 +20,11 @@ MonoBehaviour:
   _recruitCostGold: 120
   _powerByLevel:
     BaseValue: 6
-    LinearPerLevel: 4
-    GrowthPerLevel: 0.1
-  _maxLevel: 10
+    LinearPerLevel: 1.6
+    GrowthPerLevel: 0.05
+  _maxLevel: 25
   _trainingCostToReachLevel:
-    BaseValue: 40
+    BaseValue: 60
     LinearPerLevel: 0
-    GrowthPerLevel: 0.45
+    GrowthPerLevel: 0.34
   _baseRecoverySeconds: 60
