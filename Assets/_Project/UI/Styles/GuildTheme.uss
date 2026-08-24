@@ -357,6 +357,8 @@
 
 .badge--locked { color: var(--color-negative); }
 .badge--active { color: var(--color-positive); }
+/* An instruction received and not yet finished — winding down, not broken. */
+.badge--pending { color: var(--color-text-muted); }
 
 .rarity--common { color: var(--color-rarity-common); }
 .rarity--uncommon { color: var(--color-rarity-uncommon); }

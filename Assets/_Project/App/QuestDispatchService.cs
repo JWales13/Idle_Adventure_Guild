@@ -355,6 +355,7 @@ namespace IdleGuild.App
             }
 
             assignment.Repeat = repeat;
+            EventBus.Publish(new QuestOrderChanged(assignment.Id, assignment.Quest.Id, assignment.Repeat));
             return true;
         }
 
@@ -362,6 +363,14 @@ namespace IdleGuild.App
         /// Call a party home. A run already in flight is allowed to finish — abandoning
         /// it would either lose the player earned time or hand out an unearned reward,
         /// and neither reads as fair. The order is dropped once that last run resolves.
+        ///
+        /// That deferral is the whole design and it is also what made this read as broken
+        /// in the Day 14 playtest. The effect is real and invisible: the run keeps
+        /// ticking, which is correct, and nothing on screen acknowledged the press,
+        /// which is not. **An action whose effect is deferred has to say so on the thing
+        /// it acted on, not only in a toast that scrolls away.** Hence the event, and
+        /// hence the order card now rendering "standing down" as a state of its own
+        /// rather than reusing "One-off".
         /// </summary>
         public bool Cancel(string assignmentId)
         {
@@ -377,6 +386,10 @@ namespace IdleGuild.App
                 _world.RemoveAssignment(assignment.Id);
             }
 
+            // Published in both cases. The removal path has no other announcement of its
+            // own — QuestCompleted covers only the order the clock retires — so a screen
+            // that did not hear this would keep drawing an order that no longer exists.
+            EventBus.Publish(new QuestOrderChanged(assignment.Id, assignment.Quest.Id, false));
             return true;
         }
 

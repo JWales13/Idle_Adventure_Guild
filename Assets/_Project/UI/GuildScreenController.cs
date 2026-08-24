@@ -188,6 +188,7 @@ namespace IdleGuild.UI
             EventBus.Subscribe<QuestStarted>(OnStructureChanged);
             EventBus.Subscribe<QuestCompleted>(OnStructureChanged);
             EventBus.Subscribe<QuestPartyReformed>(OnStructureChanged);
+            EventBus.Subscribe<QuestOrderChanged>(OnStructureChanged);
         }
 
         private void Unsubscribe()
@@ -200,6 +201,7 @@ namespace IdleGuild.UI
             EventBus.Unsubscribe<QuestStarted>(OnStructureChanged);
             EventBus.Unsubscribe<QuestCompleted>(OnStructureChanged);
             EventBus.Unsubscribe<QuestPartyReformed>(OnStructureChanged);
+            EventBus.Unsubscribe<QuestOrderChanged>(OnStructureChanged);
         }
 
         private void OnGameLoaded(GameLoaded loaded)

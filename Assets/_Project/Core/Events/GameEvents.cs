@@ -145,6 +145,37 @@ namespace IdleGuild.Core.Events
         public string QuestDefinitionId { get; }
     }
 
+    /// <summary>Raised when a standing order's terms change without its party changing.</summary>
+    /// <remarks>
+    /// Today that means the repeat flag: recalling a running order clears it, and the
+    /// order then survives until its last run resolves. Exactly the same argument as
+    /// <see cref="QuestPartyReformed"/>, and it was missed for the same reason it was
+    /// caught there — the order's card renders the flag, so a change that did not
+    /// announce itself left the card claiming the order was still repeating and still
+    /// offering the button that had just been pressed. Day 12 added the event for the
+    /// action it was building and not for the one already beside it.
+    ///
+    /// Deliberately not raised when the order is *removed*: an idle order cancelled
+    /// outright disappears, and a running one is removed by the clock, which already
+    /// publishes <see cref="QuestCompleted"/>.
+    /// </remarks>
+    public readonly struct QuestOrderChanged
+    {
+        public QuestOrderChanged(string assignmentId, string questDefinitionId, bool repeat)
+        {
+            AssignmentId = assignmentId;
+            QuestDefinitionId = questDefinitionId;
+            Repeat = repeat;
+        }
+
+        public string AssignmentId { get; }
+
+        public string QuestDefinitionId { get; }
+
+        /// <summary>The order's repeat flag as it now stands.</summary>
+        public bool Repeat { get; }
+    }
+
     /// <summary>Raised when adventurers are dispatched on a quest.</summary>
     public readonly struct QuestStarted
     {

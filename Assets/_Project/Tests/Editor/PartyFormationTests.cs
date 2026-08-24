@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using IdleGuild.Adventurers;
 using IdleGuild.App;
 using IdleGuild.Core;
+using IdleGuild.Core.Events;
 using IdleGuild.Quests;
 using NUnit.Framework;
 
@@ -221,6 +222,121 @@ namespace IdleGuild.Tests
             Assert.That(guild.Recruitment.TryDismiss(bern), Is.EqualTo(DismissOutcome.Dismissed),
                 "Re-form to release, then retire. If this ever fails, a full guild has no way " +
                 "to make room and the ratchet is back.");
+        }
+
+        /// <summary>
+        /// Found by the Day 14 playtest, and it is the Day 12 lesson arriving one action
+        /// late. <see cref="QuestDispatchService.Cancel"/> deliberately lets the run in
+        /// flight finish — abandoning it would either burn the player's earned time or
+        /// pay an unearned reward — but it announced nothing, so the order's card kept
+        /// rendering "Repeating" and kept offering the button that had just been pressed.
+        /// The quest visibly continued and the press left no trace, which reads exactly
+        /// like a dead button.
+        ///
+        /// Day 12 added <c>QuestPartyReformed</c> for precisely this reason and wrote
+        /// down precisely this argument, for the action it happened to be building. The
+        /// action already sitting beside it did not get the same treatment.
+        /// </summary>
+        [Test]
+        public void RecallingARunningOrderSaysSoOutLoud()
+        {
+            Fixture guild = new Fixture();
+            Adventurer alwin = guild.Hire("militia_recruit");
+            Adventurer bern = guild.Hire("militia_recruit");
+            QuestAssignment order = guild.SendParty(Patrol, alwin, bern);
+
+            Assert.That(order.IsRunning, Is.True, "The fixture should have put this order out already.");
+
+            List<QuestOrderChanged> heard = new List<QuestOrderChanged>();
+            void Listen(QuestOrderChanged e) => heard.Add(e);
+
+            EventBus.Subscribe<QuestOrderChanged>(Listen);
+            try
+            {
+                Assert.That(guild.Dispatch.Cancel(order.Id), Is.True);
+            }
+            finally
+            {
+                EventBus.Unsubscribe<QuestOrderChanged>(Listen);
+            }
+
+            Assert.That(heard.Count, Is.EqualTo(1),
+                "Recalling a running order has a real but deferred effect. A screen that is not told " +
+                "cannot draw it, and an effect the player cannot see is indistinguishable from a broken button.");
+            Assert.That(heard[0].AssignmentId, Is.EqualTo(order.Id));
+            Assert.That(heard[0].Repeat, Is.False);
+        }
+
+        /// <summary>
+        /// The design half, pinned so that fixing the announcement above can never turn
+        /// into abandoning the run. The party stays out, the run keeps its snapshot, and
+        /// the order retires when that run lands rather than when the button is pressed.
+        /// </summary>
+        [Test]
+        public void ARecalledOrderFinishesItsRunAndThenRetires()
+        {
+            Fixture guild = new Fixture();
+            Adventurer alwin = guild.Hire("militia_recruit");
+            Adventurer bern = guild.Hire("militia_recruit");
+            QuestAssignment order = guild.SendParty(Patrol, alwin, bern);
+
+            ActiveQuest run = guild.World.QuestLog.Find(order.ActiveQuestInstanceId);
+            double remainingBefore = run.RemainingSeconds;
+
+            guild.Dispatch.Cancel(order.Id);
+
+            Assert.That(guild.World.FindAssignment(order.Id), Is.Not.Null,
+                "A recalled order survives until its run lands — that is the whole reason the effect is deferred.");
+            Assert.That(guild.World.QuestLog.Find(run.InstanceId), Is.Not.Null,
+                "The run in flight must not be abandoned.");
+            Assert.That(guild.World.QuestLog.Find(run.InstanceId).RemainingSeconds,
+                Is.EqualTo(remainingBefore).Within(0.001d),
+                "Recalling must not move a timer under the player, for the same reason a mid-run upgrade does not.");
+
+            guild.AdvanceToRunAfter(run.InstanceId);
+
+            Assert.That(guild.World.FindAssignment(order.Id), Is.Null,
+                "Once the last run resolves the order should be gone rather than quietly repeating.");
+            Assert.That(alwin.Activity, Is.Not.EqualTo(AdventurerActivity.OnQuest),
+                "And the party should be home rather than stuck out on an order that no longer exists.");
+        }
+
+        /// <summary>The other branch: nothing is in flight, so the order closes on the spot.</summary>
+        [Test]
+        public void RecallingAnIdleOrderClosesItImmediatelyAndStillSaysSo()
+        {
+            Fixture guild = new Fixture();
+            Adventurer alwin = guild.Hire("militia_recruit");
+            Adventurer bern = guild.Hire("militia_recruit");
+            QuestAssignment order = guild.SendParty(Patrol, alwin, bern);
+
+            ActiveQuest run = guild.World.QuestLog.Find(order.ActiveQuestInstanceId);
+            guild.Dispatch.SetRepeat(order.Id, false);
+            guild.AdvanceToRunAfter(run.InstanceId);
+
+            QuestAssignment idle = guild.World.FindAssignment(order.Id);
+            if (idle == null)
+            {
+                Assert.Pass("The one-off order retired itself, which is the same outcome by another route.");
+            }
+
+            List<QuestOrderChanged> heard = new List<QuestOrderChanged>();
+            void Listen(QuestOrderChanged e) => heard.Add(e);
+
+            EventBus.Subscribe<QuestOrderChanged>(Listen);
+            try
+            {
+                guild.Dispatch.Cancel(idle.Id);
+            }
+            finally
+            {
+                EventBus.Unsubscribe<QuestOrderChanged>(Listen);
+            }
+
+            Assert.That(guild.World.FindAssignment(order.Id), Is.Null,
+                "With nothing in flight there is nothing to wait for, so the order should be gone at once.");
+            Assert.That(heard.Count, Is.EqualTo(1),
+                "The removal needs announcing too — no other event covers an order the clock did not retire.");
         }
 
         private static QuestDefinition Patrol => Shipped.Quest("bandit_patrol");

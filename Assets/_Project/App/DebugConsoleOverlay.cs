@@ -368,8 +368,14 @@ namespace IdleGuild.App
                 {
                     Queue(() =>
                     {
+                        // Say which of the two things happened. Claiming a recall while
+                        // the run visibly continues is what sent the Day 14 playtest
+                        // hunting for a bug in the simulation.
+                        bool wasRunning = target.IsRunning;
                         _bootstrap.Dispatch.Cancel(target.Id);
-                        _message = $"Recalled the {target.Quest.DisplayName} party.";
+                        _message = wasRunning
+                            ? $"{target.Quest.DisplayName}: standing down when this run lands."
+                            : $"{target.Quest.DisplayName}: order closed, party free.";
                     });
                 }
 

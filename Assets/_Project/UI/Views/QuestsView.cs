@@ -147,17 +147,38 @@ namespace IdleGuild.UI.Views
         {
             VisualElement card = Ui.Box("card");
 
+            // A recalled order is not the same thing as an order that was always a
+            // one-off, even though both end after the run in flight. Rendering them
+            // identically is what made Recall look like it had done nothing: the player
+            // pressed a button and the card came back saying a word they had not caused.
+            bool standingDown = assignment.IsRunning && !assignment.Repeat;
+
             VisualElement header = Ui.Box("card__header");
             header.Add(Ui.Text(assignment.Quest.DisplayName, "card__title"));
-            header.Add(Ui.Text(assignment.Repeat ? "Repeating" : "One-off", "badge"));
+            // Muted rather than negative: standing down is an acknowledged instruction,
+            // not a failure. badge--locked is the red one and would read as "something
+            // went wrong", which is the opposite of the reassurance this badge exists to
+            // give. The untouched states keep the neutral badge they have always had.
+            header.Add(standingDown
+                ? Ui.Text("Standing down", "badge", "badge--pending")
+                : Ui.Text(assignment.Repeat ? "Repeating" : "One-off", "badge"));
             card.Add(header);
 
             card.Add(Ui.Text(PartyNames(context, assignment), "card__meta"));
-            card.Add(Ui.Text(assignment.IsRunning ? "Out now." : "Resting between runs.", "card__meta"));
+            card.Add(Ui.Text(
+                standingDown ? "Out now — home for good when this run lands."
+                    : assignment.IsRunning ? "Out now."
+                    : "Resting between runs.",
+                "card__meta"));
 
             VisualElement actions = Ui.Box("card__row");
             actions.Add(Ui.Action("Re-form party", () => ReformParty(assignment.Id), "button--wide"));
-            actions.Add(Ui.Action("Recall", () => Recall(assignment.Id), "button--small", "button--spaced"));
+
+            // Kept visible rather than removed, so the row does not reflow under the
+            // thumb that just tapped it. Disabled is the acknowledgement.
+            Button recall = Ui.Action("Recall", () => Recall(assignment.Id), "button--small", "button--spaced");
+            recall.SetEnabled(!standingDown);
+            actions.Add(recall);
             card.Add(actions);
 
             return card;
@@ -217,8 +238,13 @@ namespace IdleGuild.UI.Views
             }
 
             string questName = assignment.Quest.DisplayName;
+            bool wasRunning = assignment.IsRunning;
             _context.Dispatch.Cancel(assignmentId);
-            _context.Report($"The {questName} party will stand down after this run.", true);
+            _context.Report(
+                wasRunning
+                    ? $"The {questName} party will stand down after this run."
+                    : $"The {questName} order is closed and its party is free.",
+                true);
         }
 
         private void Dispatch(QuestDefinition quest)
