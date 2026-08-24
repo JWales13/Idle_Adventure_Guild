@@ -31,7 +31,59 @@
 *.hlsl       text eol=lf
 *.cginc      text eol=lf
 
+# ---- Git LFS: art and audio go to LFS, not into history ----
+#
+# Set up BEFORE the first art commit (Day 15-16), because GitHub stores every revision
+# of a binary whole and rejects anything over 100 MB outright. Doing this first is one
+# file and one command; doing it afterwards is a history rewrite.
+#
+# `filter=lfs diff=lfs merge=lfs -text` is what `git lfs track` writes. It is here by
+# hand instead so the pattern list is reviewable rather than accumulated, and so this
+# file stays the single place that says how a file type is handled.
+#
+# NOT tracked by LFS, deliberately: .meta files (small, text, and Unity needs to merge
+# them), .uss/.uxml, and anything under Assets that is YAML. Sending a .meta to LFS is
+# the classic Unity mistake — it makes every asset's sidecar a pointer file and breaks
+# diffing on the one thing you most need to diff.
+
+# Raster art
+*.png  filter=lfs diff=lfs merge=lfs -text
+*.jpg  filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.gif  filter=lfs diff=lfs merge=lfs -text
+*.tif  filter=lfs diff=lfs merge=lfs -text
+*.tga  filter=lfs diff=lfs merge=lfs -text
+*.psd  filter=lfs diff=lfs merge=lfs -text
+*.aseprite filter=lfs diff=lfs merge=lfs -text
+*.ase  filter=lfs diff=lfs merge=lfs -text
+*.ico  filter=lfs diff=lfs merge=lfs -text
+
+# Audio and video
+*.mp3  filter=lfs diff=lfs merge=lfs -text
+*.ogg  filter=lfs diff=lfs merge=lfs -text
+*.wav  filter=lfs diff=lfs merge=lfs -text
+*.mp4  filter=lfs diff=lfs merge=lfs -text
+
+# Fonts
+*.ttf  filter=lfs diff=lfs merge=lfs -text
+*.otf  filter=lfs diff=lfs merge=lfs -text
+
+# Models and binary libraries
+*.fbx  filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
+*.dll  filter=lfs diff=lfs merge=lfs -text
+*.a    filter=lfs diff=lfs merge=lfs -text
+*.so   filter=lfs diff=lfs merge=lfs -text
+*.dylib filter=lfs diff=lfs merge=lfs -text
+*.bundle filter=lfs diff=lfs merge=lfs -text
+*.unitypackage filter=lfs diff=lfs merge=lfs -text
+
 # ---- Binary: never diff or merge ----
+# Kept below the LFS block on purpose. The `binary` macro expands to `-diff -merge
+# -text`, and for the patterns above the LFS line already carries `-text` while
+# supplying its own diff and merge drivers — so these lines are now belt-and-braces for
+# anything LFS does not catch rather than the mechanism. Leaving them costs nothing and
+# removing them would quietly change behaviour for any type dropped from the list above.
 *.png binary
 *.jpg binary
 *.jpeg binary

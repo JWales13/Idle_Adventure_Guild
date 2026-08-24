@@ -104,7 +104,7 @@ Aggressive but achievable if architecture stays disciplined in Week 1. Each week
 A few of these have lead time that doesn't compress — start them early rather than treating this as a Week 4 list.
 
 **Accounts & setup**
-- [ ] **Apple Developer Program enrollment ($99/yr)** — start Week 1, Day 1; verification can lag
+- [x] **Apple Developer Program enrollment ($99/yr)** — **done and approved**, confirmed Day 14. This was the one item on this list whose delay was never yours to control, and it gates TestFlight on Day 25 and submission on Day 26. Everything else here is work rather than waiting.
 - [ ] App Store Connect record created early (bundle ID + name reserved)
 - [ ] Export compliance questionnaire answered
 
@@ -498,7 +498,7 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 
 **Open decisions carried forward:**
 
-- **Git LFS before the first art commit (Week 3, Day 15–16).** `.gitattributes` marks images as `binary` but does not route them through LFS. GitHub hard-rejects files over 100 MB, and binary art bloats history permanently because every revision is stored whole. Setting LFS up *before* the first art commit is trivial; after it means rewriting history. This has a hard deadline of Day 15.
+- **Git LFS — the `.gitattributes` half is done, the `git lfs install` half is yours.** Written on Day 14, one day ahead of its deadline and while the window was still clean: **no binary has ever been committed to this repo**, verified with `git ls-files`, so there is no history to rewrite. Twenty-five `filter=lfs diff=lfs merge=lfs -text` patterns now cover raster art, audio, video, fonts, models and binary libraries. **`.meta` is deliberately not among them** — it is small, it is text, Unity needs to merge it, and sending sidecars to LFS makes every asset's metadata a pointer file and breaks diffing on the one thing you most need to diff. The `binary` block was kept below the LFS block rather than deleted, because it now covers anything dropped from the list above. **Still outstanding: `git lfs install` on the machine, which Claude cannot run.** Until that is done the filter is declared and not wired, so run it *before* committing `.gitattributes`, and confirm the first art commit with `git lfs ls-files`.
 - **Week 4 execution surface undecided** — see Working arrangement. Hard deadline Day 22.
 - **Ad network not chosen** — Day 18 needs one (Unity LevelPlay / AdMob / Unity Ads). The `IAdService` boundary lets the choice wait, but not past Week 3.
 - **IAP provider not chosen** — same shape; `IPurchaseService` defers it to Day 19. Unity IAP is the path of least resistance given the project is already Unity.
