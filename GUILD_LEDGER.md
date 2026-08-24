@@ -23,6 +23,14 @@ The 3→5 building scale-up (adding Quest Board and Armory post-launch) is the c
 
 ## 02 · Concept Summary
 
+> **⚠ SUPERSEDED on Day 14 by `Docs/Vision_Revision.md`.** The game is now an **idle
+> hotel tycoon** — five rooms, four of which earn gold per hour, with contracts feeding
+> the building rather than sitting beside it. Kept below as the record of what was built
+> first, because most of it survives: the three MVP buildings each do what this section
+> says they do, and the revision adds two rooms and a second economy rather than
+> replacing them.
+
+
 Quests replace "customers," adventurers replace "staff," guild hall buildings replace "shop upgrades." Standard idle-tycoon math wearing a fantasy coat.
 
 - **Quests** — Dispatch adventurers on jobs that generate gold/reputation over time. The game's idle income source.
@@ -49,6 +57,12 @@ Quest Board and Armory are deferred **by design, not by schedule pressure** — 
 ---
 
 ## 03 · Roadmap — Four Weeks, Solo
+
+> **⚠ SUPERSEDED on Day 14.** Four weeks became about six; submission moves from Day 26
+> to **Day 38, buffer through Day 42**. See §8 of `Docs/Vision_Revision.md` for the
+> current week plan and §9 for the revised cut list. Weeks 1 and 2 below happened
+> essentially as written.
+
 
 Aggressive but achievable if architecture stays disciplined in Week 1. Each week ends with a checkpoint that must be true before moving on — if a checkpoint slips, cut scope (see Risks & Cuts) rather than the schedule.
 
@@ -127,6 +141,11 @@ A few of these have lead time that doesn't compress — start them early rather 
 
 ## 05 · Risks & Scope Cuts
 
+> **⚠ EXTENDED on Day 14.** The table below still holds; §9 of `Docs/Vision_Revision.md`
+> adds cuts for the staff subsystem, the arrivals mechanic, and dropping from five rooms
+> to three — the last of which the modular architecture makes a data decision.
+
+
 Decided in advance, so a schedule slip becomes a scope decision instead of a panic.
 
 | Risk | Cut |
@@ -173,7 +192,27 @@ where things stand in a sentence or two before writing any code.
 
 ### Current status
 
-**Current status:** Week 2, Day 13 complete.
+**Current status:** Week 2, Day 14 complete — **and the design has been revised.**
+
+Day 14 ran the playtest, fixed a shipping bug it found, and then turned into the largest
+design conversation the project has had. The game is now an **idle hotel tycoon**: five
+rooms, four of them earning gold per hour, with contracts feeding the building through a
+Front Desk commission rather than being the only source of income. `Docs/Vision_Revision.md`
+is the new charter and supersedes §02, §03 and §05 above.
+
+**Nothing was built.** No `.asset` and no game `.cs` changed for the revision — it is
+design, a model and a tuner. That was deliberate: Days 8–9 and Day 13 both found
+structural failures no amount of playing would have surfaced, and this change is larger
+than either.
+
+**The good news, and it is most of the news:** three of the four original buildings were
+already mechanically what the revised vision describes. Tavern quality attracting better
+adventurers has been in the build since Day 4. The gap was never the design — it was that
+none of it is drawn. A tycoon wearing a spreadsheet.
+
+**Suite at 71 green**, up from 64: the recall fix (three tests) and the Day 14 fixture
+(two). Everything below this line describes the game as built, which the revision has not
+yet touched.
 
 Day 13 was the first balancing pass, and it answered the question it was handed by
 dissolving it. The ten-hour policy bracket Day 12 left behind was not a question about
@@ -234,9 +273,19 @@ The passes earned their keep immediately. Step 1 of the Day 6 document found a r
 
 The Week 1 checkpoint holds, minus the UI that Day 7 adds.
 
-**Next action:** Week 2, Day 14 — full playtest, Village to Capital, logging every
-friction point and bug for Week 3. Run the EditMode suite first as a baseline and again
-before committing, as always.
+**Next action:** Day 15 — finish tuning the tycoon economy, then build it.
+
+The tuner has the two hardest targets already: rooms at **68%** of lifetime income
+against a 70% target, and a **6-minute** 90th-percentile purchase gap against a 10-minute
+one. What remains is the shape of the time curve, and the specific problem is **not** that
+Village runs 30 minutes — it is that the first-session trace shows the tavern and front
+desk built instantly, an adventurer in the crowd immediately, and then **nothing at all
+until the first staff hire at 21 minutes**. The next tuning pass should score *first-beat
+timings* rather than tier boundaries. That is a change to `tuner.py`'s loss function, not
+to the design.
+
+Then §8 of `Docs/Vision_Revision.md` has the build order: the Staff assembly and the
+revenue engine first, arrivals second, the five rooms as assets third.
 
 Day 14 starts from a stable set of numbers rather than an open question, and it is owed
 three things by earlier days. It is the day the **twenty-five minutes of accumulated
@@ -498,6 +547,13 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 
 **Open decisions carried forward:**
 
+- **The revision is designed and modelled but not built.** `Docs/Vision_Revision.md` is the charter; `Docs/tools/tycoon_model.py` models it and `tuner.py` searches its parameters. **`guild_model.py` still describes the game that actually exists** and stays until the revision ships — then it retires. Two models is confusing for exactly as long as two games exist.
+- **Staff need a dismiss action designed in from the start.** The model found staff slots are a one-way ratchet: fill them cheaply and you can never upgrade. That is the Days 10–11 bed problem, and Day 12 had to retrofit the fix for adventurers. Do not repeat that.
+- **The tier panel has to show what the gate is still missing.** The model's greedy player never saved for a gate — reputation cleared Village in twenty minutes while the Front Desk it also required went unbuilt for three hours. A real player runs the same policy unless the interface tells them what to save for.
+- **The Barracks has to look like it makes money.** It earns nothing directly, so a payback-ranked player never buys it; the model went dark on the entire adventurer half of the game until the calculation could see through to the commission it enables. The player needs that connection made visible.
+- **Day 17 carries every line of display code in the project.** Only two sprite fields exist and neither has ever been read; no view renders an image; `Ui.cs` has no image constructor. "Art generation then integration" reads as a big day followed by a small one and is the reverse. Mitigation: wire one room icon end to end on Day 15 before generating the rest.
+- **The Training Room's flat power bonus** — deferred from Day 13 to Day 21, and the revision may resolve it for free, since power moves to the Barracks. Re-check rather than assume.
+
 - **Git LFS — the `.gitattributes` half is done, the `git lfs install` half is yours.** Written on Day 14, one day ahead of its deadline and while the window was still clean: **no binary has ever been committed to this repo**, verified with `git ls-files`, so there is no history to rewrite. Twenty-five `filter=lfs diff=lfs merge=lfs -text` patterns now cover raster art, audio, video, fonts, models and binary libraries. **`.meta` is deliberately not among them** — it is small, it is text, Unity needs to merge it, and sending sidecars to LFS makes every asset's metadata a pointer file and breaks diffing on the one thing you most need to diff. The `binary` block was kept below the LFS block rather than deleted, because it now covers anything dropped from the list above. **Still outstanding: `git lfs install` on the machine, which Claude cannot run.** Until that is done the filter is declared and not wired, so run it *before* committing `.gitattributes`, and confirm the first art commit with `git lfs ls-files`.
 - **Day 17 is carrying every line of display code in the project, and the roadmap hides it.** Found on Day 14 while writing `Docs/Day15_Art_Brief.md`. `BuildingDefinition._icon` and `AdventurerDefinition._portrait` are the **only** two sprite fields in the data model, both declared on Days 2–3 and **neither ever read by anything**; `QuestDefinition` and `GuildTierDefinition` have none, so the roadmap's "guild hall backgrounds per tier" has nowhere to land; **no view renders an image at all**; and `Ui.cs` has no image constructor. So "Day 15–16 art generation, Day 17 integration" reads as a big day followed by a small one and is the reverse — Day 17 needs an image helper, slots in three views, a tier-background mechanism and the import pass, against a one-day budget. The brief resolves the data-versus-USS question so no new sprite field is needed on any asset (per-content art uses the two fields that exist; per-screen art hangs off USS classes), which keeps Days 15–17 data-and-style only and leaves the Quest Board / Armory bet untouched. **The mitigation is to move about an hour of Day 17 into Day 15** — wire one building icon end to end before generating the other twenty-three assets, which is this project's own verification habit wearing art clothes. Decide on Day 15, not Day 17.
 
@@ -511,6 +567,18 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 - **`Docs/tools/guild_model.py` is a copy of the balance numbers and will drift.** It replicates the loop well enough to have found the Day 4–5 structural failure, but it is a model, not a source of truth: update it in the same commit as any asset change. A drifted model is worse than no model, because its answers stay confident. **It is also a copy of a *player*, and that half drifts too** — Days 10–11 found its hiring rule had never once bought a non-Common adventurer, so a question about rarity it appeared to answer, it had never actually asked. When a run says content is pointless, check the policy can reach that content before believing it. **Day 13 is the case that points the other way and is worth holding beside it:** the policy was blamed for four days for what the *content* was doing, and the rule that had never bought a Champion was correct about the game as priced. So the check runs both directions — a model that says something is pointless is claiming a fact about the content *and* about the player, and either half can be the one that is lying.
 - **The Training Room's power bonus is flat, and that is a levelling mechanic pointed the wrong way.** `Adventurer.PowerWith` **adds** `AdventurerPower` to every adventurer, and a flat bonus is by construction worth most to the weakest person it touches: +331 on a maxed Militia Recruit's 71.6 is +462%, on a maxed Champion's 1,145.6 it is +29%. So the building whose stated job is raising each adventurer's Power is in practice an **equaliser**, and the authored 16x rarity ladder is worth **x3.7** by the time the guild is finished (x16.0 / x14.8 / x12.2 / x7.7 / x3.7 at Training Room 0 / 10 / 20 / 30 / 40). The same shape has an uglier second face: a new hire arrives carrying the full guild bonus for free, so a **25-gold Militia Recruit is worth +331 power at a finished guild — 0.1 gold per point** — against 1,576 to 7,977 gold per point for a training level. Only the Inn's sixteen-bed cap stops that being the dominant strategy. Making the bonus multiplicative fixes both halves and is what the building already claims to do; it costs one line in `Adventurer.PowerWith`, a neutral base of 1.0 in `GuildState`, a `ModifierKind` on the asset, re-derived Recommended Power on all five quests, re-spaced tier gates, four canaries, and about seven hours of tail before any re-tuning. **Deferred to Day 21** — the compression bites hardest at Training Room 30–40, by which point the roster has converged to Legendary anyway, so what it costs today is feel at the climax rather than balance. §6 of `Docs/Day13_First_Balance_Pass.md` has the numbers. Note that it changes what a **stat** means rather than what content consumes it, which is the harder version of the architectural bet, and that `GuildStat` is persisted by ordinal — reinterpret the value, never renumber the enum, and add a save fixture on the day it happens.
 - **`AssetValidation` is the eighth thing in Core and the first that exists only for the editor.** It is small, it is `[Conditional("UNITY_EDITOR")]` so it compiles out of a player build, and every feature already depends on Core — but it is worth naming here rather than letting it arrive unannounced, because Core is the assembly the whole architecture leans on and the bar for adding to it should stay high. If a second editor-only utility ever wants to join it, that is the moment to give them their own editor assembly instead.
+
+**Resolved on Day 14:**
+
+- **The recall button was a shipping bug, not a debug-console one.** `QuestsView` and the debug console both call `QuestDispatchService.Cancel`, which deliberately lets the run in flight finish — but **published nothing**, so `GuildScreenController` never rebuilt, the order card kept rendering "Repeating" and kept offering the button that had just been pressed, and the quest visibly carried on. Press, nothing changes, indistinguishable from a dead button. The state did eventually correct itself when `QuestCompleted` fired, which for Dragon's Roost is six minutes later. **Day 12 wrote down this exact argument** for `QuestPartyReformed` — *"without it the card would keep listing the old party until some unrelated event happened to redraw it"* — and added the event for the action it was building, not for the one already beside it in the same file. `SetRepeat` had the same hole. Fixed with `QuestOrderChanged`, a "Standing down" badge state (a recalled order was rendering as *One-off*, a word the player did not cause), a disabled Recall, and a `badge--pending` token, because `badge--locked` is red and would have made an acknowledged instruction look like a failure. The general shape: **an action whose effect is deferred has to say so on the thing it acted on, not only in a toast that scrolls away** — the Day 6 destructive-action lesson with the sign flipped.
+
+- **The playtest produced the project's first measurement of modelled time against lived time.** The Day 14 save records **17.6 minutes** of real play to reach Town; the model predicted **8**. A 2.2× gap, and almost certainly not a bug — the model buys the instant it can afford something, a person reads and thinks and misses windows. **Modelled minutes are not lived minutes**, which matters for every pacing target the project sets. One noisy data point from a session that included inspection; re-measure before trusting it.
+
+- **The one-economy game has a permanent record.** `save_day14_played_in.json` — a genuine 17-minute session that reached Town, seven contracts, six successes and **one honest failure** that nobody hand-building a fixture would have included. Two tests give it a job: one pins **zero repairs** so that when the revision deletes the Training Room the repair count changing is a red test with a number in it, and one pins the lifetime counters separately because they live on the clock rather than the world, where a restore that rebuilt the guild perfectly while zeroing them would pass every other assertion in the file.
+
+- **Git LFS is set up, a day early and while the window was clean** — `git ls-files` confirmed no binary had ever been committed, so there was no history to rewrite. 25 patterns; **`.meta` deliberately excluded**, because routing sidecars through LFS makes every asset's metadata a pointer file and breaks diffing on the thing you most need to diff. Worth remembering: **git treats an undefined filter as a silent no-op**, so a commit made before `git lfs install` looks completely successful and puts every PNG into history whole.
+
+- **Apple Developer Program enrollment is approved.** The one item on §04 whose delay was never yours to control. Everything remaining on that list is work rather than waiting.
 
 **Resolved on Day 13:**
 
@@ -566,144 +634,119 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 **Most recent continuation prompt:**
 
 ```
-I'm continuing work on Idle Adventurer's Guild, a solo Unity idle-tycoon game
-(fantasy adventurers' guild theme), targeting App Store submission with 16
-days left against the original 4-week deadline (target submission by Day 26,
-buffer through Day 28).
+I'm continuing work on Idle Adventurer's Guild, a solo Unity mobile game. The design was
+revised on Day 14 from a fantasy management sim into an IDLE HOTEL TYCOON with an
+isekai/anime guild-hall theme. Submission target moved from Day 26 to Day 38, buffer
+through Day 42.
 
-The project lives at ~/Idle_Adventure_Guild. Read GUILD_LEDGER.md in the repo
-root in full before doing anything else - it is the source of truth. Pay
-particular attention to "The central architectural bet", "The roster is a
-one-way ratchet" and "Working arrangement" in section 06, then read
-Docs/Tests.md, which is short and changes how you verify things.
+The project lives at ~/Idle_Adventure_Guild. Read GUILD_LEDGER.md in the repo root in
+full first - it is the source of truth for what EXISTS. Then read
+Docs/Vision_Revision.md in full - it is the source of truth for what we are BUILDING,
+and it supersedes sections 02, 03 and 05 of the Ledger. Then Docs/Tests.md, which is
+short and changes how you verify things.
 
-Current position: Week 2, Day 14 - "Core Gameplay Complete"
-Last completed: Week 1 in full, Days 8-9 (building trees), Days 10-11 (tier
-transitions), an unplanned follow-up that turned most of that verification pass
-into tests, Day 12 (recruitment and assignment UI) and Day 13 (first balancing
-pass). Unity 6000.5.0f1 / URP 2D, private GitHub repo via GitHub Desktop. Eight
-assemblies: five feature assemblies depending on Core and nothing else,
-IdleGuild.App above them holding composition and cross-feature transactions,
-IdleGuild.UI above that, and IdleGuild.Tests.Editor above everything with
-nothing referencing it. Day 13 was data only - five numbers on five .asset
-files, no game .cs, no save field, and no BalanceCanary updated. It found that
-each rarity band doubled power but TRIPLED training cost, so a Legendary bed
-cost 81x a Common bed for 16x the power; the bases are now 20/40/80/160/320 and
-gold-per-power is flat across all five archetypes.
-Docs/Day13_First_Balance_Pass.md has the reasoning and one deferred decision;
-Docs/Day12_Roster_And_Parties.md for retiring and party re-forming;
-Docs/Day10_Tier_Transitions.md is still current for adventurers, quests and the
-City reputation gate; Docs/Day08_Building_Trees.md for the building trees and
-the tier gates' building requirements.
+Current position: Week 3, Day 15 - "Content, Art & Monetization" (revised)
+Last completed: Week 1 in full; Days 8-9 building trees; Days 10-11 tier transitions; a
+follow-up that turned most of that verification pass into a test suite; Day 12
+recruitment and assignment UI; Day 13 first balance pass; Day 14 playtest, one shipping
+bug fixed, and the design revision. Unity 6000.5.0f1 / URP 2D, private GitHub repo via
+GitHub Desktop, Git LFS configured. Eight assemblies: five feature assemblies depending
+on Core and nothing else, IdleGuild.App above them holding composition and cross-feature
+transactions, IdleGuild.UI above that, IdleGuild.Tests.Editor above everything.
 
-Next task: Day 14 - full playtest, Village to Capital, logging every friction
-point and bug for Week 3. This is the day the accumulated hand-checking finally
-has a played-in save to run against: three steps from Days 10-11 (step 4, Town
-in about ten minutes; the colour half of step 6, whether USS actually paints
-Epic purple; the is-it-fair half of step 8, Dragon's Roost at a guild that
-earned its way to Capital) and four from Day 12 (the destructive button reading
-as destructive, a sixteen-row party picker fitting the phone, the selected state
-being unambiguous, and whether the retire confirmation reads as informative
-rather than as a scolding). Call it twenty-five minutes inside a longer session.
-Current modelled pacing to compare the played arc against: patient Capital 5h54m
-and everything-maxed 18h14m, impatient 6h56m and 19h33m, both finishing with
-sixteen Legendaries; Town at 8m and City at 1h08m. Purchase gaps are median 1.5
-min, 90th percentile 4, worst 19. A real playthrough will not reach Capital in
-one sitting, so the debug console's grants are the tool - but note that anything
-granted invalidates the pacing comparison, so log which is which.
+IMPORTANT: the revision is DESIGNED AND MODELLED BUT NOT BUILT. No .asset and no game
+.cs has changed for it. The game that exists is still the one-economy version: three
+buildings, gold only from quests. Do not assume any of the new design is in the code.
 
-One judgement Day 14 is specifically asked to make, from section 6 of
-Docs/Day13_First_Balance_Pass.md: does a Dragonsworn Champion FEEL like the
-reward Capital exists to hand over? The document argues it currently should not.
-Adventurer.PowerWith adds the Training Room's bonus FLAT, which is worth +462%
-to a maxed Militia Recruit and +29% to a maxed Champion - an equaliser wearing a
-levelling mechanic's clothes. It compresses the authored 16x rarity ladder to
-x3.7 by the time the guild is finished, and a level-1 Champion arrives WEAKER
-than a maxed Militia Recruit (379.4 against 403.0), winning only at level 3.
-Making the bonus multiplicative is one line in Adventurer.PowerWith plus a
-neutral base of 1.0 in GuildState, a ModifierKind on the Training Room asset,
-re-derived Recommended Power on all five quests, re-spaced tier gates and four
-canaries - deliberately deferred to Day 21, with the numbers written down. Day
-14's job is not to do it but to say whether the deferral still looks right after
-playing it.
+The revised design in one paragraph: five rooms, four of which earn gold per hour.
+Tavern (townsfolk food and drink; also sets which adventurers walk in), Inn (rooms let to
+travellers), Front Desk (commission on contracts; also quest slots and contract tiers),
+Provisioner (supplies), and Barracks (houses AND trains adventurers - the only
+non-earning room). Three levers with three separate sources and no overlap: DEMAND comes
+from the tier (the settlement grows around your hall - you never relocate), CAPACITY from
+room level (seats and spend per head), THROUGHPUT from staff. Contracts pay reputation,
+which is the only thing that advances a tier, and their gold arrives as the Front Desk's
+commission - so questing raises your market ceiling rather than sitting beside the tycoon
+loop. Staff are one guild-wide pool on ongoing wages with net floored at zero. Individual
+adventurer training is CUT (power comes from Barracks level); rarity survives as a flat
+multiple. Prestige is an isekai re-summoning to a new world, in scope for launch, and
+what travels is knowledge rather than objects. Monetisation is automation ("familiars")
+and cosmetics only, bought with Boons from your Patron - nothing bought with money makes
+a number go up, so there is no monetisation balance pass to do.
 
-Testing: there is an EditMode suite at Assets/_Project/Tests/Editor/ - 66 tests,
-all green, running in well under a second. Run it (Window > General > Test Runner >
-EditMode > Run All) before you start and before you commit. It asserts SHAPE
-rather than NUMBERS on purpose; the eight that assert values are tagged
-[Category("BalanceCanary")] and are expected to be updated deliberately by a
-balance pass, while updating an invariant is a warning that something else is
-wrong. It loads the real .asset files through AssetDatabase rather than building
-fixtures in code, because every content failure this project has had was a wrong
-value in a shipped asset. Docs/Tests.md explains the rest, including the three
-save fixtures and why they are permanent. Day 14 is a playtest rather than a
-code day, so the suite should not move at all - if it does, the playthrough
-found something.
+Next task: Day 15 - finish tuning the economy, then start building it.
 
-Deviations from the plan so far: none material. Day 1's "ad/IAP SDK package
-stubs" became interface stubs, with the real SDK arriving Week 3 behind those
-interfaces. Day 4-5 added IdleGuild.App above the features; Day 7 added
-IdleGuild.UI above App; Days 10-11 added IdleGuild.Tests.Editor above
-everything. In every case the features stayed Core-only. Days 8-9 touched quest
-assets on a buildings day. Days 10-11 deviated from the written tier-4 quest
-spec in Day08_Building_Trees.md section 3 - Recommended Power 420 became 1,250
-with gold and reputation raised to match - because at 420 every party a finished
-guild can field is already past QuestResolution's 4x speed clamp. That document
-authorised the change. The test suite itself was not on the roadmap. Day 12
-narrowed two behaviours beyond its brief, both recorded in section 5 of its doc:
-a quest party must now be EXACTLY the size the quest asks for rather than at
-least, and "send a party" now picks the strongest free adventurers rather than
-the first on the roster. Day 13 stayed inside its brief and deferred the one
-change that would have left it - see above.
+The tuner already has the two hardest targets: rooms at 68% of lifetime income against a
+70% target, and a 6-minute 90th-percentile purchase gap against a 10-minute one. What
+remains is the shape of the time curve, and the specific problem is NOT that Village runs
+30 modelled minutes - it is that the first-session trace shows the tavern and front desk
+built instantly, an adventurer in the crowd immediately, then NOTHING until the first
+staff hire at 21 minutes. Score first-beat timings (first staff, first contract, first
+upgrade) in tuner.py's loss function rather than tier boundaries. The tuner has also been
+sitting in one basin across several runs and wants a wider scatter or tighter bounds on
+the dials controlling the opening.
 
-Known issues/blockers: Git LFS must be set up before the first art commit on
-Day 15 - its deadline is the commit, not the day, and it is now the nearest
-hard deadline in the project. Ad network and IAP provider unchosen. Bundle ID
-and product name are still template defaults, and they are also the save
-directory (~/Library/Application Support/DefaultCompany/Idle_Adventure_Guild/),
-so changing either strands every existing save - capture anything worth keeping
-as a fixture BEFORE renaming, which now specifically includes whatever Day 14's
-playthrough produces, since a played-in save is the one thing the fixture set
-still lacks. Save files are plain text and trivially editable, a Day 20
-hardening item, along with capping the guild_save.json.corrupt-* quarantine
-files. The debug console must be deleted or excluded before submission, hard
-deadline Day 22. Week 4 execution surface (device builds, TestFlight, App Store
-Connect) is not solvable from Cowork and needs deciding before Day 22.
+  python3 Docs/tools/tycoon_model.py --profile --checks
+  python3 Docs/tools/tuner.py 100 <seeds> --resume
 
-Two documentation hazards worth knowing. Asset values live in three documents
-and the newest wins: Day13_First_Balance_Pass.md is current for the five
-adventurer training curves and nothing else; Day10_Tier_Transitions.md for
-everything else about adventurers, quests and the City reputation gate;
-Day08_Building_Trees.md for the building trees and the tier gates' building
-requirements; Day04 only for GameContent, the scene setup and the smoke test.
-Day12_Roster_And_Parties.md contains no asset values at all. Pacing figures
-supersede in publication order and Day 13's are current. And guild_model.py is a
-copy of both the balance numbers and the player, and both halves drift: Days 8-9
-found it judging every party by the strongest party's power, Days 10-11 found
-its hiring rule had never once bought a non-Common adventurer, Day 12 found it
-simulating a bed ratchet the game no longer has, and Day 13 found that its swap
-rule had been blamed for four days for what the CONTENT was doing. When a run
-says something is pointless, check both halves - the policy might not reach the
-content, or the content might deserve it.
+Then section 8 of Vision_Revision.md has the build order: IdleGuild.Staff and the revenue
+engine first, arrivals second, the five rooms as assets third.
 
-Working arrangement (see section 06): this runs in Claude Cowork, whose shell
-is a Linux VM with the project folder mounted - git exists but `unity` and
-`dotnet` do not. You write and edit files and never run git, not even
-`git status`, which leaves index locks that break my GitHub Desktop; tell me
-the commit message and I commit through the GUI. When you add scripts, ask me
-to focus the Unity Editor so it imports them, then verify by checking for
-Library/ScriptAssemblies/IdleGuild.*.dll and grepping Logs/ for "error CS".
-Tests are the same loop: you write them, I run them and paste failures.
-guild_model.py runs fine on the Cowork shell (python3, no dependencies, about a
-third of a second), so model runs do not need me. ScriptableObject values can be
-written directly into the .asset YAML rather than retyped through the Inspector,
-which is how Days 8-9, 10-11 and 13 avoided a repeat of Day 4-5's transcription
-slips.
+Note there are TWO models on purpose. guild_model.py describes the game that actually
+exists and stays until the revision ships. tycoon_model.py describes the game being
+built. Retire the first when the second becomes true.
 
-Follow the Principles section of this doc (Clean Code, data-driven
-ScriptableObject architecture, event-driven decoupling, UI Toolkit/USS
-styling) without needing it re-explained. Confirm your understanding of
-where things stand in a sentence or two before writing any code.
+Testing: EditMode suite at Assets/_Project/Tests/Editor/ - 71 tests, all green, well
+under a second. Run it (Window > General > Test Runner > EditMode > Run All) before you
+start and before you commit. It asserts SHAPE rather than NUMBERS on purpose; the eight
+that assert values are tagged [Category("BalanceCanary")] and are expected to move on a
+balance pass, while an invariant moving is a warning. It loads the real .asset files
+through AssetDatabase rather than building fixtures, because every content failure this
+project has had was a wrong value in a shipped asset. Four save fixtures, including
+save_day14_played_in.json - the last record of the one-economy game, pinned at zero
+repairs so that the revision deleting the Training Room shows up as a red test with a
+number in it rather than a silence.
+
+Eleven structural findings came out of modelling the new design and they are written up
+in section 6C of Vision_Revision.md. Four of them are requirements on the BUILD rather
+than on the numbers, and are easy to lose: staff need a dismiss action designed in from
+the start (staff slots are a one-way ratchet - the Days 10-11 bed problem again); the
+tier panel must show what the gate is still missing (the model's greedy player never
+saved for a gate and stalled for three hours); the Barracks must visibly look like it
+makes money (it earns nothing directly, so a payback-ranked player never buys it); and
+Day 17 carries every line of display code in the project, because only two sprite fields
+exist, neither has ever been read, no view renders an image, and Ui.cs has no image
+constructor - so wire one room icon end to end on Day 15 before generating any art.
+
+Known issues/blockers: bundle ID and product name are still template defaults, and they
+are also the save directory - changing either strands every save, so the Day 14 fixture
+had to be captured first (it has been). Save files are plain text and trivially editable,
+a hardening item, along with capping the guild_save.json.corrupt-* quarantine files. The
+debug console must be deleted or excluded before submission. Week 4 execution surface
+(device builds, TestFlight, App Store Connect) is not solvable from Cowork and needs
+deciding. Ad network and IAP provider unchosen - Day 18-19 equivalents. Apple Developer
+enrollment IS approved. Docs/Day15_Art_Brief.md carries a supersession banner: its
+display-mechanism decision and import settings survive, its asset list does not.
+
+One calibration point worth respecting: the Day 14 playthrough took 17.6 real minutes to
+reach Town against the model's predicted 8. MODELLED MINUTES ARE NOT LIVED MINUTES,
+roughly 2.2x on that one noisy sample. Re-measure before trusting it, but do not tune to
+modelled numbers as though a player experiences them.
+
+Working arrangement (see section 06): this runs in Claude Cowork, whose shell is a Linux
+VM with the project folder mounted - git exists but `unity` and `dotnet` do not. You
+write and edit files and never run git, not even `git status`, which leaves index locks
+that break my GitHub Desktop; tell me the commit message and I commit through the GUI.
+When you add scripts, ask me to focus the Unity Editor so it imports them, then verify by
+checking for Library/ScriptAssemblies/IdleGuild.*.dll and grepping Logs/ for "error CS".
+Tests are the same loop: you write them, I run them and paste failures. The Python models
+run fine on the Cowork shell. ScriptableObject values can be written directly into the
+.asset YAML rather than retyped through the Inspector.
+
+Follow the Principles section of the Ledger (Clean Code, data-driven ScriptableObject
+architecture, event-driven decoupling, UI Toolkit/USS styling) without needing it
+re-explained. Confirm your understanding of where things stand in a sentence or two
+before writing any code.
 ```
 
 ### Session log
@@ -725,6 +768,8 @@ where things stand in a sentence or two before writing any code.
 
 13. **W2D12 — Recruitment and assignment UI** — The game's first two reversible decisions, both named by Days 10–11 and neither invented. Written and compiling clean: eight assemblies, zero `error CS`, zero new warnings, verified in `Logs/Editor.log`; four new files, ten changed, **no `.asset` touched and no save field added**. The suite reports **64 green**, up from 47 — which incidentally closes an open question from the previous handoff, since 47 is only reachable if the four `SaveFixtureTests` are running, and nobody had a record of them ever having run. Retiring is `RecruitmentService.TryDismiss` over the `AdventurerRoster.Remove` that had existed since Day 4–5 with only save restoration calling it, and the design question was never the code but what it should do to a member of a live standing order. It **refuses**, naming the order, because the cascading version's naive form — drop the member, leave the order — is this project's own recurring failure wearing another hat: `TryStartRun` would have returned false for the rest of the run with an order on screen that simply never went out again. Re-forming a party is what releases them, so the two halves are one route and a test walks it end to end. Re-forming turned out to cost nothing structurally, because a Day 4–5 decision paid out a second time: `ActiveQuest` snapshots its own party and the clock sends *that* snapshot home, so replacing an order's party never disturbs the run in flight — `QuestAssignment` was documented as holding its party for the life of the *assignment* when it had always really been for the life of a *run*. One party picker serves both a first dispatch and a re-form, and finally gives `PartyPower` and `PreviewDurationSeconds` the callers they have lacked since Day 4–5; they are what turn *swap the Recruit for the Champion* from a guess into a comparison made before committing. Two narrowings went past the brief and are recorded as such: a party is now **exactly** the size the quest asks for, which was unreachable before a screen could build one by hand and which every duration figure in the game was derived against; and "send a party" takes the strongest free adventurers rather than the first on the roster, which `guild_model.py` already assumed. **The day's real finding came from the model rather than the game.** Its comment block still asserted that an impatient player "can never hire a Champion at all", so it was simulating a wall that no longer existed. Adding a retire rule took two attempts and the failed one is the useful half: ranking swaps by fully-trained potential — how every *other* hiring decision in the model is made — churns the entire roster to sixteen Legendaries once gold stops being scarce, throwing away every level of training bought along the way and putting everything-maxed at **28h16m**, eight hours longer than before the action existed. That is an arbitrage bug, not a player. Requiring the replacement to be better *the day it arrives* fixes it with no threshold and no magic number, and on **unchanged assets** moves the published figures to 5h41m / **22h50m** patient and 4h16m / **17h45m** impatient. Two things follow, and Day 13 inherits both. **Retiring makes the game about two hours longer** — it is a gold sink, full price again and a level-1 replacement — and **the impatient player still never fields a Legendary**: beds free up and the Commons vanish from their roster, but trained Battlemages out-earn a fresh Champion, so the structural lock simply became an economic one. Deliberately not tuned away; the two runs are a bracket on one policy decision and choosing inside it is a balance question. The general shape worth carrying: **a reversible decision is not the same as a cheap one.**
 14. **W2D13 — First balancing pass** — Data only, and smaller than any day so far: **five numbers on five `.asset` files, no game `.cs`, no save field, and not one `BalanceCanary` updated.** The day was handed a ten-hour policy bracket by Day 12 and asked to choose inside it, and the answer was that it was not a policy question. **Each rarity band doubled power and tripled training cost** — bases 20 / 60 / 180 / 540 / 1620 at a common 34% growth — so gold per point of power climbed 1,236 → 1,854 → 2,782 → 4,175 → **6,268** and a Legendary bed cost **81x** a Common bed to realise while returning **16x** the power. Rarity was strictly dominated on the gold axis for the whole game, which is what made Day 12's greedy rule look like an arbitrage bug: it was buying the best archetype available, which is what a player does, and being charged ten hours for it. **The behaviour was never wrong; the price of the behaviour was.** Bases are now 20 / 40 / 80 / 160 / 320 — each band doubles power and doubles the gold to train it out — g/power comes out flat at 1,236 → 1,249, and the three swap policies that spanned ten hours land inside **eighty minutes**, with greedy and pragmatic one minute apart. Pacing: patient Capital **5h54m** / maxed **18h14m**, impatient **6h56m** / **19h33m**, both finishing with sixteen Legendaries, purchase gaps the best recorded at median 1.5 min / 90th pct 4 / worst 19 against the 5–7 and 25 Days 8–9 asked for. **Three earlier days had each blamed something else and each was true and none was the reason** — Days 8–9 the Training Room's guild-wide bonus, Days 10–11 the Inn's bed ratchet, Day 12 an economic ceiling it created by removing the structural one. All three looked at power, gates and the player; none looked at the price list, because **a ratio authored in one place and paid for in another will not be checked by anybody looking at either.** The model's half of it was six percent wide: its swap rule required a *level-1* replacement to beat the incumbent, and a level-1 Champion is 379.4 against a maxed Recruit's 403.0 — it wins at **level 3** for about a thousand gold, so a wall two training levels thick had been reported as impassable. `switching_cost()` now prices the catch-up, with no threshold and no magic number. The suite went **64 → 66** with no existing test moved, deliberately in two kinds: `AHigherRarityBandNeverCostsMoreGoldPerPointOfPower` as an invariant any honest retune passes untouched, and `TheTrainingLadderReadsAsWritten` as the canary for one mistyped figure in one asset, which the invariant would sail past. **That no canary moved is the finding rather than the reassurance** — no canary had ever watched a training cost, and **a canary set that does not watch a value is quieter than no canary set, because its silence reads as a pass.** One thing was found and deliberately not fixed: `Adventurer.PowerWith` adds the Training Room's bonus **flat**, so it is worth +462% to a maxed Militia Recruit and +29% to a maxed Champion — an equaliser wearing a levelling mechanic's clothes, compressing the authored 16x ladder to **x3.7** at a finished guild, and making a 25-gold recruit worth +331 power at 0.1 gold per point against 1,576–7,977 for a training level. Making it multiplicative is one line plus a re-derivation of every quest's Recommended Power and the tier gates; **deferred to Day 21** with the numbers written down, because the compression bites at Training Room 30–40 where the roster has converged anyway, so today it costs feel rather than balance. `Docs/Day13_First_Balance_Pass.md` carries all of it.
+
+15. **W2D14 — Playtest, one shipping bug, and a design revision** — The day started as a playthrough and became the largest design conversation the project has had. **The playtest found a real bug in shipped code**: `QuestDispatchService.Cancel` deliberately lets the run in flight finish but **published no event**, so the order card kept rendering "Repeating", kept offering the button just pressed, and the quest visibly continued — press, nothing changes, indistinguishable from a dead button. Day 12 had written down this exact argument when it added `QuestPartyReformed`, and applied it only to the action it happened to be building. Fixed with `QuestOrderChanged`, a "Standing down" badge state, a disabled Recall and a `badge--pending` token; the shape worth carrying is that **an action whose effect is deferred has to say so on the thing it acted on, not only in a toast that scrolls away.** Suite 66 → 69, then 71 with the Day 14 save fixture — a genuine 17-minute session that reached Town with one honest contract failure in it, pinned at **zero repairs** so the revision deleting the Training Room shows up as a red test rather than a silence. **Git LFS went in a day early while the window was clean** (no binary had ever been committed), with `.meta` deliberately excluded, and Apple Developer enrollment came back approved — closing the one §04 item whose delay was never ours. **Then the design changed.** The game is now an **idle hotel tycoon**: five rooms, four earning gold per hour, contracts feeding the building through a Front Desk commission, staff on ongoing wages with the net floored at zero, adventurers arriving in the tavern crowd rather than bought from a shop, prestige as an isekai re-summoning, and a monetisation layer of **automation and cosmetics only — nothing bought with money makes a number go up.** The reassuring half: **three of the four original buildings were already mechanically what the new vision describes**; Tavern-quality-attracts-better-adventurers has been in the build since Day 4. The gap was never the design, it was that none of it is drawn. **Nothing was built** — no `.asset`, no game `.cs` — because Days 8–9 and Day 13 both found structural failures no playthrough would have surfaced and this change is larger than either. `Docs/Vision_Revision.md` is the new charter. The model was rebuilt from scratch (`tycoon_model.py`) and, when hand-tuning failed to converge across twenty coupled dials — Village went 1h48m, 1h32m, 3h50m, 3h16m, 4h26m, 8h19m while every individual change was correct in isolation — an **auto-tuner** (`tuner.py`) was written to search the space against explicit targets. It reached rooms at **68%** of lifetime income (target 70) and a **6-minute** 90th-percentile purchase gap (target 10) in a few hundred evaluations. Eleven structural findings came out of the modelling, each of which would have shipped as a bug; the two best are that **every new room cannibalised the existing ones** — opening the Provisioner diluted the staff serving the Tavern and Inn, so its payback was negative and the model sat on 276 million gold refusing to buy a 9,000-gold room — and that **the opening hinged on a one-gold coin flip**, an adventurer costing 40 against a potboy costing 39, so the guild hired staff it did not need and never sent anybody on a contract. What is still wrong is not the tier boundary but the **dead first twenty minutes**: tavern and desk built instantly, an adventurer in the crowd immediately, then nothing until the first staff hire at 21 minutes. And the day produced the project's first calibration of **modelled time against lived time** — 17.6 real minutes to Town against a predicted 8, a 2.2× gap, because a model buys the instant it can afford something and a person does not.
 
 
 ---

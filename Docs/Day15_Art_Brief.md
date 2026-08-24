@@ -1,3 +1,18 @@
+> ## ⚠ SUPERSEDED IN PART — read `Vision_Revision.md` first
+>
+> Written on Day 14, hours before the design was revised into an idle tycoon. What
+> survives: the display-mechanism decision (per-content art in sprite fields, per-screen
+> art on USS classes), the palette pulled from `Tokens.uss`, the import settings, and the
+> finding that **Day 17 carries every line of display code in the project**.
+>
+> What does **not**: the asset list. It assumes three buildings, four tier backgrounds
+> and a Guild Hall that is only a screen. The game now has **five rooms**, the settlement
+> grows around one hall rather than the guild relocating, and the art direction is
+> **modern gacha-style anime** rather than the muted register described below. The room
+> art also has to show *states*, not icons.
+>
+> Redo the asset list against §2 and §5 of `Vision_Revision.md` before generating anything.
+
 # Days 15–16 — Art brief
 
 Written on Day 14, ahead of the batch, because generating art is the cheap half and

@@ -1,0 +1,72 @@
+{
+    "SchemaVersion": 1,
+    "SavedAtUtcTicks": 639231901067149760,
+    "GameVersion": "1.0",
+    "GuildTierId": "town",
+    "Buildings": [
+        {
+            "Id": "tavern",
+            "Level": 4
+        },
+        {
+            "Id": "training_room",
+            "Level": 3
+        },
+        {
+            "Id": "inn",
+            "Level": 4
+        }
+    ],
+    "Currencies": [
+        {
+            "Currency": 0,
+            "Amount": 88.02777075767517
+        },
+        {
+            "Currency": 1,
+            "Amount": 46.8998419046402
+        },
+        {
+            "Currency": 2,
+            "Amount": 0.0
+        },
+        {
+            "Currency": 3,
+            "Amount": 0.0
+        }
+    ],
+    "Adventurers": [
+        {
+            "InstanceId": "14ebe88b04a64147af81d12ef6f1c075",
+            "DefinitionId": "militia_recruit",
+            "Level": 2,
+            "Activity": 2,
+            "ActiveQuestInstanceId": "",
+            "RestRemainingSeconds": 17.864664112960669
+        },
+        {
+            "InstanceId": "7a99726cccb84bb9a69c29ab62fe5b54",
+            "DefinitionId": "militia_recruit",
+            "Level": 2,
+            "Activity": 2,
+            "ActiveQuestInstanceId": "",
+            "RestRemainingSeconds": 17.864664112960669
+        },
+        {
+            "InstanceId": "bbd949f3988b4857b54ed2a5e9dcac2f",
+            "DefinitionId": "militia_recruit",
+            "Level": 1,
+            "Activity": 0,
+            "ActiveQuestInstanceId": "",
+            "RestRemainingSeconds": 0.0
+        }
+    ],
+    "QuestRuns": [],
+    "Assignments": [],
+    "Clock": {
+        "TotalSecondsSimulated": 1057.2509471415606,
+        "QuestsCompleted": 7,
+        "QuestsSucceeded": 6,
+        "QuestsFailed": 1
+    }
+}

@@ -184,6 +184,116 @@ namespace IdleGuild.Tests
         /// migration ladder, restore — rather than deserialising it directly, so the test
         /// exercises what a device does.
         /// </summary>
+        /// <summary>
+        /// The last save the one-economy game will ever produce.
+        ///
+        /// Captured at the end of the Day 14 playtest, minutes before the design was
+        /// revised into an idle tycoon — five rooms, two income streams, staff on wages,
+        /// and no individual adventurer levels at all. Everything this file describes is
+        /// about to stop being true, which is exactly why it is worth keeping: after the
+        /// reshape it becomes the only real evidence of whether a save written by the old
+        /// build survives losing the Training Room and losing the meaning of `Level`.
+        ///
+        /// Today it pins the baseline — **zero repairs** — so that when the reshape lands,
+        /// the repair count changing is a red test with a number in it rather than a
+        /// silence nobody notices. That distinction is the entire argument for fixtures:
+        /// Days 10–11 changed what a value *meant* without changing its shape, and nothing
+        /// would have caught it.
+        ///
+        /// A genuine 17-minute session that reached Town: seven contracts completed, six
+        /// of them successful, one honest failure. Worth more than a constructed file for
+        /// the usual reason — nobody would have thought to build in the failure.
+        /// </summary>
+        [Test]
+        public void TheLastSaveOfTheOneEconomyGameLoadsWithoutRepair()
+        {
+            GameWorld world = Load("save_day14_played_in.json", out SaveRestoreReport report);
+
+            Assert.That(report.HasRepairs, Is.False,
+                $"The restore had to repair something: {report}. Before the tycoon revision this file " +
+                "needed no repair at all — once the Training Room is gone it will need exactly one, and " +
+                "this assertion is where that becomes visible.");
+
+            Assert.That(world.GuildState.CurrentTier.Id, Is.EqualTo("town"),
+                "This guild earned its way to Town; a tier that falls back means the tier could not be resolved.");
+
+            Assert.That(world.GuildState.GetLevel("tavern"), Is.EqualTo(4));
+            Assert.That(world.GuildState.GetLevel("training_room"), Is.EqualTo(3));
+            Assert.That(world.GuildState.GetLevel("inn"), Is.EqualTo(4));
+
+            Assert.That(world.Economy.Get(CurrencyType.Gold), Is.EqualTo(88.03d).Within(0.5d));
+            Assert.That(world.Economy.Get(CurrencyType.Reputation), Is.EqualTo(46.90d).Within(0.5d));
+
+            Assert.That(world.Roster.Count, Is.EqualTo(3));
+            Assert.That(world.QuestLog.ActiveCount, Is.EqualTo(0), "Nothing was in flight when this was written.");
+            Assert.That(world.Assignments.Count, Is.EqualTo(0), "No standing orders were live when this was written.");
+
+            int resting = 0;
+            int idle = 0;
+            foreach (Adventurer member in world.Roster.Members)
+            {
+                Assert.That(member.Definition.Id, Is.EqualTo("militia_recruit"));
+
+                if (member.Activity == AdventurerActivity.Resting)
+                {
+                    resting++;
+                    Assert.That(member.RestRemainingSeconds, Is.GreaterThan(0d),
+                        "A resting member with no timer left is a member who will never become available again.");
+                }
+                else if (member.Activity == AdventurerActivity.Idle)
+                {
+                    idle++;
+                }
+            }
+
+            Assert.That(resting, Is.EqualTo(2), "Rest timers did not survive the round trip.");
+            Assert.That(idle, Is.EqualTo(1));
+        }
+
+        /// <summary>
+        /// Pinned separately from the guild state because it is the half most likely to be
+        /// quietly dropped: the lifetime counters live on the clock rather than the world,
+        /// and a restore that rebuilt the guild perfectly while resetting them to zero
+        /// would pass every other assertion in this file.
+        /// </summary>
+        [Test]
+        public void TheDay14SessionKeepsItsLifetimeCounters()
+        {
+            LoadWithClock("save_day14_played_in.json", out SimulationClock clock, out SaveRestoreReport _);
+
+            Assert.That(clock.TotalSecondsSimulated, Is.EqualTo(1057.25d).Within(1d),
+                "Roughly seventeen and a half minutes of play.");
+            Assert.That(clock.QuestsCompleted, Is.EqualTo(7L));
+            Assert.That(clock.QuestsSucceeded, Is.EqualTo(6L));
+            Assert.That(clock.QuestsFailed, Is.EqualTo(1L),
+                "The one failure is the part a hand-built fixture would never have thought to include.");
+        }
+
+        /// <summary>
+        /// As <see cref="Load"/>, but hands back the clock as well. The lifetime counters
+        /// are restored onto it rather than onto the world, so a test that wants them needs
+        /// the instance the service was built with.
+        /// </summary>
+        private static GameWorld LoadWithClock(
+            string fixtureName, out SimulationClock clock, out SaveRestoreReport report)
+        {
+            string path = PathTo(fixtureName);
+            Assert.That(File.Exists(path), Is.True, $"No fixture at {path}.");
+
+            InMemorySaveStore store = new InMemorySaveStore();
+            store.Write(GameSaveService.DefaultSaveKey, File.ReadAllText(path));
+
+            GameWorld world = Shipped.NewGuild();
+            clock = new SimulationClock(world, new QuestDispatchService(world));
+            GameSaveService service = new GameSaveService(world, clock, store);
+
+            Assert.That(service.TryLoad(out DateTime _), Is.EqualTo(SaveLoadResult.Loaded),
+                $"'{fixtureName}' could not be loaded at all.");
+
+            report = service.LastRestoreReport;
+            return world;
+        }
+
         private static GameWorld Load(string fixtureName, out SaveRestoreReport report)
         {
             string path = PathTo(fixtureName);
