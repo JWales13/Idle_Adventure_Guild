@@ -13,6 +13,28 @@
 
 The 3→5 building scale-up (adding Quest Board and Armory post-launch) is the concrete test of this: it should mean creating two new `BuildingDefinition` assets and wiring their unlock conditions, not touching the Tavern/Training Room/Inn code that already ships.
 
+**No sequence of choices may leave the player unable to make progress.** Added Day 16,
+after a playtest reached an unrecoverable state on the *third purchase of a new guild* —
+Tavern to 1, Tavern to 2, Inn to 1, which is 147.50 of 150 starting gold, leaving 2.50
+against a 25-gold recruit in a build where gold comes only from contracts and a contract
+needs an adventurer. Income was exactly zero and stayed zero. There is always an action
+available that improves the player's position: early that is the crown's stipend, and late
+it is letting staff go, which is free and is half of why dismiss exists.
+
+This is a **property, not a balance figure**, so it belongs here rather than in a tuning
+doc, and it is asserted against the shipped catalogue in `SolvencyTests` rather than
+against a fixture — a fixture would have been built from the same assumptions that
+produced the dead end. Two things it is not. It is not a promise that mistakes are free:
+the recovery is deliberately slow, and a bad opening costs real time. And it is not
+satisfied by giving the player enough gold to start with — Day 4-5 solved the original
+opening deadlock exactly that way, "in data rather than in code", and **a data solution
+that depends on the player spending it correctly is a hope rather than a solution.** This
+is that hope failing, four hundred days of design later.
+
+It governs decisions that have not been made yet, which is the point of writing it down:
+whether a room can be sold, whether wages can bankrupt you, whether prestige can strand a
+run, whether a cosmetic purchase can ever be the thing blocking progress.
+
 **Styling in code, not the Inspector.** UI is built on Unity's UI Toolkit with USS stylesheets — CSS-like, text-based, no per-prefab Inspector tinkering. Design tokens (color, spacing, type scale) live in a shared stylesheet from day one.
 
 **Model usage.** Sonnet 5 for planning, design discussion, and roadmap work. Opus 5 for actual script generation and implementation, where holding the whole modular architecture in mind while writing new code matters more than speed.
@@ -225,7 +247,20 @@ and removed even the slot pressure that might have forced a climb.
 
 So **no staff assets were authored**, and the invariant that would catch it ships calling
 `Assert.Ignore` with a pointer to the write-up rather than passing vacuously green.
-**Suite at 103 green**, up from 71, of which **two are Ignored rather than green** and say
+**Followed immediately by a playtest that reached an unrecoverable state on the third
+purchase of a new guild** — Tavern to 1, Tavern to 2, Inn to 1, which is 147.50 of 150
+starting gold, leaving 2.50 against a 25-gold recruit in a build where gold comes only
+from contracts and a contract needs an adventurer. Income was exactly zero and stayed
+zero. Fixed with **the crown's stipend**, a mailbox on a 30-second cooldown paying 1/2/4/8
+gold by tier, and — the durable half — **a new rule in §01: no sequence of choices may
+leave the player unable to make progress.** The sizing argument is worth reading: the
+first attempt at "recover in about a minute" was **189× the entire Village room economy**,
+because while the mailbox refills continuously *recovery speed is a sustained rate*. See
+`Docs/Day16_Followup_Solvency.md`. It also caught that **the tap shipped the day before is
+inert** — no room produces demand, so unserved demand is zero and the queue never fills.
+Fifth appearance of a failure whose only symptom is an absence.
+
+**Suite at 114 green**, up from 71, of which **three are Ignored rather than green** and say
 so — one guard is vacuous until a room produces custom, and the staff-ladder invariant has
 no ladder to guard. `Docs/Day16_Staff_And_Revenue.md` carries all of it, plus corrections
 to §3.1, §4 and §6C of the charter, all three of which described mechanisms the tuned
@@ -637,6 +672,10 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 - **~~Staff need a dismiss action designed in from the start~~ — done on Day 16, on the same day as hiring.** `StaffService.TryLetGo` and `TryLetGoLeastCapable` ship beside `TryHire`, with no gate on either: an employee has no run in flight and no standing order to belong to, so there is nothing they can be in the middle of. Nothing is refunded, the same rule adventurers follow. **What that immediately exposed is the item below**, and it is the more interesting half.
 
 - **The staff ladder has never been climbed by anything, so its four prices are guesses.** Day 16's finding: gold per point of service climbs 0.47 → 2.06 → 8.63 → 32.69 across the ladder, and the tuned configuration hires **105 Potboys and no employee from the three tiers above, at every integration step**. Not a pricing problem — flattening the ladder still gives 98 Potboys and one Server, and starving slots to four still gives four Potboys. `tycoon_model.purchase()` can only ever *append* staff, so the ladder is unreachable at any price and nothing has ever measured what the upper rungs are worth. **The balance pass must give the model the dismiss action the game now has before it searches for those four numbers** — replace the least capable when the replacement is better the day it arrives, which is the rule Day 13 landed on for adventurers after the naive version added eight hours. Until then treat every staff figure in `tuned_params.json` as unmeasured rather than tuned; the room curves are unaffected, since what the rooms see is the payroll's total service. `AHigherStaffTierNeverCostsMoreGoldPerPointOfService` ships **ignored**, with a pointer, rather than vacuously green. **No staff `.asset` was authored on Day 16 for this reason.**
+- **The crown's stipend is sized for a build where nothing else earns, and should be re-checked the day the rooms land.** 1/2/4/8 gold every 30 seconds, capped at three deliveries. It holds ~30% of what the guild earns at Village and Town, 11% at City and 0.01% at Capital — necessarily, because the earn rate at tier openings runs 418 → 730 → 4,208 → 15,859,700 g/hr and no ladder stays proportional across a ×3,768 jump. **Recovering from an empty treasury takes about twelve and a half minutes**, pinned as a `BalanceCanary` so the cost is visible rather than merely true. That figure is mostly an artefact of today's build having no other income; if it still bites once rooms and the tap are live, the fix already designed is a **hardship line** — accrual stops above a per-tier threshold, so the crown can never hold you above `line + one delivery`, which buys back fast recovery without making the mailbox farmable. `Docs/Day16_Followup_Solvency.md` §4.
+
+- **The tap is inert until a room produces `ServiceDemand`.** `TakingsService` shipped tested and documented on Day 16 and cannot fire: no shipped building carries the stat, no tier carries a base service, so total demand is zero and the queue never fills. It goes live with the room assets and nothing before then. **Any pacing measured before that is measuring the mailbox, not the game.**
+
 - **The tap mechanic — collecting takings exists as of Day 16; the other two do not.**
   `TakingsService.TryCollect` serves one waiting customer at the best-paying room still
   going unserved, out of a queue that fills at the unserved-demand rate and is **capped**,
@@ -892,15 +931,17 @@ Docs/Vision_Revision.md in full - the source of truth for what we are BUILDING, 
 supersedes sections 02, 03 and 05 of the Ledger, and which now carries three CORRECTION
 boxes of its own in 3.1, 4 and 6C where it described mechanisms the tuned model does not
 use. Then Docs/Day16_Staff_And_Revenue.md (what was built yesterday and the one finding
-that changes what you can trust), and Docs/Tests.md (short, changes how you verify
-things - note section 7 on the two tests that are Ignored on purpose).
+that changes what you can trust), Docs/Day16_Followup_Solvency.md (a playtest walked into
+an unrecoverable state; this is the fix, and the new Principle it produced), and
+Docs/Tests.md (short, changes how you verify things - note section 7 on the tests that
+are Ignored on purpose).
 
 Current position: Week 3, Day 17 - continuing the revision.
 Last completed: Week 1 in full; Days 8-9 building trees; Days 10-11 tier transitions plus
 the test suite; Day 12 recruitment and assignment UI; Day 13 first balance pass; Day 14
 playtest and the design revision; Day 15 economy tuning, the icon wire, and the discovery
-that the interface had never been rendered; Day 16 the Staff assembly and the revenue
-engine. Unity 6000.5.0f1 / URP 2D, private GitHub repo via GitHub Desktop, Git LFS live.
+that the interface had never been rendered; Day 16 the Staff assembly, the revenue engine,
+and a follow-up adding the crown's stipend after a playtest found a dead end. Unity 6000.5.0f1 / URP 2D, private GitHub repo via GitHub Desktop, Git LFS live.
 NINE assemblies now: six feature assemblies depending on Core and nothing else
 (Economy, Adventurers, Quests, Guild, and as of Day 16 Staff), IdleGuild.App above them
 holding composition and cross-feature transactions, IdleGuild.UI above that,
@@ -911,8 +952,14 @@ the revenue ENGINE is built and NO ROOM USES IT. Day 16 added IdleGuild.Staff, t
 TradeService revenue engine, StaffService with hire AND dismiss, TakingsService (the
 tap), five appended GuildStats, four new tier fields, and the save fields - and touched
 NOT ONE .asset file. So the game that actually runs is still the one-economy version:
-three buildings, gold only from contracts, individual adventurer training. Day 17 is
-where the assets start to change.
+three buildings, gold only from contracts, individual adventurer training, plus the
+crown's stipend. Day 17 is where the assets start to change.
+
+AND NOTE WHAT THAT MEANS FOR THE TAP: TakingsService shipped tested and documented and is
+INERT. No room produces ServiceDemand and no tier carries a base service, so total demand
+is zero, unserved demand is zero, the queue never fills and TryCollect returns false
+forever. It goes live with the room assets and not before. ANY PACING MEASURED BEFORE THEN
+IS MEASURING THE MAILBOX, NOT THE GAME.
 
 Next task: Day 17, in this order.
   1. THE OWED INTERFACE HAND-CHECK, FIRST. It has now been deferred twice and Day 17 is
@@ -935,9 +982,18 @@ Three requirements on the BUILD carried forward, all still open:
 * the Barracks must visibly look like it makes money - cannot be closed until the Front
   Desk is authored, because the number that fixes it is what the Barracks is worth
   through the commission. ContractCommission is declared with no producer, deliberately.
-* the TAP must exist - HALF DONE. Collecting takings ships (TakingsService.TryCollect,
-  serving one customer from a capped queue). Hiring from the crowd and dispatching
-  contracts still need their manual versions.
+* the TAP must exist - HALF DONE AND CURRENTLY INERT. Collecting takings ships
+  (TakingsService.TryCollect, serving one customer from a capped queue) but cannot fire
+  until a room produces demand. Hiring from the crowd and dispatching contracts still need
+  their manual versions.
+
+A FOURTH, added by the Day 16 playtest and now written into section 01 of the Ledger as a
+Principle: NO SEQUENCE OF CHOICES MAY LEAVE THE PLAYER UNABLE TO MAKE PROGRESS. There is
+always an action that improves the player's position - early that is the crown's stipend,
+late it is letting staff go, which is free and is half of why dismiss exists. It is a
+property rather than a balance figure and is asserted in SolvencyTests against the shipped
+catalogue. It governs decisions not yet made: whether a room can be sold, whether wages
+can bankrupt you, whether prestige can strand a run.
 
 THE ONE THING FROM DAY 16 THAT CHANGES WHAT YOU CAN TRUST:
 the staff ladder in tuned_params.json is UNMEASURED, not tuned. Gold per point of service
@@ -975,8 +1031,8 @@ project has (Day 14 took 17.6 real minutes to reach Town against a predicted 8).
 is 23 MODELLED minutes. Re-measure on the next playthrough; do not tune to modelled
 numbers as though a player experiences them.
 
-Testing: EditMode suite at Assets/_Project/Tests/Editor/ - 103 tests, all green, well
-under a second, of which TWO are deliberately Ignored rather than green and say why
+Testing: EditMode suite at Assets/_Project/Tests/Editor/ - 114 tests, all green, well
+under a second, of which THREE are deliberately Ignored rather than green and say why
 (section 7 of Docs/Tests.md). Run it (Window > General > Test Runner > EditMode > Run
 All) before you start and before you commit. It asserts SHAPE rather than NUMBERS on
 purpose; the value-asserting ones are tagged [Category("BalanceCanary")] and are expected
@@ -992,7 +1048,11 @@ revision deleting the Training Room shows up as a red test with a number in it r
 than a silence. EXPECT THAT TEST TO GO RED WHEN THE ROOMS LAND AND UNDERSTAND ITS NUMBER
 BEFORE UPDATING IT.
 
-Known issues/blockers: the whole game is 6h54m of modelled content against a 20-hour
+Known issues/blockers: the crown's stipend is sized for a build where nothing else earns
+and should be re-checked the day the rooms land - recovering from an empty treasury takes
+about twelve and a half minutes, pinned as a BalanceCanary; if that still bites once rooms
+and the tap are live, the fix already designed is a HARDSHIP LINE that stops accrual above
+a per-tier threshold. The whole game is 6h54m of modelled content against a 20-hour
 target - a curve-length question for Day 22, stable across every step so it is not noise.
 Tapping is 87% of room income across the first thirty modelled minutes, high enough to be
 a design decision rather than a side effect - settle it before monetisation on Day 28.
@@ -1054,6 +1114,9 @@ before writing any code.
 
 
 17. **W3D16 — the revenue engine, and a staff ladder nobody had ever climbed** — The first day of the revision that changes the game rather than describing it, and **not one `.asset` file was touched**. `IdleGuild.Staff` is the sixth feature assembly on the same terms as the other five, Core-only. `TradeService` in App turns §3.1's three levers into gold per hour — demand from the tier, capacity from the room's level, throughput from the payroll — with **staff serving the most valuable custom first**, which is finding #10 made structural: proportional sharing is what made opening the Provisioner *reduce* income and left a model sitting on 276 million gold refusing to buy a 9,000-gold room. Wages come out of the till and the net is floored at zero. `TakingsService` is the tap, and it needed the one thing the model could not supply: the model treats tapping as a *rate*, so a fast thumb would draw an hour of custom out of it in three seconds — the rate now fills a **capped queue** instead, because coming back from eight hours away to a wall of free gold would make the tap a reason to close the game. **The architectural bet took its heaviest load yet and did not move**: nothing was added to `BuildingDefinition`, and `GuildState.Aggregate` gained no branch — it gained an early *return*, which is the opposite thing. **Staff can be let go on the same day they can be hired**, which was the standing instruction from §6C's third finding and from Day 12 having to retrofit the adventurer version. **And that is what exposed the day's finding.** Before authoring four staff assets from `tuned_params.json`, the two authored numbers were divided by each other — the check Day 13 established and which had never once been performed on this ladder. Gold per point of service climbs **0.47 → 2.06 → 8.63 → 32.69**, and the tuned configuration hires **105 Potboys and never buys a Server, Barkeep or Steward at any integration step**. The price is not the cause: flattening the ladder still gives 98 Potboys and one Server, and starving slots to four still gives four Potboys. `purchase()` can only ever *append* staff — **the model has no way to let anybody go** — so slots once filled with the cheapest help are filled forever, the ladder is unreachable **at any price**, an unreachable rung cannot cost the loss anything, and it was therefore free to be priced arbitrarily. Day 15 then raised the staff-slot curve to cure the opening silence, which was right for the thing it was aimed at and removed even the slot pressure that might have forced a climb: **a change correct for its own target silently deleted a subsystem elsewhere, because the loss function did not score that subsystem.** Inside it, a smaller one with a sharper edge: the model's own comment above the staff table has claimed since Day 14 that "the ladder has to improve per gold as it climbs", and the numbers underneath it have always been 5.0, 14.7, 41.8, 107.1 — **the fix was written as prose and never as arithmetic**, and the prose has been read several times since. So no staff assets were authored, and `AHigherStaffTierNeverCostsMoreGoldPerPointOfService` ships calling **`Assert.Ignore`** with a pointer, because a test that would pass vacuously is Day 13's silent canary in a smaller costume. Three other things are worth carrying. **A per-room stat summed across the guild is a *plausible* wrong answer**, which is the sibling of the absence-failure this project has met four times and needs the opposite treatment — sixty-eight seats reads exactly like a real figure, so `GuildStatScope` names the three per-room stats, `Aggregate` refuses to produce them, and they read a loud zero. **Two of the charter's own mechanisms had gone stale in exactly the way Day 15's `--checks` block had** — §4 names a `Revenue` stat no room has, because revenue became `seats × spend` when §3.1 split demand from capacity and §4 did not follow; and §3.1's `Σ each staff member's wage` is a rule `wagesPerHour()` has never used, making the per-employee wage field dead data read by nothing. Both corrected in the charter rather than quietly amended, and `StaffDefinition` ships with **no wage field**. And **`JsonUtility` leaves an absent array null**, which would have thrown on all four save fixtures — guarded, with the half that matters more being that a null payroll is **not counted as a repair**, or two fixtures go red for having been written honestly. `SaveSchema.CurrentVersion` still has never moved. Suite **71 → 103**, two Ignored. One red on the first run and it was the right one: `EveryGuildStatHasAPlayerFacingName` caught all five appended stats falling through to `stat.ToString()`, so a room panel would have read *"ServiceSeats"* at the player — **an invariant moving, and right to**, which is the exact counterpoint to Day 13's finding that no canary moved.
+
+
+18. **W3D16 follow-up — the crown's stipend, and a rule about dead ends** — A playtest of the Day 16 build reached an **unrecoverable state on the third purchase of a new guild**: Tavern to 1, Tavern to 2, Inn to 1 is 147.50 of 150 starting gold, leaving **2.50 against a 25-gold recruit** in a build where gold comes only from contracts and a contract needs an adventurer. Income exactly zero, permanently; the only way out was deleting the save. **It is Day 4-5's opening deadlock returning with teeth** — that one was recorded as "solved in data rather than in code" by granting starting gold, and the lesson it should have carried is that **a data solution which depends on the player spending it correctly is a hope rather than a solution.** It also found that **the tap shipped the previous day was inert**: no room produces `ServiceDemand`, so unserved demand is zero, the queue never fills and `TryCollect` returns false forever — the fifth appearance of *a failure whose only symptom is the absence of something*, and the suite could not see it because every trade test builds its own rooms, which is exactly what `TradeFixture`'s own doc comment warns about and was still not enough to make anybody look. The fix is **the crown's stipend**: a mailbox on a 30-second cooldown, three deliveries bankable, the amount authored per tier, granted through `Grant` so it announces itself, counted on its own lifetime line rather than inside room income so the thumb cannot move the 70/30 split, and improvable by no purchase whatsoever so it can never enter a payback ranking. Fictionally it is the **crown**, deliberately separate from §6B's **Patron**, so the thing that can never let you fail and the thing you can spend money on have different sources — which also hands familiars a third automation target that grants no power. **The sizing argument reversed a decision and is the interesting part.** The stated target was "recover in about a minute", which is 15 gold every 30 seconds — and against the tuned model that is **1,800 g/hr versus rooms earning 9.5 g/hr at Village, or 189x the entire economy the stipend is meant to sit underneath**, with 58x at Town and 8x at City. The tension is structural rather than a tuning miss: **while the mailbox refills continuously, recovery speed IS a sustained rate**, and 25 gold is two and a half hours of Village room income, so anything that rescues you quickly dwarfs the tier it rescues you in. Two branches were put up — a **hardship line** that stops accrual above a threshold (keeping the one-minute recovery, and capping what the crown can ever hold you at to `line + one delivery`), or shrink it and pay in time. The second was chosen, explicitly reversing the earlier answer now that the table existed. Landed at **1/2/4/8 gold**, holding ~30% of what the guild earns at Village and Town, 11% at City and 0.01% at Capital — and **no ladder can stay proportional**, because the earn rate at tier openings runs 418 → 730 → 4,208 → **15,859,700** g/hr and a proportional Capital stipend would be a 26,000-gold delivery. So the mailbox is necessarily meaningful early and irrelevant late, which is the takings tap's self-obsoleting shape reached by a different route. **The cost is twelve and a half minutes to dig out of an empty treasury**, pinned as a `BalanceCanary` rather than left as a fact nobody wrote down, because a trade-off nobody can see is a trade-off nobody will revisit. The durable half is a new entry in **§01 Principles: no sequence of choices may leave the player unable to make progress** — a property rather than a balance figure, asserted against the shipped catalogue because a fixture would have been built from the same assumptions that produced the dead end, and one that now governs whether a room can be sold, whether wages can bankrupt you, and whether prestige can strand a run. Suite **103 → 114**, three Ignored. One test earned its keep before it ever ran: the first version of `AnHourOfTheCrownsStipendIsWorthLessThanTheOpeningItBacksUp` compared the stipend against the cheapest room's build cost, which does not scale with tier, and **would have passed the 15-gold version it was written to catch**; rewritten against starting gold it fails that version by twelvefold. **A guard that would not have caught the bug that prompted it is not a guard.**
 
 ---
 

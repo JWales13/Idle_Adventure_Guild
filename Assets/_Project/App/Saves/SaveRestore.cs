@@ -133,6 +133,7 @@ namespace IdleGuild.App.Saves
 
             RestoreClock(clock, data);
             RestoreTrade(clock, data);
+            RestoreStipend(clock, data);
 
             return new SaveRestoreReport(
                 unknownBuildings,
@@ -179,6 +180,7 @@ namespace IdleGuild.App.Saves
             clock?.RestoreCounters(0L, 0L, 0L, 0d);
             clock?.RestoreTradeTotals(0d, 0d);
             clock?.Takings.RestoreState(0d, 0d);
+            clock?.Stipend.RestoreState(0d, 0d, 0d);
         }
 
         /// <summary>
@@ -512,6 +514,29 @@ namespace IdleGuild.App.Saves
 
             clock.RestoreTradeTotals(trade.GrossEarned, trade.WagesPaid);
             clock.Takings.RestoreState(trade.WaitingCustomers, trade.TakingsEarned);
+        }
+
+        /// <summary>
+        /// The mailbox. Absent on every save written before it existed, which correctly
+        /// restores as an empty box on a fresh cooldown rather than as a repair — the same
+        /// distinction the payroll makes, and for the same reason.
+        /// </summary>
+        private static void RestoreStipend(SimulationClock clock, SaveGameData data)
+        {
+            if (clock == null)
+            {
+                return;
+            }
+
+            SavedStipend stipend = data.Stipend;
+            if (stipend == null)
+            {
+                clock.Stipend.RestoreState(0d, 0d, 0d);
+                return;
+            }
+
+            clock.Stipend.RestoreState(
+                stipend.DeliveriesWaiting, stipend.SecondsUntilNextDelivery, stipend.LifetimeStipend);
         }
 
         private static bool IsOnRun(GameWorld world, SavedAdventurer saved)

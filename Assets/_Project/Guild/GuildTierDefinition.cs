@@ -70,6 +70,20 @@ namespace IdleGuild.Guild
         [Min(0)]
         private int _baseHousingCapacity;
 
+        // The crown's stipend, and the reason a player can never be stranded. It is
+        // deliberately NOT a lever: nothing the player buys improves it, so it can never
+        // compete with the four rooms for their gold and must never appear in a payback
+        // ranking. It scales with the tier so that it stays a floor rather than becoming
+        // a relic, and the invariant that keeps that honest is that it may never grow
+        // faster than the market it backstops -- a stipend outpacing the settlement is a
+        // stipend that has become the economy.
+        //
+        // Deliberately not [Min]: Unity's Min drawer edits through a float field and
+        // would truncate this double on every Inspector draw. Clamped in OnValidate.
+        [SerializeField]
+        [Tooltip("Gold in one delivery of the crown's stipend at this tier. A floor under the treasury, never an income stream.")]
+        private double _stipendGold;
+
         [Header("Advancement to the next tier")]
         [SerializeField]
         [Tooltip("Building levels required to advance. The design rule is that this spans multiple buildings.")]
@@ -89,6 +103,7 @@ namespace IdleGuild.Guild
         public float ContractRewardScale => _contractRewardScale;
         public float BaseServicePerHour => _baseServicePerHour;
         public int BaseHousingCapacity => _baseHousingCapacity;
+        public double StipendGold => _stipendGold;
 
         /// <summary>Never null, so callers can iterate without a guard.</summary>
         public BuildingLevelRequirement[] RequirementsToAdvance =>
@@ -112,6 +127,11 @@ namespace IdleGuild.Guild
             if (_contractRewardScale < 1f)
             {
                 _contractRewardScale = 1f;
+            }
+
+            if (_stipendGold < 0d)
+            {
+                _stipendGold = 0d;
             }
 
             AssetValidation.WhenLoaded(this, WarnOnIncompleteAsset);

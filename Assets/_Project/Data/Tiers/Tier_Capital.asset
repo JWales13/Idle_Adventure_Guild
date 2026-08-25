@@ -18,4 +18,5 @@ MonoBehaviour:
   _questSlots: 4
   _maxQuestTier: 4
   _requirementsToAdvance: []
+  _stipendGold: 8
   _reputationToAdvance: 0

@@ -300,4 +300,34 @@ namespace IdleGuild.Core.Events
         /// <summary>How many are still waiting afterwards. Zero means the staff have the room covered.</summary>
         public double WaitingCustomers { get; }
     }
+
+    /// <summary>Raised when the player collects the crown's stipend.</summary>
+    /// <remarks>
+    /// The floor under the treasury, and the one income in the game that no purchase can
+    /// improve. It exists because a playtest walked straight into an unrecoverable state
+    /// on the third purchase of a new guild — Tavern, Tavern again, Inn, and then 2.50
+    /// gold against a 25-gold recruit with contracts as the only income and no adventurer
+    /// to send. See §01 of GUILD_LEDGER.md, which now carries the rule that made this a
+    /// bug rather than a balance question.
+    ///
+    /// Announced rather than accrued silently, for the same reason a tap is: the player
+    /// pressed something and wants to see it land.
+    /// </remarks>
+    public readonly struct StipendCollected
+    {
+        public StipendCollected(string tierId, double gold, int deliveriesWaiting)
+        {
+            TierId = tierId;
+            Gold = gold;
+            DeliveriesWaiting = deliveriesWaiting;
+        }
+
+        /// <summary>The tier whose stipend this was. The crown pays a growing settlement more.</summary>
+        public string TierId { get; }
+
+        public double Gold { get; }
+
+        /// <summary>Unopened deliveries left afterwards.</summary>
+        public int DeliveriesWaiting { get; }
+    }
 }

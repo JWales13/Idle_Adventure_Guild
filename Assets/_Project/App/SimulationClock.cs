@@ -42,6 +42,7 @@ namespace IdleGuild.App
 
             Trade = new TradeService(_world);
             Takings = new TakingsService(_world, Trade);
+            Stipend = new StipendService(_world);
         }
 
         /// <summary>
@@ -66,6 +67,13 @@ namespace IdleGuild.App
         /// <summary>The queue of customers the player can serve by hand, and what they have earned by doing it.</summary>
         public TakingsService Takings { get; }
 
+        /// <summary>
+        /// The crown's stipend. Owned here for the same two reasons the takings queue is:
+        /// it is state that a save carries, so two instances would be two answers to "is
+        /// there anything in the mailbox"; and it fills with time, which is this class.
+        /// </summary>
+        public StipendService Stipend { get; }
+
         public long QuestsCompleted { get; private set; }
 
         public long QuestsSucceeded { get; private set; }
@@ -85,6 +93,14 @@ namespace IdleGuild.App
 
         /// <summary>Lifetime wages paid. Never more than what was earned in the same moment, because of the floor.</summary>
         public double WagesPaid { get; private set; }
+
+        /// <summary>
+        /// Lifetime gold collected from the crown. Its own counter, deliberately outside
+        /// <see cref="GrossEarned"/>: the stipend is not room trade, and folding it into
+        /// the room total would move the 70/30 split the revision is tuned against
+        /// without anybody choosing to.
+        /// </summary>
+        public double StipendEarned => Stipend.LifetimeStipend;
 
         /// <summary>
         /// Run the guild forward by <paramref name="seconds"/>. Called with a frame's
@@ -178,6 +194,11 @@ namespace IdleGuild.App
             // well-staffed guild has nothing to tap and a familiar bought late is a
             // familiar wasted.
             Takings.Accrue(seconds);
+
+            // The mailbox fills whatever else is happening, which is the whole point of
+            // it: it is the one income in this game that no sequence of player choices
+            // can switch off.
+            Stipend.Accrue(seconds);
         }
 
         /// <summary>

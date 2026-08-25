@@ -92,6 +92,7 @@ namespace IdleGuild.App
             {
                 _scrollPosition = GUILayout.BeginScrollView(_scrollPosition);
                 DrawTreasury();
+                DrawStipend();
                 DrawGuild();
                 DrawTimeControls();
                 DrawSaves();
@@ -137,6 +138,55 @@ namespace IdleGuild.App
             }
 
             GUILayout.EndHorizontal();
+        }
+
+        /// <summary>
+        /// The mailbox, drawn directly under the treasury because that is where a player
+        /// looks when the treasury is the problem.
+        ///
+        /// It is the only thing in this panel that works no matter what the guild looks
+        /// like, which is the entire reason it exists: a playtest reached an
+        /// unrecoverable state on the third purchase of a new guild, and nothing else on
+        /// this screen could have got them out of it.
+        /// </summary>
+        private void DrawStipend()
+        {
+            StipendService stipend = _bootstrap.Stipend;
+            if (stipend == null)
+            {
+                return;
+            }
+
+            Section("The crown's stipend");
+
+            if (stipend.GoldPerDelivery <= 0d)
+            {
+                GUILayout.Label(
+                    $"This tier pays no stipend — {_bootstrap.World.GuildState.CurrentTier.DisplayName} " +
+                    "has no _stipendGold authored. That is an unfinished asset, not a rule.");
+                return;
+            }
+
+            int waiting = stipend.DeliveriesWaiting;
+            string timer = waiting >= stipend.MaximumDeliveries
+                ? "mailbox full"
+                : $"next in {stipend.SecondsUntilNextDelivery:F0}s";
+
+            GUI.enabled = stipend.CanCollect;
+            if (GUILayout.Button(
+                    $"Collect the stipend ({waiting}/{stipend.MaximumDeliveries} waiting, " +
+                    $"{Amount(stipend.GoldPerDelivery)} g each, {timer})"))
+            {
+                Queue(() =>
+                {
+                    _message = stipend.TryCollect(out double gold)
+                        ? $"The crown's courier hands over {Amount(gold)} g."
+                        : "Nothing in the mailbox yet.";
+                });
+            }
+
+            GUI.enabled = true;
+            GUILayout.Label($"lifetime from the crown {Amount(stipend.LifetimeStipend)} g");
         }
 
         private void DrawGuild()

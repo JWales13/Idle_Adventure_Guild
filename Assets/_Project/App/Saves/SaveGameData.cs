@@ -96,6 +96,9 @@ namespace IdleGuild.App.Saves
         /// <summary>What the rooms have taken over the guild's lifetime, and who is still waiting at the bar.</summary>
         public SavedTrade Trade;
 
+        /// <summary>The mailbox: what is waiting in it, and what the crown has paid so far.</summary>
+        public SavedStipend Stipend;
+
         public SavedQuestRun[] QuestRuns;
         public SavedAssignment[] Assignments;
         public SavedClock Clock;
@@ -171,6 +174,22 @@ namespace IdleGuild.App.Saves
         public double WagesPaid;
         public double TakingsEarned;
         public double WaitingCustomers;
+    }
+
+    /// <summary>
+    /// The crown's stipend, as the file holds it.
+    ///
+    /// Added on the Day 16 follow-up with no version bump, which is the fifth time the
+    /// compatibility rule has absorbed a change without one. A save from before the
+    /// stipend existed arrives with this field null and restores as an empty mailbox on a
+    /// fresh cooldown, which is exactly what a guild that never had a mailbox looks like.
+    /// </summary>
+    [Serializable]
+    public sealed class SavedStipend
+    {
+        public double DeliveriesWaiting;
+        public double SecondsUntilNextDelivery;
+        public double LifetimeStipend;
     }
 
     /// <summary>

@@ -52,6 +52,17 @@ namespace IdleGuild.App
         [Min(1f)]
         private float _maxWaitingCustomers = 40f;
 
+        [Header("The crown's stipend")]
+        [SerializeField]
+        [Tooltip("Seconds between deliveries. The amount is authored per tier; this is how often it arrives.")]
+        [Min(1f)]
+        private float _stipendCooldownSeconds = 30f;
+
+        [SerializeField]
+        [Tooltip("Deliveries that can pile up unopened. Caps what an absence banks, exactly as the takings queue does.")]
+        [Min(1)]
+        private int _stipendMaximumCharges = 3;
+
         [Header("Offline")]
         [Tooltip("Longest stretch of absence that still pays out. Time beyond this is forfeited.")]
         [SerializeField, Min(60f)] private float _maximumOfflineSeconds = 8f * 3600f;
@@ -77,6 +88,8 @@ namespace IdleGuild.App
         public float CustomerTurnsPerHour => _customerTurnsPerHour;
         public float WageShareOfSpend => _wageShareOfSpend;
         public float MaxWaitingCustomers => _maxWaitingCustomers;
+        public float StipendCooldownSeconds => _stipendCooldownSeconds;
+        public int StipendMaximumCharges => _stipendMaximumCharges;
 
         /// <summary>The lowest-Order tier, which a new guild begins at. Null if no tiers are listed.</summary>
         public GuildTierDefinition StartingTier

@@ -24,4 +24,5 @@ MonoBehaviour:
     _minimumLevel: 11
   - _building: {fileID: 11400000, guid: 82c1ec95ef7c54fafb2abeb57b879109, type: 2}
     _minimumLevel: 9
+  _stipendGold: 2
   _reputationToAdvance: 830

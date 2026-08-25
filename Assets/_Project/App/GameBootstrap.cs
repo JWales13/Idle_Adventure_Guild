@@ -80,6 +80,9 @@ namespace IdleGuild.App
         /// <summary>The queue of customers the player can serve by hand.</summary>
         public TakingsService Takings => Clock?.Takings;
 
+        /// <summary>The crown's stipend, and the floor it puts under the treasury.</summary>
+        public StipendService Stipend => Clock?.Stipend;
+
         public TrainingService Training { get; private set; }
 
         public QuestDispatchService Dispatch { get; private set; }

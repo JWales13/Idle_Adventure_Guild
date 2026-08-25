@@ -43,6 +43,7 @@ namespace IdleGuild.App.Saves
                 Adventurers = CaptureRoster(world.Roster),
                 Staff = CaptureStaff(world.Staff),
                 Trade = CaptureTrade(clock),
+                Stipend = CaptureStipend(clock),
                 QuestRuns = CaptureQuestRuns(world.QuestLog),
                 Assignments = CaptureAssignments(world.Assignments),
                 Clock = CaptureClock(clock)
@@ -130,6 +131,21 @@ namespace IdleGuild.App.Saves
                 WagesPaid = clock.WagesPaid,
                 TakingsEarned = clock.Takings.LifetimeTakings,
                 WaitingCustomers = clock.Takings.WaitingCustomers
+            };
+        }
+
+        private static SavedStipend CaptureStipend(SimulationClock clock)
+        {
+            if (clock == null)
+            {
+                return new SavedStipend();
+            }
+
+            return new SavedStipend
+            {
+                DeliveriesWaiting = clock.Stipend.DeliveriesWaiting,
+                SecondsUntilNextDelivery = clock.Stipend.SecondsUntilNextDelivery,
+                LifetimeStipend = clock.Stipend.LifetimeStipend
             };
         }
 
