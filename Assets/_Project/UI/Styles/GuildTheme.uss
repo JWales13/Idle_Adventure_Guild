@@ -203,6 +203,13 @@
     justify-content: space-between;
 }
 
+/* Icon and title, so the header's space-between still has exactly two ends. */
+.card__identity {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 1;
+}
+
 .card__title {
     font-size: var(--text-body);
     -unity-font-style: bold;
@@ -526,4 +533,43 @@
 .button--destructive:active {
     background-color: var(--color-negative);
     color: var(--color-text-inverse);
+}
+
+/* ------------------------------------------------------------------ icons ----- */
+/*
+ * The whole display mechanism for per-content art, in one block. Section 2 of
+ * Docs/Day15_Art_Brief.md draws the line: art that varies with CONTENT rides on a
+ * Sprite field on the definition asset (this), and art that varies with the SCREEN
+ * rides on a USS class (tier backdrops, tab glyphs). Ui.Icon puts the sprite on as a
+ * background image precisely so that everything else about it — size, radius, tint,
+ * what a missing one looks like — stays here with every other visual decision.
+ */
+
+.icon {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    flex-shrink: 0;
+    width: var(--size-icon-md);
+    height: var(--size-icon-md);
+    margin-right: var(--space-sm);
+}
+
+.icon--room {
+    width: var(--size-icon-lg);
+    height: var(--size-icon-lg);
+}
+
+/*
+ * Content whose art has not landed is meant to LOOK unfinished. Collapsing the element
+ * would be tidier and is the wrong trade: an icon that is absent and an icon that is
+ * zero-sized are indistinguishable on screen, and a gap that reads as a finished design
+ * is how twenty-three assets ship with one of them missing.
+ */
+.icon--missing {
+    background-color: var(--color-surface-sunken);
+    border-width: 1px;
+    border-color: var(--color-border);
+    border-radius: var(--radius-sm);
+    opacity: 0.6;
 }

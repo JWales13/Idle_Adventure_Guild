@@ -192,7 +192,43 @@ where things stand in a sentence or two before writing any code.
 
 ### Current status
 
-**Current status:** Week 2, Day 14 complete — **and the design has been revised.**
+**Current status:** Week 3, Day 15 complete — the tycoon economy is tuned, and **the
+interface has been seen for the first time.**
+
+Day 15 was handed one instruction — score first beats rather than tier boundaries — and it
+was right and unreachable, because four things underneath it were wrong. The model's
+answers moved by about **2x with the integration step**, so §6C's celebrated "68% of
+lifetime income from rooms" was an artefact of scoring at `step=60` and was 82% at step 5.
+`payback()` said *seconds* in its docstring and returned **hours**, so the reserve it was
+compared against had never once bound and §6C's finding #11 — the one-gold coin flip — was
+live the whole time. The dead twenty-two minutes was **arithmetic rather than a curve**:
+150 starting gold minus 143.85 of opening purchases leaves 6.15 against a 40-gold next
+step at 1.54 gold a minute, which is 21.9 minutes exactly. And every number in that
+sentence was **hardcoded outside `SPEC`** — the tuner was never stuck in a basin, it was
+searching a space that did not contain the problem.
+
+With the model made step-independent and the opening given dials, the worst silence in the
+first twenty minutes went **22 minutes → 5.0**, Village landed at **23 minutes** inside its
+new 20–30 band, rooms take **65–69%** of lifetime income, the purchase-gap 90th percentile
+is **4 minutes** against a ≤10 target, and every one of those figures now holds across a
+twelve-fold change in the integration step (`spread` 0.26 → **0.06**). That last number is
+the day's real output: the model means the same thing twice.
+
+**The interface had never been drawn, and that is the larger finding.**
+`GuildScreenController` calls `GetComponent<UIDocument>()`, and the `UI` object carries two
+panel components — a `PanelRenderer` holding `GuildPanelSettings` and a `UIDocument` whose
+Panel Settings field is **empty**. A UIDocument in that state still returns a perfectly
+good `rootVisualElement`; it is simply an orphan attached to no panel. So the controller's
+own null guard passes, the whole screen builds, nothing throws, the log stays clean, and
+the Game view shows the camera's clear colour — indistinguishable from an empty scene. The
+game was played through the debug console from Day 7 to Day 15. **See the correction below;
+several things this document records as verified cannot have been.**
+
+`Docs/Day15_Economy_Tuning.md` carries all of it.
+
+---
+
+**Superseded — Week 2, Day 14:**
 
 Day 14 ran the playtest, fixed a shipping bug it found, and then turned into the largest
 design conversation the project has had. The game is now an **idle hotel tycoon**: five
@@ -273,7 +309,7 @@ The passes earned their keep immediately. Step 1 of the Day 6 document found a r
 
 The Week 1 checkpoint holds, minus the UI that Day 7 adds.
 
-**Next action:** Day 15 — finish tuning the tycoon economy, then build it.
+**Next action:** Day 16 — build it. §8 of `Docs/Vision_Revision.md`: `IdleGuild.Staff` and the revenue engine first, arrivals second, the five rooms as assets third.
 
 The tuner has the two hardest targets already: rooms at **68%** of lifetime income
 against a 70% target, and a **6-minute** 90th-percentile purchase gap against a 10-minute
@@ -548,10 +584,35 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 **Open decisions carried forward:**
 
 - **The revision is designed and modelled but not built.** `Docs/Vision_Revision.md` is the charter; `Docs/tools/tycoon_model.py` models it and `tuner.py` searches its parameters. **`guild_model.py` still describes the game that actually exists** and stays until the revision ships — then it retires. Two models is confusing for exactly as long as two games exist.
-- **Staff need a dismiss action designed in from the start.** The model found staff slots are a one-way ratchet: fill them cheaply and you can never upgrade. That is the Days 10–11 bed problem, and Day 12 had to retrofit the fix for adventurers. Do not repeat that.
+- **Staff need a dismiss action designed in from the start.** The model found staff slots are a one-way ratchet: fill them cheaply and you can never upgrade. That is the Days 10–11 bed problem, and Day 12 had to retrofit the fix for adventurers. Do not repeat that. **This is now the very next thing built** — §8's `IdleGuild.Staff` is Day 16.
+- **The tap mechanic has to exist in the build, not only in the model.** §6B's familiars
+  automate collecting takings, hiring from the crowd and dispatching contracts; all three
+  need a manual version first or there is nothing to sell. Day 16–17 work, alongside the
+  revenue engine.
 - **The tier panel has to show what the gate is still missing.** The model's greedy player never saved for a gate — reputation cleared Village in twenty minutes while the Front Desk it also required went unbuilt for three hours. A real player runs the same policy unless the interface tells them what to save for.
 - **The Barracks has to look like it makes money.** It earns nothing directly, so a payback-ranked player never buys it; the model went dark on the entire adventurer half of the game until the calculation could see through to the commission it enables. The player needs that connection made visible.
-- **Day 17 carries every line of display code in the project.** Only two sprite fields exist and neither has ever been read; no view renders an image; `Ui.cs` has no image constructor. "Art generation then integration" reads as a big day followed by a small one and is the reverse. Mitigation: wire one room icon end to end on Day 15 before generating the rest.
+- **~~Day 17 carries every line of display code~~ — the wire is in, and it paid twice.**
+  `Ui.Icon` exists, `BuildingCard` reads `_icon`, `Tokens.uss` has icon sizes and
+  `GuildTheme.uss` has the `.icon` block. It found the Sprite Mode default *and* the
+  panel-settings bug. **What Day 17 still carries: the adventurer portrait slot, the tier
+  background mechanism, and the import pass** — smaller than it was, and now landing on an
+  interface somebody has actually looked at.
+- **Nobody has judged the interface yet, and three days of work assumed somebody had.**
+  Now that it renders, the twenty-five minutes of accumulated hand-checking is finally
+  possible and is genuinely owed: Days 10–11's colour half of step 6, Day 12's four, and
+  whether the 96px room icon reads correctly beside a 28px title. Do this before Day 17
+  generates twenty-three more assets sized to match a judgement nobody has made.
+- **The whole game is 6h54m of content against a 20-hour target**, stable across every
+  integration step so it is not noise. A curve-length question for Day 22's balance pass.
+- **Tapping is 87% of room income across the first thirty modelled minutes.** With a real
+  tier gate the guild is capital-starved early, so the thumb carries the opening. Arguably
+  right — that is the stretch an idle game wants the player present for — but it is high
+  enough to be a decision rather than a side effect, and it makes the "collect the takings"
+  familiar very valuable very early. Settle it before §6B's monetisation lands on Day 28.
+- **The worst opening silence is 5 modelled minutes against a 2-minute target**, and every
+  seed across five rounds landed between 4.7 and 6.7 — a frontier rather than a search
+  failure. About eleven lived minutes at Day 14's 2.2x, with tapping filling it. A question
+  for the first real playtest, not for the model.
 - **The Training Room's flat power bonus** — deferred from Day 13 to Day 21, and the revision may resolve it for free, since power moves to the Barracks. Re-check rather than assume.
 
 - **Git LFS — the `.gitattributes` half is done, the `git lfs install` half is yours.** Written on Day 14, one day ahead of its deadline and while the window was still clean: **no binary has ever been committed to this repo**, verified with `git ls-files`, so there is no history to rewrite. Twenty-five `filter=lfs diff=lfs merge=lfs -text` patterns now cover raster art, audio, video, fonts, models and binary libraries. **`.meta` is deliberately not among them** — it is small, it is text, Unity needs to merge it, and sending sidecars to LFS makes every asset's metadata a pointer file and breaks diffing on the one thing you most need to diff. The `binary` block was kept below the LFS block rather than deleted, because it now covers anything dropped from the list above. **Still outstanding: `git lfs install` on the machine, which Claude cannot run.** Until that is done the filter is declared and not wired, so run it *before* committing `.gitattributes`, and confirm the first art commit with `git lfs ls-files`.
@@ -567,6 +628,122 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 - **`Docs/tools/guild_model.py` is a copy of the balance numbers and will drift.** It replicates the loop well enough to have found the Day 4–5 structural failure, but it is a model, not a source of truth: update it in the same commit as any asset change. A drifted model is worse than no model, because its answers stay confident. **It is also a copy of a *player*, and that half drifts too** — Days 10–11 found its hiring rule had never once bought a non-Common adventurer, so a question about rarity it appeared to answer, it had never actually asked. When a run says content is pointless, check the policy can reach that content before believing it. **Day 13 is the case that points the other way and is worth holding beside it:** the policy was blamed for four days for what the *content* was doing, and the rule that had never bought a Champion was correct about the game as priced. So the check runs both directions — a model that says something is pointless is claiming a fact about the content *and* about the player, and either half can be the one that is lying.
 - **The Training Room's power bonus is flat, and that is a levelling mechanic pointed the wrong way.** `Adventurer.PowerWith` **adds** `AdventurerPower` to every adventurer, and a flat bonus is by construction worth most to the weakest person it touches: +331 on a maxed Militia Recruit's 71.6 is +462%, on a maxed Champion's 1,145.6 it is +29%. So the building whose stated job is raising each adventurer's Power is in practice an **equaliser**, and the authored 16x rarity ladder is worth **x3.7** by the time the guild is finished (x16.0 / x14.8 / x12.2 / x7.7 / x3.7 at Training Room 0 / 10 / 20 / 30 / 40). The same shape has an uglier second face: a new hire arrives carrying the full guild bonus for free, so a **25-gold Militia Recruit is worth +331 power at a finished guild — 0.1 gold per point** — against 1,576 to 7,977 gold per point for a training level. Only the Inn's sixteen-bed cap stops that being the dominant strategy. Making the bonus multiplicative fixes both halves and is what the building already claims to do; it costs one line in `Adventurer.PowerWith`, a neutral base of 1.0 in `GuildState`, a `ModifierKind` on the asset, re-derived Recommended Power on all five quests, re-spaced tier gates, four canaries, and about seven hours of tail before any re-tuning. **Deferred to Day 21** — the compression bites hardest at Training Room 30–40, by which point the roster has converged to Legendary anyway, so what it costs today is feel at the climax rather than balance. §6 of `Docs/Day13_First_Balance_Pass.md` has the numbers. Note that it changes what a **stat** means rather than what content consumes it, which is the harder version of the architectural bet, and that `GuildStat` is persisted by ordinal — reinterpret the value, never renumber the enum, and add a save fixture on the day it happens.
 - **`AssetValidation` is the eighth thing in Core and the first that exists only for the editor.** It is small, it is `[Conditional("UNITY_EDITOR")]` so it compiles out of a player build, and every feature already depends on Core — but it is worth naming here rather than letting it arrive unannounced, because Core is the assembly the whole architecture leans on and the bar for adding to it should stay high. If a second editor-only utility ever wants to join it, that is the moment to give them their own editor assembly instead.
+
+**CORRECTION, issued Day 15 — the interface has never been drawn, so several things
+this document calls verified were not.**
+
+`GuildScreenController` reads `GetComponent<UIDocument>()`, and that component's Panel
+Settings field is empty; the `PanelRenderer` beside it is the one holding
+`GuildPanelSettings`. A UIDocument with no Panel Settings still hands back a valid
+`rootVisualElement` — an orphan, attached to no panel and drawn by nothing — so the
+screen built perfectly and silently into the void for fifteen days.
+
+What that invalidates, stated plainly rather than quietly amended:
+
+- **The Day 7 UI pass and its step 6 Week 1 checkpoint** are recorded above as *"run and
+  passes"*. The parts that read files and assert state did pass. **Anything that required
+  looking at the screen did not happen.**
+- **Day 12's four manual checks** in §3 of `Docs/Tests.md` — `button--destructive`
+  resolving to the negative colour, a sixteen-row party picker fitting the phone, the
+  selected row being unambiguous, the retire confirmation reading as informative — are
+  listed as outstanding-but-doable. **They were not doable.** They still are not done.
+- **The colour half of Days 10–11's step 6** is the same case.
+- **Day 14's recall bug** is described in UI terms ("the order card kept rendering
+  *Repeating*"). The fix is correct and the reasoning holds, but it was derived from the
+  code and the debug console, not observed on screen.
+
+Fixed by assigning the asset, and made unable to recur by two checks in
+`GuildScreenController`: an immediate one on `_document.panelSettings == null`, placed
+*before* the root check because the missing asset is the cause and the null root is only
+one of its symptoms; and a deferred one a frame later on `_root.panel == null`, for the
+cases a missing asset does not cover. The deferral is the Days 10–11 `OnValidate` lesson
+verbatim — attachment happens across `OnEnable`, and **a check that cannot tell a
+half-loaded object from a half-filled one is not a check.**
+
+**The general shape, now met four times in four costumes:** `AssetValidation` crying wolf,
+Day 13's canaries that watched no training cost, Day 15's `--checks` block looking for a
+curve no room has, and this. **A failure whose only symptom is the absence of something is
+not detectable, and will be found by accident or not at all.**
+
+**Resolved on Day 15:**
+
+- **The model was measuring its own clock.** Contract durations rounded *up* to a whole
+  integration step — Rat Cellar is 31.5s and took a 60s tick, a 1.9x throughput penalty on
+  the entire adventurer economy that vanished as the step got finer. So `tuned_params.json`
+  gave Village 30 minutes and rooms 68% at step 60, and 59 minutes and 82% at step 5, with
+  the Capital **never reached** at step 30. Both figures §6C called "the two hardest
+  targets, met" were properties of the step size. Fixed by carrying the remainder in the
+  contract cycle and the arrival clock, and the loss is now the **median across steps
+  (10, 30, 60) plus a penalty on the spread** — because a single run of a chaotic system
+  measures the run. The late game genuinely is chaotic: Capital and maxed do not converge
+  as the step shrinks, because a greedy policy on a compounding economy flips purchase
+  order on tiny timing differences. Treat any Capital or maxed figure as ±30%.
+
+- **`payback()` said seconds and returned hours, and that is why no reserve ever bound.**
+  The ranking never noticed, because a ranking only needs the *order* and gets the same
+  order in either unit — so the one place the units could have been caught was the single
+  comparison against `reserveDeadline`, which is in seconds. The guard read
+  `0.755 hours <= 21.8 seconds` as true and let every candidate walk through every reserve
+  the model held. **§6C finding #11 was never fixed; a 60-second tick had been hiding it**
+  by carrying gold past the 39.44-gold Potboy and the 40-gold adventurer inside one step,
+  which put the right branch first by luck of ordering rather than by rule. The reserve's
+  deadline was also computed only when a *room* requirement was unmet, which at
+  `gate_scale 0.5` was never. Day 13's shape, one level down: **a quantity produced in one
+  unit and compared in another, where the producer's own docstring named the right one and
+  nothing ever read it against the consumer.**
+
+- **The dead twenty-two minutes was a subtraction, and the tuner could not reach it.**
+  150 starting gold, minus 143.85 for Tavern L1+L2 and Front Desk L1, leaves **6.15 gold**
+  against a 40-gold next purchase at **1.54 gold a minute** — 21.9 minutes, exactly the gap
+  in the trace. Every one of those numbers was hardcoded in `content()` and **absent from
+  `SPEC`**. Five dials added (`start_gold`, `open_cost`, `late_cost`, `hire_base`,
+  `rep_village`), plus `slots_base` / `slots_lin` for the Tavern's staff-slot curve, which
+  was fixed at base 2 / +1.4 and capped the opening at two cheap purchases no matter what
+  else moved — that is why the worst silence would not fall below six minutes for four
+  rounds. **Worth remembering: a search that keeps returning to one answer may not be stuck
+  in a basin; check that the problem is inside the space at all.**
+
+- **A bound enforced on one path and not the other is not enforced.** `gate_scale`'s floor
+  was raised 0.5 → 0.9 because the search chose 0.5 in every winner across nine seeds, and
+  at 0.5 the Village gate is `tavern 2 / front_desk 1` — cleared by starting gold before
+  the player acts. But `search()` clamps *perturbations* and leaves the *incumbent* alone,
+  so resuming from a saved point carrying 0.5 smuggled it through two more rounds and into
+  a promoted configuration. `fill()` now clamps on resume. Clamping it honestly cost the
+  loss 11.4 → 273, which is the finding: **every good number produced before that point was
+  partly bought by a tier gate the player never had to reach for.** The re-tuned
+  configuration has `gate_scale` at **1.21** — tighter than the authored values.
+
+- **The model priced a rest it never charged, and froze a contract choice it should have
+  revisited.** `rest_of` fed every ranking and was never served in the simulation, so the
+  Barracks' recovery stat was inert; and `syncQuests` picked a standing order's quest at
+  creation and nothing ever re-asked, so an order created in Village was still running Rat
+  Cellar in the Capital. Both fixed. Day 12 had already established that a party is fixed
+  for the life of a *run*, not of the assignment — the model was behind its own game.
+
+- **The `--checks` block was looking for a curve that does not exist.** It tested for
+  `revenue`, which the revision replaced with `seats` x `spend` when it split demand from
+  capacity, and never checked `seats`, `spend`, `recovery` or `maxTier` — so the two curves
+  that *are* the revenue engine went unwatched, and it printed only the curves that still
+  moved, meaning a dead level read as a blank line. Day 13's lesson inside the model's own
+  check block.
+
+- **Tapping is not new scope; §6B already sold it.** *"A bound spirit that minds a room
+  while you are away: collecting takings... a free player can do everything a payer can and
+  simply has to tap."* For a familiar that collects takings to be worth a Boon, the takings
+  must otherwise need collecting — so the monetisation pillar was **load-bearing on a
+  mechanic neither the code nor the model had**. Modelled as **throughput**, which is the
+  lever that already had a home for it (`baseService` is the guildmaster working the bar).
+  That placement makes it capped by unserved demand, worth exactly zero once staff cover
+  the room, and harmless to §3.1's three-levers rule. It decays on its own — no late-game
+  balance problem to tune away.
+
+- **The icon wire found the Sprite Mode default.** This project imports textures as
+  **Multiple**, so Unity's auto-slicer cut one tankard into two sprites and `_icon` had no
+  whole image to point at. §5 of the art brief already specifies Single; nobody could have
+  known it was not the default, because **no texture had ever been imported into this
+  project**. On Day 17 that would have hit every icon with a detached element — including
+  most of a five-portrait ladder whose job is to grow more ornate as it climbs. Exactly
+  what moving an hour of Day 17 into Day 15 was for.
 
 **Resolved on Day 14:**
 
@@ -636,117 +813,126 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 ```
 I'm continuing work on Idle Adventurer's Guild, a solo Unity mobile game. The design was
 revised on Day 14 from a fantasy management sim into an IDLE HOTEL TYCOON with an
-isekai/anime guild-hall theme. Submission target moved from Day 26 to Day 38, buffer
-through Day 42.
+isekai/anime guild-hall theme. Submission target Day 38, buffer through Day 42.
 
 The project lives at ~/Idle_Adventure_Guild. Read GUILD_LEDGER.md in the repo root in
-full first - it is the source of truth for what EXISTS. Then read
-Docs/Vision_Revision.md in full - it is the source of truth for what we are BUILDING,
-and it supersedes sections 02, 03 and 05 of the Ledger. Then Docs/Tests.md, which is
-short and changes how you verify things.
+full first - it is the source of truth for what EXISTS, and section 06 now carries a
+CORRECTION that invalidates several things earlier entries call verified. Then read
+Docs/Vision_Revision.md in full - the source of truth for what we are BUILDING, which
+supersedes sections 02, 03 and 05 of the Ledger. Then Docs/Tests.md (short, changes how
+you verify things) and Docs/Day15_Economy_Tuning.md (what the model now says and why you
+should not trust the numbers it used to say).
 
-Current position: Week 3, Day 15 - "Content, Art & Monetization" (revised)
-Last completed: Week 1 in full; Days 8-9 building trees; Days 10-11 tier transitions; a
-follow-up that turned most of that verification pass into a test suite; Day 12
-recruitment and assignment UI; Day 13 first balance pass; Day 14 playtest, one shipping
-bug fixed, and the design revision. Unity 6000.5.0f1 / URP 2D, private GitHub repo via
-GitHub Desktop, Git LFS configured. Eight assemblies: five feature assemblies depending
-on Core and nothing else, IdleGuild.App above them holding composition and cross-feature
-transactions, IdleGuild.UI above that, IdleGuild.Tests.Editor above everything.
+Current position: Week 3, Day 16 - building the revision.
+Last completed: Week 1 in full; Days 8-9 building trees; Days 10-11 tier transitions plus
+the test suite; Day 12 recruitment and assignment UI; Day 13 first balance pass; Day 14
+playtest and the design revision; Day 15 economy tuning, the icon wire, and the discovery
+that the interface had never been rendered. Unity 6000.5.0f1 / URP 2D, private GitHub repo
+via GitHub Desktop, Git LFS live and confirmed on its first binary. Eight assemblies: five
+feature assemblies depending on Core and nothing else, IdleGuild.App above them holding
+composition and cross-feature transactions, IdleGuild.UI above that, IdleGuild.Tests.Editor
+above everything.
 
-IMPORTANT: the revision is DESIGNED AND MODELLED BUT NOT BUILT. No .asset and no game
-.cs has changed for it. The game that exists is still the one-economy version: three
-buildings, gold only from quests. Do not assume any of the new design is in the code.
+IMPORTANT: the revision is DESIGNED, MODELLED, TUNED AND STILL NOT BUILT. No .asset and no
+game .cs has changed for it. The game that exists is still the one-economy version: three
+buildings, gold only from quests, individual adventurer training. Day 16 is where that
+changes.
 
-The revised design in one paragraph: five rooms, four of which earn gold per hour.
-Tavern (townsfolk food and drink; also sets which adventurers walk in), Inn (rooms let to
+The revised design in one paragraph: five rooms, four of which earn gold per hour. Tavern
+(townsfolk food and drink; also sets which adventurers walk in), Inn (rooms let to
 travellers), Front Desk (commission on contracts; also quest slots and contract tiers),
-Provisioner (supplies), and Barracks (houses AND trains adventurers - the only
-non-earning room). Three levers with three separate sources and no overlap: DEMAND comes
-from the tier (the settlement grows around your hall - you never relocate), CAPACITY from
-room level (seats and spend per head), THROUGHPUT from staff. Contracts pay reputation,
-which is the only thing that advances a tier, and their gold arrives as the Front Desk's
-commission - so questing raises your market ceiling rather than sitting beside the tycoon
-loop. Staff are one guild-wide pool on ongoing wages with net floored at zero. Individual
-adventurer training is CUT (power comes from Barracks level); rarity survives as a flat
-multiple. Prestige is an isekai re-summoning to a new world, in scope for launch, and
-what travels is knowledge rather than objects. Monetisation is automation ("familiars")
-and cosmetics only, bought with Boons from your Patron - nothing bought with money makes
-a number go up, so there is no monetisation balance pass to do.
+Provisioner (supplies), and Barracks (houses AND trains adventurers - the only non-earning
+room). Three levers with three separate sources and no overlap: DEMAND from the tier (the
+settlement grows around your hall - you never relocate), CAPACITY from room level (seats
+and spend per head), THROUGHPUT from staff. Contracts pay reputation, the only thing that
+advances a tier, and their gold arrives as the Front Desk's commission - so questing raises
+your market ceiling rather than sitting beside the tycoon loop. Staff are one guild-wide
+pool on ongoing wages with net floored at zero. Individual adventurer training is CUT
+(power comes from Barracks level); rarity survives as a flat multiple. Prestige is an
+isekai re-summoning, in scope for launch, and what travels is knowledge not objects.
+Monetisation is automation ("familiars") and cosmetics only, bought with Boons from your
+Patron - nothing bought with money makes a number go up.
 
-Next task: Day 15 - finish tuning the economy, then start building it.
+Next task: Day 16 - section 8 of Vision_Revision.md, in its order. IdleGuild.Staff (a
+sixth feature assembly, Core-only) and the revenue engine first, arrivals second, the five
+rooms as assets third. Three requirements on the BUILD that are easy to lose and are all
+written up in section 6C:
+  * staff need a DISMISS action designed in from the start - staff slots are a one-way
+    ratchet, the Days 10-11 bed problem, and Day 12 had to retrofit it for adventurers
+  * the tier panel must show what the gate is still MISSING - the model's greedy player
+    never saved for a gate and stalled for three hours
+  * the Barracks must visibly look like it makes money - it earns nothing directly, so a
+    payback-ranked player never buys it
+A fourth, added Day 15: the TAP has to exist. Section 6B sells familiars on "a free player
+can do everything a payer can and simply has to tap", so collecting takings, hiring from
+the crowd and dispatching contracts each need a manual version or there is nothing to
+automate and nothing to sell. The model has it as throughput, capped by unserved demand.
 
-The tuner already has the two hardest targets: rooms at 68% of lifetime income against a
-70% target, and a 6-minute 90th-percentile purchase gap against a 10-minute one. What
-remains is the shape of the time curve, and the specific problem is NOT that Village runs
-30 modelled minutes - it is that the first-session trace shows the tavern and front desk
-built instantly, an adventurer in the crowd immediately, then NOTHING until the first
-staff hire at 21 minutes. Score first-beat timings (first staff, first contract, first
-upgrade) in tuner.py's loss function rather than tier boundaries. The tuner has also been
-sitting in one basin across several runs and wants a wider scatter or tighter bounds on
-the dials controlling the opening.
-
+The economy is tuned and Docs/tools/tuned_params.json holds the result. Verify before you
+trust it:
   python3 Docs/tools/tycoon_model.py --profile --checks
-  python3 Docs/tools/tuner.py 100 <seeds> --resume
-
-Then section 8 of Vision_Revision.md has the build order: IdleGuild.Staff and the revenue
-engine first, arrivals second, the five rooms as assets third.
+  python3 Docs/tools/tuner.py 0 --resume --report
+The second prints the opening trace and a per-step table. THE PER-STEP TABLE IS THE POINT:
+the model used to give different answers at different integration steps - about 2x - and
+every headline figure in section 6C was an artefact of scoring at step=60. It is now stable
+to a few percent across step 5 to 60. If a future change makes those rows disagree again,
+that is the first thing to fix and nothing else is trustworthy until it is.
 
 Note there are TWO models on purpose. guild_model.py describes the game that actually
-exists and stays until the revision ships. tycoon_model.py describes the game being
-built. Retire the first when the second becomes true.
+exists and stays until the revision ships. tycoon_model.py describes the game being built.
+Retire the first when the second becomes true - which is what Day 16 starts.
 
-Testing: EditMode suite at Assets/_Project/Tests/Editor/ - 71 tests, all green, well
-under a second. Run it (Window > General > Test Runner > EditMode > Run All) before you
-start and before you commit. It asserts SHAPE rather than NUMBERS on purpose; the eight
-that assert values are tagged [Category("BalanceCanary")] and are expected to move on a
-balance pass, while an invariant moving is a warning. It loads the real .asset files
-through AssetDatabase rather than building fixtures, because every content failure this
-project has had was a wrong value in a shipped asset. Four save fixtures, including
-save_day14_played_in.json - the last record of the one-economy game, pinned at zero
-repairs so that the revision deleting the Training Room shows up as a red test with a
-number in it rather than a silence.
+MODELLED MINUTES ARE NOT LIVED MINUTES - roughly 2.2x on the one noisy sample this project
+has (Day 14 took 17.6 real minutes to reach Town against a predicted 8). Village is now 23
+MODELLED minutes. Re-measure on the next playthrough; do not tune to modelled numbers as
+though a player experiences them.
 
-Eleven structural findings came out of modelling the new design and they are written up
-in section 6C of Vision_Revision.md. Four of them are requirements on the BUILD rather
-than on the numbers, and are easy to lose: staff need a dismiss action designed in from
-the start (staff slots are a one-way ratchet - the Days 10-11 bed problem again); the
-tier panel must show what the gate is still missing (the model's greedy player never
-saved for a gate and stalled for three hours); the Barracks must visibly look like it
-makes money (it earns nothing directly, so a payback-ranked player never buys it); and
-Day 17 carries every line of display code in the project, because only two sprite fields
-exist, neither has ever been read, no view renders an image, and Ui.cs has no image
-constructor - so wire one room icon end to end on Day 15 before generating any art.
+Testing: EditMode suite at Assets/_Project/Tests/Editor/ - 71 tests, all green, well under
+a second. Run it (Window > General > Test Runner > EditMode > Run All) before you start and
+before you commit. It asserts SHAPE rather than NUMBERS on purpose; the eight that assert
+values are tagged [Category("BalanceCanary")] and are expected to move on a balance pass,
+while an invariant moving is a warning. It loads the real .asset files through
+AssetDatabase rather than building fixtures. Four save fixtures, including
+save_day14_played_in.json - pinned at zero repairs so that the revision deleting the
+Training Room shows up as a red test with a number in it rather than a silence. EXPECT THAT
+TEST TO GO RED ON DAY 16 AND UNDERSTAND ITS NUMBER BEFORE UPDATING IT.
 
-Known issues/blockers: bundle ID and product name are still template defaults, and they
-are also the save directory - changing either strands every save, so the Day 14 fixture
-had to be captured first (it has been). Save files are plain text and trivially editable,
-a hardening item, along with capping the guild_save.json.corrupt-* quarantine files. The
-debug console must be deleted or excluded before submission. Week 4 execution surface
-(device builds, TestFlight, App Store Connect) is not solvable from Cowork and needs
-deciding. Ad network and IAP provider unchosen - Day 18-19 equivalents. Apple Developer
-enrollment IS approved. Docs/Day15_Art_Brief.md carries a supersession banner: its
-display-mechanism decision and import settings survive, its asset list does not.
+Known issues/blockers: the whole game is 6h54m of modelled content against a 20-hour target
+- a curve-length question for Day 22, stable across every step so it is not noise. Tapping
+is 87% of room income across the first thirty modelled minutes, which is high enough to be
+a design decision rather than a side effect - settle it before monetisation on Day 28. The
+worst opening silence is 5 modelled minutes against a 2-minute target and looks like a real
+frontier. Bundle ID and product name are still template defaults and are also the save
+directory, so changing either strands every save (the Day 14 fixture has been captured).
+Save files are plain text and trivially editable; the guild_save.json.corrupt-* quarantine
+files are never capped. The debug console must be deleted or excluded before submission -
+and note it was the ONLY way this game was playable for fifteen days, so do not remove it
+before the real UI has been exercised. Week 4 execution surface (device builds, TestFlight,
+App Store Connect) is not solvable from Cowork and needs deciding by Day 22. Ad network and
+IAP provider unchosen. Apple Developer enrollment IS approved.
 
-One calibration point worth respecting: the Day 14 playthrough took 17.6 real minutes to
-reach Town against the model's predicted 8. MODELLED MINUTES ARE NOT LIVED MINUTES,
-roughly 2.2x on that one noisy sample. Re-measure before trusting it, but do not tune to
-modelled numbers as though a player experiences them.
+One more, and it is owed: NOBODY HAS EVER JUDGED THIS INTERFACE. It rendered for the first
+time on Day 15. The twenty-five minutes of accumulated hand-checking - Days 10-11's colour
+half of step 6, Day 12's four visual checks, and whether the 96px room icon reads correctly
+beside a 28px title - is finally possible and is genuinely owed. Do it before Day 17
+generates twenty-three more assets sized to match a judgement nobody has made.
 
-Working arrangement (see section 06): this runs in Claude Cowork, whose shell is a Linux
-VM with the project folder mounted - git exists but `unity` and `dotnet` do not. You
-write and edit files and never run git, not even `git status`, which leaves index locks
-that break my GitHub Desktop; tell me the commit message and I commit through the GUI.
-When you add scripts, ask me to focus the Unity Editor so it imports them, then verify by
-checking for Library/ScriptAssemblies/IdleGuild.*.dll and grepping Logs/ for "error CS".
-Tests are the same loop: you write them, I run them and paste failures. The Python models
-run fine on the Cowork shell. ScriptableObject values can be written directly into the
-.asset YAML rather than retyped through the Inspector.
+Working arrangement (see section 06): this runs in Claude Cowork, whose shell is a Linux VM
+with the project folder mounted - git exists but `unity` and `dotnet` do not. You write and
+edit files and never run git, not even `git status`, which leaves index locks that break my
+GitHub Desktop; tell me the commit message and I commit through the GUI. When you add
+scripts, ask me to focus the Unity Editor so it imports them, then verify by checking for
+Library/ScriptAssemblies/IdleGuild.*.dll and grepping Logs/ for "error CS". Tests are the
+same loop: you write them, I run them and paste failures. The Python models run fine on the
+Cowork shell. ScriptableObject values can be written directly into the .asset YAML rather
+than retyped through the Inspector, and a texture's .meta can be too - but note this project
+imports textures as Sprite Mode MULTIPLE by default, which auto-slices any image with a
+detached element into pieces. Set spriteMode: 1.
 
 Follow the Principles section of the Ledger (Clean Code, data-driven ScriptableObject
 architecture, event-driven decoupling, UI Toolkit/USS styling) without needing it
-re-explained. Confirm your understanding of where things stand in a sentence or two
-before writing any code.
+re-explained. Confirm your understanding of where things stand in a sentence or two before
+writing any code.
 ```
 
 ### Session log
@@ -771,6 +957,8 @@ before writing any code.
 
 15. **W2D14 — Playtest, one shipping bug, and a design revision** — The day started as a playthrough and became the largest design conversation the project has had. **The playtest found a real bug in shipped code**: `QuestDispatchService.Cancel` deliberately lets the run in flight finish but **published no event**, so the order card kept rendering "Repeating", kept offering the button just pressed, and the quest visibly continued — press, nothing changes, indistinguishable from a dead button. Day 12 had written down this exact argument when it added `QuestPartyReformed`, and applied it only to the action it happened to be building. Fixed with `QuestOrderChanged`, a "Standing down" badge state, a disabled Recall and a `badge--pending` token; the shape worth carrying is that **an action whose effect is deferred has to say so on the thing it acted on, not only in a toast that scrolls away.** Suite 66 → 69, then 71 with the Day 14 save fixture — a genuine 17-minute session that reached Town with one honest contract failure in it, pinned at **zero repairs** so the revision deleting the Training Room shows up as a red test rather than a silence. **Git LFS went in a day early while the window was clean** (no binary had ever been committed), with `.meta` deliberately excluded, and Apple Developer enrollment came back approved — closing the one §04 item whose delay was never ours. **Then the design changed.** The game is now an **idle hotel tycoon**: five rooms, four earning gold per hour, contracts feeding the building through a Front Desk commission, staff on ongoing wages with the net floored at zero, adventurers arriving in the tavern crowd rather than bought from a shop, prestige as an isekai re-summoning, and a monetisation layer of **automation and cosmetics only — nothing bought with money makes a number go up.** The reassuring half: **three of the four original buildings were already mechanically what the new vision describes**; Tavern-quality-attracts-better-adventurers has been in the build since Day 4. The gap was never the design, it was that none of it is drawn. **Nothing was built** — no `.asset`, no game `.cs` — because Days 8–9 and Day 13 both found structural failures no playthrough would have surfaced and this change is larger than either. `Docs/Vision_Revision.md` is the new charter. The model was rebuilt from scratch (`tycoon_model.py`) and, when hand-tuning failed to converge across twenty coupled dials — Village went 1h48m, 1h32m, 3h50m, 3h16m, 4h26m, 8h19m while every individual change was correct in isolation — an **auto-tuner** (`tuner.py`) was written to search the space against explicit targets. It reached rooms at **68%** of lifetime income (target 70) and a **6-minute** 90th-percentile purchase gap (target 10) in a few hundred evaluations. Eleven structural findings came out of the modelling, each of which would have shipped as a bug; the two best are that **every new room cannibalised the existing ones** — opening the Provisioner diluted the staff serving the Tavern and Inn, so its payback was negative and the model sat on 276 million gold refusing to buy a 9,000-gold room — and that **the opening hinged on a one-gold coin flip**, an adventurer costing 40 against a potboy costing 39, so the guild hired staff it did not need and never sent anybody on a contract. What is still wrong is not the tier boundary but the **dead first twenty minutes**: tavern and desk built instantly, an adventurer in the crowd immediately, then nothing until the first staff hire at 21 minutes. And the day produced the project's first calibration of **modelled time against lived time** — 17.6 real minutes to Town against a predicted 8, a 2.2× gap, because a model buys the instant it can afford something and a person does not.
 
+
+16. **W3D15 — the economy tuned, and an interface nobody had seen** — Handed one instruction (score first beats rather than tier boundaries) which was right and unreachable, because four things underneath it were wrong. **The model was measuring its own clock**: contract durations rounded *up* to a whole integration step, so Rat Cellar's 31.5s took a 60s tick — a 1.9x throughput penalty on the entire adventurer economy that vanished as the step got finer. §6C's "68% of lifetime income from rooms" and "6-minute purchase gap", the two figures it called the hardest targets met, were **artefacts of scoring at `step=60`**; at step 5 the share was 82%, and at step 30 the Capital was never reached at all. **`payback()` said seconds in its docstring and returned hours**, and because a ranking only needs the order and gets it in either unit, the one place the units could have been caught was the single comparison against `reserveDeadline` — which read `0.755 hours <= 21.8 seconds` as true and let every candidate walk through every reserve the model ever held. So **finding #11's one-gold coin flip was never fixed**, only hidden by a tick coarse enough to carry gold past both prices at once. **The dead twenty-two minutes was arithmetic, not a curve**: 150 gold minus 143.85 of opening purchases leaves 6.15 against a 40-gold next step at 1.54/min = 21.9 minutes, and **every number in that sentence was hardcoded outside `SPEC`** — the tuner was never in a basin, it was searching a space that did not contain the problem. Seven dials added for the opening. The loss now scores **first beats and the longest stretch with nothing to buy**, as the median across three integration steps with a penalty on their disagreement, because a single run of a chaotic system measures the run. **Two of my own metrics were wrong and both were caught by reading traces rather than losses**: counting arrivals as beats made a guild full of adventurers it could not afford look busy, and then counting contract payouts as beats made an opening of "Rat Cellar pays 2g" fourteen times and *no purchases* score the best silence in the search. Result: worst opening silence **22 min → 5.0**, Village **23 min** inside a new 20–30 band, rooms **65–69%**, purchase gap p90 **4 min**, and — the number that matters most — **`spread` 0.26 → 0.06**, so every figure now holds across a twelve-fold change in the step. **A bound enforced on one path is not enforced**: `gate_scale`'s floor was raised to stop the tuner halving every tier gate, and resuming from a saved point smuggled the old value through two more rounds into a promoted config, because `search()` clamps perturbations and not incumbents. Clamping it honestly cost 11.4 → 273, which is itself the finding — **every good number before that point was partly bought by a gate the player never had to reach for.** **Tapping turned out to be an obligation rather than an addition**: §6B sells familiars on "a free player can do everything a payer can and simply has to tap", so the monetisation pillar was load-bearing on a mechanic neither the code nor the model had. Modelled as throughput, capped by unserved demand, worth zero once staff cover the room. **And the icon wire, moved forward from Day 17, paid twice.** It found that this project imports textures as Sprite Mode **Multiple**, so the auto-slicer cut one tankard into two sprites — which on Day 17 would have hit every icon with a detached element, silently. Then it found the real one: **the interface had never been drawn.** `GuildScreenController` takes `GetComponent<UIDocument>()` and that component's Panel Settings is empty, and **a UIDocument with no Panel Settings still returns a perfectly good `rootVisualElement`** — an orphan attached to no panel. So the screen built into the void with no error, no exception and a clean log, for fifteen days, while the game was played through the debug console. Several things this Ledger records as verified could not have been; the correction is written into §06 rather than quietly amended. Two checks now make it loud, the second deferred by a frame for the Days 10–11 `OnValidate` reason. **The shape has now appeared four times in four costumes: a failure whose only symptom is the absence of something is not detectable, and will be found by accident or not at all.**
 
 ---
 

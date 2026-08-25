@@ -67,6 +67,12 @@
     --text-title: 36px;
     --text-display: 52px;
 
+    /* Icon sizes. Art is generated at 2x these and scaled down, never up — see
+       section 3 of Docs/Day15_Art_Brief.md. */
+    --size-icon-sm: 48px;
+    --size-icon-md: 72px;
+    --size-icon-lg: 96px;
+
     /* Fixed chrome heights, referenced by both the bar and the space reserved for it. */
     --height-tab-bar: 132px;
     --height-treasury: 108px;

@@ -87,6 +87,15 @@ namespace IdleGuild.UI
             // the same scene is not something to rely on. The tick fills the screen in as
             // soon as it does, and GameLoaded covers the normal case.
             _tick = _root.schedule.Execute(Tick).Every(TickMilliseconds);
+
+            // And the belt to that pair of braces: a root can be attached to no panel for
+            // reasons other than a missing asset — a second panel component claiming the
+            // settings, a disabled renderer — and every one of them fails the same silent
+            // way. Deferred by a frame ON PURPOSE, because attachment happens across
+            // OnEnable and a check that runs too early cannot tell "not yet" from "never".
+            // That is the Days 10–11 OnValidate lesson exactly: a check that cannot tell a
+            // half-loaded object from a half-filled one is not a check.
+            _root.schedule.Execute(WarnIfNothingIsBeingDrawn).ExecuteLater(0L);
         }
 
         private void OnDisable()
@@ -102,18 +111,51 @@ namespace IdleGuild.UI
         }
 
         /// <summary>
+        /// One frame after the screen is built, confirm it is actually attached to a panel.
+        ///
+        /// This exists because the failure it catches has no other symptom. Everything
+        /// builds, nothing throws, the log stays clean, and the Game view shows the
+        /// camera's clear colour — which is indistinguishable from a scene that is simply
+        /// empty. Fifteen days of this project went by in exactly that state.
+        /// </summary>
+        private void WarnIfNothingIsBeingDrawn()
+        {
+            if (_root != null && _root.panel == null)
+            {
+                Debug.LogError(
+                    $"{nameof(GuildScreenController)} built the screen into an element that belongs to " +
+                    "no panel, so none of it is being drawn. Check that exactly one panel component on " +
+                    "this object has a Panel Settings asset assigned.", this);
+            }
+        }
+
+        /// <summary>
         /// Build everything whose existence does not depend on the world: the chrome, the
         /// three empty screens and the overlay layer. Safe to run before the simulation
         /// is ready, which is the point.
         /// </summary>
         private bool BuildShell()
         {
+            // A UIDocument with no Panel Settings still hands back a perfectly good root
+            // element. It is simply an ORPHAN — never attached to a panel, never drawn.
+            // So the whole screen builds without a single error and renders nothing, which
+            // is what this project shipped from Day 7 to Day 15 without noticing: the game
+            // was played through the debug console, and a blank Game view reads exactly
+            // like a camera with nothing in front of it.
+            //
+            // Checked before the root, because it is the cause and the root is the symptom.
+            if (_document.panelSettings == null)
+            {
+                Debug.LogError(
+                    $"{nameof(GuildScreenController)}: the UIDocument on this object has no Panel " +
+                    "Settings asset, so nothing it builds will ever be drawn. Assign " +
+                    "GuildPanelSettings.asset to the UIDocument's Panel Settings field.", this);
+                return false;
+            }
+
             _root = _document.rootVisualElement;
             if (_root == null)
             {
-                // Almost always a UIDocument with no Panel Settings asset assigned, which
-                // otherwise fails as a null reference several frames later with nothing
-                // pointing at the cause.
                 Debug.LogError(
                     $"{nameof(GuildScreenController)} found no root element. Assign a Panel Settings " +
                     "asset to the UIDocument on this object.", this);

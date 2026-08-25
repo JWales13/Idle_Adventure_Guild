@@ -29,10 +29,17 @@ namespace IdleGuild.UI.Views
             AddToClassList("card");
             AddToClassList("card--interactive");
 
+            // Icon and title travel together in their own row so that the header's
+            // space-between still puts exactly two things at the two ends. Adding the
+            // icon as a third direct child would have spread all three evenly and moved
+            // the title away from the thing it names.
             VisualElement header = Ui.Box("card__header");
+            VisualElement identity = Ui.Box("card__identity");
+            identity.Add(Ui.Icon(building.Icon, "icon--room"));
             _title = Ui.Text(building.DisplayName, "card__title");
+            identity.Add(_title);
             _level = Ui.Text(string.Empty, "badge");
-            header.Add(_title);
+            header.Add(identity);
             header.Add(_level);
 
             _cost = Ui.Text(string.Empty, "card__meta");

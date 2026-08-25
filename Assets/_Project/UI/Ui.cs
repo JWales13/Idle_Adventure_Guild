@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace IdleGuild.UI
@@ -39,6 +40,43 @@ namespace IdleGuild.UI
         {
             ScrollView scroll = new ScrollView(ScrollViewMode.Vertical);
             return Classed(scroll, classes);
+        }
+
+        /// <summary>
+        /// A square element carrying a sprite from a definition asset.
+        ///
+        /// This is the first line of display code in the project. Two sprite fields have
+        /// existed since Days 2–3 — <c>BuildingDefinition._icon</c> and
+        /// <c>AdventurerDefinition._portrait</c> — and until now nothing read either of
+        /// them, no view rendered an image, and there was no constructor here to make one.
+        /// The Day 15 art brief argues that leaves Day 17 carrying an image helper, slots
+        /// in three views and a tier background mechanism against a one-day budget; this
+        /// is the hour moved forward, so that generating twenty-four assets happens after
+        /// the path they travel has been observed working rather than before.
+        ///
+        /// The sprite goes on as a background image rather than into an <c>Image</c>
+        /// control, so size, corner radius and tint stay in USS with every other visual
+        /// decision, and a room with no art yet is still laid out correctly.
+        ///
+        /// A missing sprite is deliberately made VISIBLE through <c>icon--missing</c>
+        /// rather than collapsing the element. Content whose art has not landed should
+        /// look unfinished on screen; a zero-size element looks exactly like a finished
+        /// one, and this project has already learned twice that a check whose failure
+        /// mode is silence is not a check.
+        /// </summary>
+        internal static VisualElement Icon(Sprite sprite, params string[] classes)
+        {
+            VisualElement icon = Box("icon");
+            if (sprite != null)
+            {
+                icon.style.backgroundImage = new StyleBackground(sprite);
+            }
+            else
+            {
+                icon.AddToClassList("icon--missing");
+            }
+
+            return Classed(icon, classes);
         }
 
         /// <summary>A label/value pair on one line, as used by the stat rows.</summary>

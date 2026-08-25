@@ -153,10 +153,13 @@ class World:
         self.staff = []          # indices into c["staff"]
         self.roster = []         # {defId}
         self.crowd = []          # adventurers waiting to be hired
-        self.runs, self.orders = [], []
+        self.orders = []         # standing orders; each is its own run/rest cycle
         self.t = 0.0
         self.nextArrival = 0.0
-        self.grossEarned = self.wagesPaid = self.questGold = 0.0
+        self.grossEarned = self.wagesPaid = self.questGold = self.tapEarned = 0.0
+        self.repriced = False    # something happened that may have made a purchase possible
+        self.beats, self.pulse = {}, []
+        self.beat = lambda kind, label: None    # simulate() replaces this with a recorder
 
     def td(self):
         return self.c["tiers"][self.tier]
@@ -229,6 +232,56 @@ class World:
 
     def demand(self):
         return self.totalWant()
+
+    # ---- serving a customer yourself -------------------------------------------
+    #
+    # Tapping is not an addition to this design. Section 6B already sells it: a familiar
+    # is "a bound spirit that minds a room while you are away: collecting takings, hiring
+    # from the crowd, dispatching contracts", and the sentence that makes the whole
+    # monetisation model defensible is "a free player can do everything a payer can and
+    # simply has to tap." For a familiar that collects takings to be worth a Boon, the
+    # takings have to otherwise need collecting -- so the premium pillar is load-bearing
+    # on a mechanic that had never been built OR modelled. This is the model catching up
+    # to a promise the design had already made.
+    #
+    # It is THROUGHPUT, which is the one lever that already has a home for it: baseService
+    # is the guildmaster working the bar themselves, and a tap is exactly one more
+    # customer through the same door. That placement is what makes it safe:
+    #
+    #   * it is capped by unserved demand, so it can never invent custom that is not
+    #     there, and it is worth nothing at all once staff cover the room
+    #   * it therefore decays on its own as the guild grows -- large early, irrelevant by
+    #     City -- with no late-game balance problem to tune away
+    #   * it does not touch demand (the tier's lever) or capacity (the room's), so §3.1's
+    #     "three levers, three separate sources, no overlap" survives intact
+    #   * and it gives familiars something real to automate
+
+    TAPS_PER_MINUTE = 40.0    # a modelled minute; see the duty cycle below
+    TAP_SESSION = 30 * 60.0   # the first session, when a new player is actually watching
+    TAP_DUTY_AFTER = 0.08     # occasional check-ins thereafter
+
+    def unservedWant(self):
+        """Custom that wants in and has nobody to serve it."""
+        return max(0.0, self.totalWant() - self.service())
+
+    def tapValue(self):
+        """Gold per hour the player can add by hand, at full attention.
+
+        Worth the spend of the most valuable room that still has custom going unserved,
+        which is the same priority rule staff follow -- you serve the good table first."""
+        spare = self.unservedWant()
+        if spare <= 1e-9:
+            return 0.0
+        served = self._allocation()
+        best = 0.0
+        for rid in self.levels:
+            want = self.roomWant(rid)
+            if want - served.get(rid, 0.0) > 1e-9:
+                best = max(best, ev(self.c["rooms"][rid]["spend"], self.levels[rid]))
+        return min(self.TAPS_PER_MINUTE * 60.0, spare) * best
+
+    def tapDuty(self, t):
+        return 1.0 if t < self.TAP_SESSION else self.TAP_DUTY_AFTER
 
     def throttle(self):
         # baseService is the guildmaster working the bar themselves, and it exists to
@@ -367,9 +420,26 @@ class World:
 #      the only thing that advances a tier and only contracts pay it
 # Everything else is ranked by payback: cost divided by the gold-per-hour it adds.
 
-def payback(w, kind, key):
-    """Seconds of net income to earn back this purchase. Lower is better. None = no payback."""
-    before = w.goldPerHour()
+def payback(w, kind, key, before=None):
+    """Seconds of net income to earn back this purchase. Lower is better. None = no payback.
+
+    It said seconds and returned HOURS -- `cost / gold-per-hour`, with no conversion.
+    Harmless for the ranking, which only needs the order and gets it either way, and
+    that is exactly why it survived: the one number it is compared against, and the only
+    place the units could have been noticed, is `reserveDeadline`, which is in seconds.
+    So the guard read `0.755 hours <= 21.8 seconds` as true and let every purchase walk
+    straight through the reserve. The 40-gold reserve held for an adventurer never once
+    stopped a 39.44-gold Potboy, and finding #11 was live the entire time.
+
+    Worth holding beside Day 13: a ratio authored in one place and paid for in another
+    will not be checked by anybody looking at either. This is the same shape in units --
+    a quantity produced in one unit and compared in another, where the producer's own
+    docstring named the right one and nothing ever read it against the consumer."""
+    # `before` is passed in because it is identical for every candidate in one ranking
+    # pass and `goldPerHour` is the model's most expensive call by a wide margin --
+    # recomputing it per candidate was two thirds of the run time.
+    if before is None:
+        before = w.goldPerHour()
     if kind == "room":
         lvl = w.levels[key] + 1
         cost = ev(w.c["rooms"][key]["cost"], lvl)
@@ -379,7 +449,7 @@ def payback(w, kind, key):
         cost = s["hire"]
         w.staff.append(key); after = w.goldPerHour(); w.staff.pop()
     gain = after - before
-    return None if gain <= 1e-9 else cost / gain
+    return None if gain <= 1e-9 else cost / gain * 3600.0
 
 def purchase(w):
     while True:
@@ -387,6 +457,7 @@ def purchase(w):
         if (td["req"] or td["rep"] > 0) and w.rep >= td["rep"] and \
                 all(w.levels[b] >= l for b, l in td["req"].items()):
             w.tier += 1
+            w.beat("tier", f"** {w.td()['name']} **")
             continue
 
         # SAVE FOR THE GATE. Without this the player nickel-and-dimes itself forever:
@@ -420,15 +491,30 @@ def purchase(w):
                 w.gold -= w.c["adventurers"][aid]["hire"]
                 w.roster.append(dict(defId=aid))
                 w.crowd.remove(aid)
+                w.beat("adventurer", f"hire {w.c['adventurers'][aid]['name']} (roster {len(w.roster)})")
                 continue
 
         reserve = 0.0
-        reserveDeadline = float("inf")
         unmet = [b for b, l in td["req"].items() if w.levels[b] < l]
         if needBody:
             reserve = min(w.c["adventurers"][a]["hire"] for a in w.crowd)
         if unmet:
             reserve = max(reserve, min(ev(w.c["rooms"][b]["cost"], w.levels[b] + 1) for b in unmet))
+        # The deadline is derived from whatever the reserve turned out to be, and NOT
+        # only from an unmet room gate. It used to be, and that made the reserve a
+        # decoration whenever the gate's building half was already satisfied: the
+        # deadline stayed infinite, every candidate passed the `payback <= deadline`
+        # arm, and the reserve was walked straight past.
+        #
+        # This is finding #11 -- the one-gold coin flip -- which was recorded as fixed
+        # and was not. Village's gate is `tavern 2 / front_desk 1` and starting gold
+        # clears both in the first instant, so `unmet` is empty from t=0. A Potboy at
+        # 39.44 gold then jumped the 40-gold reserve held for the adventurer, and the
+        # guild hired staff for a crowd it could not grow. It looked fixed only because
+        # a 60-second step carried gold past both prices inside one tick, which put the
+        # `needBody` branch first by luck of ordering rather than by rule.
+        reserveDeadline = float("inf")
+        if reserve > 0.0:
             rate = max(1e-6, w.goldPerHour())
             reserveDeadline = max(0.0, reserve - w.gold) / rate * 3600.0
 
@@ -438,9 +524,12 @@ def purchase(w):
             aid = w.crowd[best]
             if w.c["adventurers"][aid]["hire"] <= w.gold - reserve:
                 w.gold -= w.c["adventurers"][aid]["hire"]
-                w.roster.append(dict(defId=aid)); w.crowd.pop(best); continue
+                w.roster.append(dict(defId=aid)); w.crowd.pop(best)
+                w.beat("adventurer", f"hire {w.c['adventurers'][aid]['name']} (roster {len(w.roster)})")
+                continue
 
         options = []   # (payback, cost, kind, key)
+        before = w.goldPerHour()
         for rid, r in w.c["rooms"].items():
             if not w.unlocked(rid) or w.levels[rid] + 1 > r["maxLevel"]:
                 continue
@@ -448,23 +537,25 @@ def purchase(w):
             short = w.levels[rid] < td["req"].get(rid, 0)
             if cost > w.gold:
                 continue
-            if not short and w.gold - cost < reserve:
-                pb = payback(w, "room", rid)
-                if pb is None or pb > reserveDeadline:
-                    continue
-            pb = payback(w, "room", rid)
             if short:
                 options.append((-1.0, cost, "room", rid))      # rule 2: gates jump the queue
-            elif pb is not None:
-                options.append((pb, cost, "room", rid))
+                continue
+            pb = payback(w, "room", rid, before)
+            if pb is None:
+                continue
+            if w.gold - cost < reserve and pb > reserveDeadline:
+                continue
+            options.append((pb, cost, "room", rid))
         if len(w.staff) < w.staffSlots():
             for i, s in enumerate(w.c["staff"]):
-                if s["minTier"] <= td["order"] and s["hire"] <= w.gold and (
-                        w.gold - s["hire"] >= reserve
-                        or (payback(w, "staff", i) or float("inf")) <= reserveDeadline):
-                    pb = payback(w, "staff", i)
-                    if pb is not None:
-                        options.append((pb, s["hire"], "staff", i))
+                if s["minTier"] > td["order"] or s["hire"] > w.gold:
+                    continue
+                pb = payback(w, "staff", i, before)
+                if pb is None:
+                    continue
+                if w.gold - s["hire"] < reserve and pb > reserveDeadline:
+                    continue
+                options.append((pb, s["hire"], "staff", i))
         if not options:
             # Nothing affordable. Report the cheapest thing that would be, so the
             # simulation can jump straight to the moment it becomes buyable rather
@@ -486,8 +577,10 @@ def purchase(w):
         w.gold -= cost
         if kind == "room":
             w.levels[key] += 1
+            w.beat("upgrade", f"{w.c['rooms'][key]['name']} -> L{w.levels[key]}")
         else:
             w.staff.append(key)
+            w.beat("staff", f"hire {w.c['staff'][key]['name']} ({len(w.staff)} staff)")
 
 # -------------------------------------------------------------------- arrivals --
 def arrivalGap(w):
@@ -509,59 +602,146 @@ def admitArrival(w, n):
             w.crowd.append(aid); return
 
 # --------------------------------------------------------------------- quests --
+def bestWork(w, free):
+    """The contract and party that pays the most reputation per hour, out of the
+    adventurers currently unspoken for.
+
+    Re-asked at the start of every cycle rather than frozen when the order was created.
+    An order created in Village was otherwise still running Rat Cellar in the Capital,
+    because nothing in the model ever revisited the choice -- which understated
+    reputation growth for the whole back half of the game and made every tier gate look
+    further away than it is. `QuestAssignment` holds its party for the life of a RUN,
+    not of the assignment; Day 12 established that and this is the model catching up."""
+    if not free:
+        return None
+    ranked = sorted(free, key=lambda i: -w.power_of(w.roster[i]))
+    best, bestRate = None, -1.0
+    for k, q in w.c["quests"].items():
+        if not w.questAvailable(q) or len(ranked) < q["need"]:
+            continue
+        party = ranked[:q["need"]]
+        p = sum(w.power_of(w.roster[i]) for i in party)
+        cycle = w.duration(q, p) + w.rest_of(w.roster[party[0]])
+        rate = (q["rep"] * (1 - w.failure(q, p))) / max(1e-6, cycle)
+        if rate > bestRate:
+            best, bestRate = (k, party), rate
+    return best
+
+def arm(w, o):
+    """Snapshot duration, failure and rewards at dispatch -- the Day 4-5 convention, so
+    an upgrade pays off from the next contract rather than moving a timer in flight."""
+    q = w.c["quests"][o["quest"]]
+    p = sum(w.power_of(w.roster[i]) for i in o["party"])
+    o["phase"] = "run"
+    o["remaining"] = w.duration(q, p)
+    o["gold"], o["rep"], o["fail"] = q["gold"], q["rep"], w.failure(q, p)
+
 def syncQuests(w):
     slots = w.questSlots()
-    avail = [q for q in w.c["quests"].values() if w.questAvailable(w.c["quests"][k]) ] if False else \
-            [k for k, q in w.c["quests"].items() if w.questAvailable(q)]
-    if not avail:
-        return
+    w.orders = [o for o in w.orders if o["phase"] != "idle"][:slots]
     busy = {i for o in w.orders for i in o["party"]}
     while len(w.orders) < slots:
         free = [i for i in range(len(w.roster)) if i not in busy]
-        if not free:
-            break
-        ranked = sorted(free, key=lambda i: -w.power_of(w.roster[i]))
-        best, bestRate = None, -1.0
-        for k in avail:
-            q = w.c["quests"][k]
-            if len(ranked) < q["need"]:
-                continue
-            party = ranked[:q["need"]]
-            p = sum(w.power_of(w.roster[i]) for i in party)
-            cycle = w.duration(q, p) + w.rest_of(w.roster[party[0]])
-            rate = (q["rep"] * (1 - w.failure(q, p))) / max(1e-6, cycle)
-            if rate > bestRate:
-                best, bestRate = (k, party), rate
+        best = bestWork(w, free)
         if best is None:
             break
-        k, party = best
-        w.orders.append(dict(quest=k, party=party, running=False))
-        busy |= set(party)
+        o = dict(quest=best[0], party=best[1])
+        arm(w, o)
+        w.orders.append(o)
+        busy |= set(best[1])
 
+def advanceOrders(w, step):
+    """Run the contract cycle continuously.
+
+    Time left over when a contract finishes is CARRIED into the next cycle rather than
+    discarded. Without the carry a run shorter than the integration step costs a whole
+    step: Rat Cellar is 31.5s and was taking a 60s tick, a 1.9x throughput penalty that
+    existed only in the model. It moved every headline figure by about 2x when the step
+    changed -- Village 0h30m at step 60 against 0h59m at step 5, and the rooms' share of
+    lifetime income 68% against 82%. A model whose answer depends on how finely you slice
+    its clock is measuring the slicing.
+
+    The rest period is also PAID here. It was priced into every ranking by `rest_of` and
+    never actually served, which quietly made the Barracks' recovery stat inert -- the
+    model was charging the player for a benefit it then handed out for free."""
     for o in w.orders:
-        if o["running"] or len(w.runs) >= slots:
-            continue
-        q = w.c["quests"][o["quest"]]
-        p = sum(w.power_of(w.roster[i]) for i in o["party"])
-        w.runs.append(dict(order=o, remaining=w.duration(q, p),
-                           gold=q["gold"], rep=q["rep"], fail=w.failure(q, p)))
-        o["running"] = True
+        t = step
+        while t > 0.0:
+            if o["remaining"] > t:
+                o["remaining"] -= t
+                break
+            t -= o["remaining"]
+            if o["phase"] == "run":
+                cut = w.commission()
+                # Contracts pay what the region can afford. Static rewards against
+                # geometric room revenue made Dragon's Roost worth 26,000 in a guild
+                # earning fifteen million an hour -- the adventurer half of the game
+                # became rounding error exactly where it was meant to matter most.
+                paid = o["gold"] * w.td()["contractScale"] * cut * (1 - o["fail"])
+                w.gold += paid
+                w.questGold += paid
+                w.rep += o["rep"] * (1 - o["fail"])
+                w.beat("contract", f"{w.c['quests'][o['quest']]['name']} pays "
+                                   f"{paid:,.0f}g / {o['rep']*(1-o['fail']):,.0f} rep")
+                o["phase"] = "rest"
+                o["remaining"] = w.rest_of(w.roster[o["party"][0]])
+                if w.td()["rep"] > 0 and w.rep >= w.td()["rep"]:
+                    w.repriced = True     # reputation may have opened a tier
+            else:
+                busy = {i for x in w.orders if x is not o for i in x["party"]}
+                best = bestWork(w, [i for i in range(len(w.roster)) if i not in busy])
+                if best is None:
+                    o["phase"] = "idle"   # nobody to send; syncQuests rebuilds next tick
+                    break
+                o["quest"], o["party"] = best
+                arm(w, o)
 
 
 # ------------------------------------------------------------------ simulation --
-def simulate(c, horizon=150 * 3600, step=20.0):
+def simulate(c, horizon=150 * 3600, step=20.0, log=None, abortAfter=None):
     """Fixed small steps: income here is a continuous rate, not an event, so the
-    event-stepped approach the old model used no longer fits."""
+    event-stepped approach the old model used no longer fits.
+
+    `w.beats` records the opening, because the tier boundary turned out to be the wrong
+    thing to tune against. Village running 30 modelled minutes is fine; what was not
+    fine was the trace -- tavern and front desk built instantly, an adventurer in the
+    crowd immediately, then nothing at all for 22 minutes. A tier time cannot see that.
+    Pass `log` a list to collect every beat as (t, kind, label)."""
     w = World(c)
     marks, events, prev = {}, [], None
     arrivals = 0
+    w.beats = dict(upgrade=None, adventurer=None, contract=None, staff=None, tier=None)
+    # DECISIONS ONLY -- a purchase, a hire, a tier. Not a contract paying out, and not an
+    # arrival. §1 of Vision_Revision.md says the decision the player makes forty times an
+    # hour is "which room pays back fastest per gold right now", and that is the thing a
+    # dead stretch is dead of.
+    #
+    # The first pass at this counted payouts too, and the trace of the winning
+    # configuration is the argument against it: twenty minutes in which Rat Cellar paid
+    # two gold fourteen times and the player bought nothing at all. It scored a 1.7-minute
+    # worst silence -- better than any other candidate -- because a metronome looks
+    # identical to a game if you only count noises. That is the arrival mistake wearing
+    # the other hat, and it was caught the same way, by reading the trace instead of the
+    # number.
+    w.pulse = [0.0]
+    DECISIONS = ("upgrade", "adventurer", "staff", "tier")
+
+    def beat(kind, label):
+        if kind in DECISIONS:
+            w.pulse.append(w.t)
+        if kind in w.beats and w.beats[kind] is None:
+            w.beats[kind] = w.t
+        if log is not None:
+            log.append((w.t, kind, label))
+    w.beat = beat
 
     def allMaxed():
         return all(w.levels[r] >= c["rooms"][r]["maxLevel"] for r in w.levels)
 
     wall = 0.0
     while w.t < horizon:
-        if w.gold >= wall:
+        if w.gold >= wall or w.repriced:
+            w.repriced = False
             wall = purchase(w) or float("inf")
         syncQuests(w)
 
@@ -571,6 +751,10 @@ def simulate(c, horizon=150 * 3600, step=20.0):
         marks.setdefault(w.td()["id"], w.t)
         if allMaxed():
             marks.setdefault("maxed", w.t); break
+        # A caller that has already seen enough -- the tuner stops paying for a run that
+        # has not reached the Capital long after it should have.
+        if abortAfter is not None and w.t > abortAfter and "capital" not in marks:
+            break
 
         # ---- advance ----
         w.t += step
@@ -580,31 +764,36 @@ def simulate(c, horizon=150 * 3600, step=20.0):
         w.gold += net
         w.grossEarned += gross; w.wagesPaid += min(wages, gross)
 
+        # Taps are room income and count as such: you served a tavern customer. Keeping
+        # them inside grossEarned is what stops the mechanic quietly moving the 70/30
+        # split the whole revision is FOR. They are deliberately NOT in goldPerHour, so
+        # the payback ranking never sees them -- a tap is not a return on a purchase, and
+        # a player does not buy a room because it makes their thumb worth more.
+        tapped = w.tapValue() * w.tapDuty(w.t) * step / 3600.0
+        if tapped > 0.0:
+            w.gold += tapped
+            w.grossEarned += tapped
+            w.tapEarned += tapped
+            w.repriced = True
+
         if w.built("tavern"):
+            # Carry the remainder, for the same reason contracts do: a 77-second arrival
+            # gap was landing every 120 seconds at a 60-second step.
             w.nextArrival -= step
-            if w.nextArrival <= 0:
+            while w.nextArrival <= 0.0:
                 admitArrival(w, arrivals); arrivals += 1
-                w.nextArrival = arrivalGap(w)
+                # Deliberately not a pulse. Watching an adventurer you cannot afford
+                # walk in is the ABSENCE the first-beat score exists to catch, not a
+                # beat -- the dead 22 minutes had eleven arrivals in it.
+                if log is not None:
+                    log.append((w.t, "arrival",
+                                f"{c['adventurers'][w.crowd[-1]]['name']} joins the crowd"))
+                w.nextArrival += arrivalGap(w)
                 if len(w.roster) < w.beds() and w.crowd and \
                         min(c["adventurers"][a]["hire"] for a in w.crowd) <= w.gold:
-                    wall = 0.0
+                    w.repriced = True
 
-        for r in list(w.runs):
-            r["remaining"] -= step
-            if r["remaining"] <= 0:
-                cut = w.commission()
-                # Contracts pay what the region can afford. Static rewards against
-                # geometric room revenue made Dragon's Roost worth 26,000 in a guild
-                # earning fifteen million an hour -- the adventurer half of the game
-                # became rounding error exactly where it was meant to matter most.
-                r["gold"] *= w.td()["contractScale"]
-                w.gold += r["gold"] * cut * (1 - r["fail"])
-                w.questGold += r["gold"] * cut * (1 - r["fail"])
-                w.rep += r["rep"] * (1 - r["fail"])
-                r["order"]["running"] = False
-                w.runs.remove(r)
-                if w.td()["rep"] > 0 and w.rep >= w.td()["rep"]:
-                    wall = 0.0    # reputation may have opened a tier
+        advanceOrders(w, step)
     return w, marks, events, arrivals
 
 def hms(s):
@@ -625,6 +814,8 @@ def report(c):
     print(f"  gross/hr {w.grossPerHour():>14,.0f}   wages/hr {w.wagesPerHour():>13,.0f}"
           f"   net/hr {w.netPerHour():>14,.0f}")
     tot = w.grossEarned + w.questGold
+    print(f"  of which tapped by hand {w.tapEarned:,.0f} "
+          f"({100*w.tapEarned/max(1.0, w.grossEarned):.1f}% of room income)")
     print(f"  lifetime: rooms {w.grossEarned:,.0f} ({100*w.grossEarned/max(1,tot):.0f}%)   "
           f"commission {w.questGold:,.0f} ({100*w.questGold/max(1,tot):.0f}%)   "
           f"wages {w.wagesPaid:,.0f}")
@@ -638,12 +829,28 @@ if __name__ == "__main__":
         print(f"\n  gap between purchases: median {statistics.median(gaps)/60:.1f} min, "
               f"90th pct {gaps[int(len(gaps)*0.9)]/60:.0f} min, max {gaps[-1]/60:.0f} min")
     if "--checks" in sys.argv:
-        print("\n  no dead levels - last step of every curve still moves:")
+        # This block used to look for a `revenue` curve that NO room has -- revenue
+        # became seats x spend when the revision split demand from capacity, and the
+        # check was never updated. So it silently inspected five curves out of eleven
+        # and skipped `seats` and `spend`, which ARE the revenue engine. It also only
+        # printed the curves that still moved, so a dead level read as a blank line.
+        # Day 13, exactly: a canary set that does not watch a value is quieter than no
+        # canary set, because its silence reads as a pass.
+        print("\n  no dead levels - last step of every curve on every room:")
+        dead = 0
         for rid, r in c["rooms"].items():
-            for k in ("revenue", "beds", "power", "commission", "rarity", "staffSlots", "questSlots"):
-                if k in r and (ev(r[k], r["maxLevel"]) - ev(r[k], r["maxLevel"]-1)) != 0:
-                    L = r["maxLevel"]
-                    print(f"    {r['name']:12} {k:11} L{L-1}->{L}: {ev(r[k],L-1):12,.2f} -> {ev(r[k],L):12,.2f}")
+            for k in sorted(x for x, v in r.items() if isinstance(v, dict) and "b" in v):
+                if k == "cost":
+                    continue                       # a cost curve is meant to keep rising
+                L = r["maxLevel"]
+                lo, hi = ev(r[k], L - 1), ev(r[k], L)
+                if lo == 0.0 and hi == 0.0:
+                    continue    # the room does not do this job at all -- absent, not dead
+                flag = "" if hi != lo else "   <-- DEAD"
+                if flag:
+                    dead += 1
+                print(f"    {r['name']:12} {k:11} L{L-1}->{L}: {lo:12,.2f} -> {hi:12,.2f}{flag}")
+        print(f"    {'':12} {dead} dead curve(s)")
         print("\n  rarity ladder (flat multiples, no individual levels):")
         for aid, a in sorted(c["adventurers"].items(), key=lambda kv: kv[1]["rarity"]):
             print(f"    {a['name']:22} x{a['mult']:5.1f} power   hire {a['hire']:>9,}")

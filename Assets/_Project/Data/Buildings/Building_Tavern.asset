@@ -17,7 +17,7 @@ MonoBehaviour:
   _description: 'Food, drink and a warm fire. A well-fed party fights for the guild
     rather than for the coin, and word of a good table travels: better adventurers
     come looking for work.'
-  _icon: {fileID: 0}
+  _icon: {fileID: 21300000, guid: 7ee42ee8d9e334b5d98e137679dd64d5, type: 3}
   _minimumTierOrder: 0
   _maxLevel: 90
   _costToReachLevel:
