@@ -4,6 +4,7 @@ using IdleGuild.App;
 using IdleGuild.Core;
 using IdleGuild.Guild;
 using IdleGuild.Quests;
+using IdleGuild.Staff;
 using NUnit.Framework;
 using UnityEditor;
 
@@ -81,6 +82,33 @@ namespace IdleGuild.Tests
             QuestDefinition quest = Content.FindQuest(id);
             Assert.That(quest, Is.Not.Null, $"No quest with Id '{id}' in the catalogue.");
             return quest;
+        }
+
+        public static StaffDefinition Staff(string id)
+        {
+            StaffDefinition staff = Content.FindStaff(id);
+            Assert.That(staff, Is.Not.Null, $"No staff kind with Id '{id}' in the catalogue.");
+            return staff;
+        }
+
+        /// <summary>
+        /// The staff ladder in the order a player climbs it, which is the tier each kind
+        /// unlocks at rather than array position. Empty today: no staff assets are
+        /// authored, and §6 of Docs/Day16_Staff_And_Revenue.md says why.
+        /// </summary>
+        public static StaffDefinition[] StaffInTierOrder()
+        {
+            List<StaffDefinition> ladder = new List<StaffDefinition>();
+            foreach (StaffDefinition staff in Content.Staff)
+            {
+                if (staff != null)
+                {
+                    ladder.Add(staff);
+                }
+            }
+
+            ladder.Sort((left, right) => left.MinimumTierOrder.CompareTo(right.MinimumTierOrder));
+            return ladder.ToArray();
         }
 
         public static AdventurerDefinition Adventurer(string id)

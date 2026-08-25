@@ -1,8 +1,8 @@
 # The test suite
 
 An EditMode assembly at `Assets/_Project/Tests/Editor/`. Run it from
-**Window → General → Test Runner → EditMode → Run All**. **66 tests**, all green, in
-well under a second.
+**Window → General → Test Runner → EditMode → Run All**. All green, in well under a
+second. **Two tests are deliberately Ignored rather than green** — see §7.
 
 There is no `dotnet` or `unity` on the Cowork shell, so tests are written there and run
 here. That loop is the same one compiling already uses.
@@ -77,6 +77,8 @@ because its silence reads as a pass.** Two tests closed it:
 | `AssetInvariantTests` (Day 13) | — | a band never costs more gold per point of power than the band below; the training ladder as five figures |
 | `RosterRatchetTests` | Day 12 | a full guild can always make room; both refusals, in the right order; a refused dismissal does not half-happen; no refund |
 | `PartyFormationTests` | Day 12 | the run in flight survives a re-form untouched; the new party goes out next; exact party size; the refuse → re-form → release → retire route end to end |
+| `TradeEngineTests` (Day 16) | — | the three levers and which of them binds; staff serving the most valuable custom first; opening a room never making the guild poorer; wages charged against capacity; the net floored at zero; an hour away paying exactly an hour watched; a per-room stat reading zero through the guild-wide seam; the tap's cap and its queue |
+| `StaffRatchetTests` (Day 16) | — | a full payroll can always make room; the least capable is the one who goes; no refund; the refusals in the order the player can clear them; the payroll and the till through a save round trip; a pre-revision save restoring as no staff and **no repairs** |
 
 Day 13 added two tests to `AssetInvariantTests` and changed nothing else in the suite.
 
@@ -102,6 +104,41 @@ Day 13 Inn of fourteen or eighteen beds leaves them just as true.
 
 Call it twenty-five minutes of hand-checking rather than forty, and most of it wants
 Day 14's played-in save anyway.
+
+---
+
+## 7. Two tests that are Ignored on purpose, and why that is not the same as absent
+
+Day 16 built the revenue engine and authored no assets for it, which leaves two checks
+with nothing yet to check. Both call `Assert.Ignore` with a reason rather than passing:
+
+| test | why |
+|---|---|
+| `EveryTierCarriesABaseServiceOnceAnyRoomAsksForCustom` | No shipped room produces `ServiceDemand` until the five rooms are authored, so the cold-start guard is vacuous. It goes live the day they land. |
+| `AHigherStaffTierNeverCostsMoreGoldPerPointOfService` | No staff assets exist. §6 of `Docs/Day16_Staff_And_Revenue.md` is why they were deliberately not written: the model can only ever *append* staff, so the ladder has never been climbed by anything and its four prices are unmeasured rather than tuned. |
+
+This is §2's rule pointed at itself. **A canary set that does not watch a value is quieter
+than no canary set, because its silence reads as a pass** — and a test that would pass
+vacuously is the same failure in a smaller costume. Ignored shows up in the runner as
+neither green nor red, with the reason attached, which is the honest report: *this exists,
+it is not doing anything yet, and here is the document that says when it will.*
+
+The same discipline applies to what Day 16 did **not** cover, which is written into
+`TradeFixture`'s own doc comment so it cannot be lost: the mechanism of the revenue engine
+is tested, and **no value in it is** — no room produces seats, spend or demand yet, so the
+seats curves, the spend curves and whether a Provisioner is worth nine thousand gold have
+no coverage at all, and will not get any by accident. The day the rooms are authored owes
+this suite its canaries.
+
+### One note on the fixtures being built in code
+
+`TradeFixture` constructs rooms in memory through `SerializedObject`, which breaks §1's
+rule that tests load the real `.asset` files. Deliberately, and narrowly: §1's argument is
+about asserting *content*, and nothing built on `TradeFixture` asserts a content value. It
+checks that allocation serves the good table first, that the wage floor holds, that a tap
+cannot invent a customer. Mechanism is logic, and logic may supply its own inputs. Assets
+are authored through `SerializedObject` rather than by adding public setters, because a
+setter that exists only for tests is a setter the game can call.
 
 ---
 

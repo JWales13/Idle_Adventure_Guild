@@ -2,6 +2,7 @@ using IdleGuild.Adventurers;
 using IdleGuild.Core;
 using IdleGuild.Guild;
 using IdleGuild.Quests;
+using IdleGuild.Staff;
 using UnityEngine;
 
 namespace IdleGuild.App
@@ -23,12 +24,33 @@ namespace IdleGuild.App
         [SerializeField] private GuildTierDefinition[] _tiers;
         [SerializeField] private AdventurerDefinition[] _adventurers;
         [SerializeField] private QuestDefinition[] _quests;
+        [SerializeField] private StaffDefinition[] _staff;
 
         [Header("New game")]
         [Tooltip("Gold the player starts with. Must cover the first building, since a guild with no Inn has no beds and cannot recruit.")]
         [SerializeField] private double _startingGold = 100d;
 
         [SerializeField] private double _startingReputation;
+
+        [Header("Trade")]
+        // The three numbers the revenue engine needs that belong to no single room.
+        // They live here for the same reason starting gold does: something has to own
+        // the figures that are true of the whole guild, and a second asset to hold three
+        // fields is a reference to keep in step for no benefit.
+        [SerializeField]
+        [Tooltip("How many times a seat turns over in an hour. Seats x this is a room's capacity.")]
+        [Min(1f)]
+        private float _customerTurnsPerHour = 40f;
+
+        [SerializeField]
+        [Tooltip("Share of what a customer is worth that a unit of service capacity is paid. Wages scale with the house, not with a flat rate.")]
+        [Range(0f, 1f)]
+        private float _wageShareOfSpend = 0.1874f;
+
+        [SerializeField]
+        [Tooltip("Most customers that will ever queue for a hand-served tap. Caps what an absence can bank.")]
+        [Min(1f)]
+        private float _maxWaitingCustomers = 40f;
 
         [Header("Offline")]
         [Tooltip("Longest stretch of absence that still pays out. Time beyond this is forfeited.")]
@@ -46,9 +68,15 @@ namespace IdleGuild.App
         /// <summary>Never null.</summary>
         public QuestDefinition[] Quests => _quests ?? System.Array.Empty<QuestDefinition>();
 
+        /// <summary>Never null.</summary>
+        public StaffDefinition[] Staff => _staff ?? System.Array.Empty<StaffDefinition>();
+
         public double StartingGold => _startingGold;
         public double StartingReputation => _startingReputation;
         public float MaximumOfflineSeconds => _maximumOfflineSeconds;
+        public float CustomerTurnsPerHour => _customerTurnsPerHour;
+        public float WageShareOfSpend => _wageShareOfSpend;
+        public float MaxWaitingCustomers => _maxWaitingCustomers;
 
         /// <summary>The lowest-Order tier, which a new guild begins at. Null if no tiers are listed.</summary>
         public GuildTierDefinition StartingTier
@@ -134,6 +162,19 @@ namespace IdleGuild.App
                 if (adventurer != null && adventurer.Id == id)
                 {
                     return adventurer;
+                }
+            }
+
+            return null;
+        }
+
+        public StaffDefinition FindStaff(string id)
+        {
+            foreach (StaffDefinition staff in Staff)
+            {
+                if (staff != null && staff.Id == id)
+                {
+                    return staff;
                 }
             }
 

@@ -39,7 +39,32 @@ namespace IdleGuild.App
         {
             _world = world ?? throw new ArgumentNullException(nameof(world));
             _dispatch = dispatch ?? throw new ArgumentNullException(nameof(dispatch));
+
+            Trade = new TradeService(_world);
+            Takings = new TakingsService(_world, Trade);
         }
+
+        /// <summary>
+        /// What the rooms are earning. Built here rather than passed in, for two
+        /// reasons that both matter more than they look.
+        ///
+        /// The takings queue is <i>state</i> — it fills with time and a save carries it —
+        /// so two instances of it would be two different answers to "how many are
+        /// waiting at the bar", and whichever the interface happened to hold would
+        /// disagree with whichever the clock was filling. One owner, and the owner is
+        /// the thing that drives it.
+        ///
+        /// And room income is time passing, which is what this class is for. The clock
+        /// has been the single path for online and offline since Day 4-5 — the decision
+        /// that means there is no second offline formula able to drift from what the
+        /// game pays while the player watches. Four rooms earning gold per hour is the
+        /// fourth time that decision has paid out, and it paid without being asked:
+        /// putting the accrual in here makes eight hours away correct for free.
+        /// </summary>
+        public TradeService Trade { get; }
+
+        /// <summary>The queue of customers the player can serve by hand, and what they have earned by doing it.</summary>
+        public TakingsService Takings { get; }
 
         public long QuestsCompleted { get; private set; }
 
@@ -49,6 +74,17 @@ namespace IdleGuild.App
 
         /// <summary>Total simulated seconds, live and offline together. Useful when reading a bug report.</summary>
         public double TotalSecondsSimulated { get; private set; }
+
+        /// <summary>
+        /// Lifetime gold the rooms have taken, before wages. Kept because the ratio it
+        /// forms with contract commission is the design requirement the whole revision
+        /// exists to hit — §6C tunes for rooms carrying about 70% of lifetime income —
+        /// and a ratio measured over one session is noise.
+        /// </summary>
+        public double GrossEarned { get; private set; }
+
+        /// <summary>Lifetime wages paid. Never more than what was earned in the same moment, because of the floor.</summary>
+        public double WagesPaid { get; private set; }
 
         /// <summary>
         /// Run the guild forward by <paramref name="seconds"/>. Called with a frame's
@@ -88,6 +124,7 @@ namespace IdleGuild.App
 
                 _world.QuestLog.Advance(step);
                 _world.Roster.AdvanceRest(step);
+                AccrueTrade(step);
                 remaining -= step;
 
                 ResolveFinishedQuests();
@@ -95,6 +132,52 @@ namespace IdleGuild.App
             }
 
             TotalSecondsSimulated += seconds;
+        }
+
+        /// <summary>
+        /// Pay the rooms for <paramref name="seconds"/> of trading.
+        ///
+        /// Gross and wages are both constant across one step of this loop, because the
+        /// clock only ever stops at an event and nothing inside an event changes a room
+        /// level, a tier or the payroll — those are all player actions, which happen
+        /// between calls to <see cref="Advance"/>. So this is exact rather than an
+        /// approximation, and it is exact over eight offline hours for the same reason.
+        ///
+        /// <b>The net is floored at zero and the gross is not.</b> Wages come out of the
+        /// till and never out of the vault: an over-hired guild earns nothing for an
+        /// hour, it does not go backwards. Lifetime wages are recorded as what was
+        /// actually taken out of the till, which is why they are capped at the gross —
+        /// counting the unpayable remainder would report a bill the player never paid.
+        ///
+        /// Income arrives through <c>PlayerEconomy.Accrue</c> rather than
+        /// <c>Grant</c>, so it announces nothing. That is what CurrencyChanged's own
+        /// remark asks for: idle income accrues continuously, publishing per frame would
+        /// flood the bus, and a ticking display reads the balance directly.
+        /// </summary>
+        private void AccrueTrade(double seconds)
+        {
+            if (seconds <= 0d)
+            {
+                return;
+            }
+
+            double hours = seconds / 3600d;
+            double gross = Trade.GrossPerHour() * hours;
+            double wages = Trade.WagesPerHour() * hours;
+            double net = Math.Max(0d, gross - wages);
+
+            if (gross > 0d)
+            {
+                GrossEarned += gross;
+                WagesPaid += Math.Min(wages, gross);
+            }
+
+            _world.Economy.Accrue(CurrencyType.Gold, net);
+
+            // The queue fills at whatever custom is going unserved, which is why a
+            // well-staffed guild has nothing to tap and a familiar bought late is a
+            // familiar wasted.
+            Takings.Accrue(seconds);
         }
 
         /// <summary>
@@ -113,6 +196,18 @@ namespace IdleGuild.App
             QuestsSucceeded = Math.Max(0L, succeeded);
             QuestsFailed = Math.Max(0L, failed);
             TotalSecondsSimulated = double.IsNaN(totalSecondsSimulated) ? 0d : Math.Max(0d, totalSecondsSimulated);
+        }
+
+        /// <summary>
+        /// Put the lifetime trade totals back to a saved reading. Restoration only, for
+        /// the same reason the quest counters are: these are a record of what has
+        /// happened, and nothing in the simulation may set them except by actually
+        /// trading. A pre-revision save carries neither and correctly restores zero.
+        /// </summary>
+        public void RestoreTradeTotals(double grossEarned, double wagesPaid)
+        {
+            GrossEarned = double.IsNaN(grossEarned) ? 0d : Math.Max(0d, grossEarned);
+            WagesPaid = double.IsNaN(wagesPaid) ? 0d : Math.Max(0d, wagesPaid);
         }
 
         /// <summary>

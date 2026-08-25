@@ -68,6 +68,18 @@ namespace IdleGuild.App
 
         public RecruitmentService Recruitment { get; private set; }
 
+        /// <summary>Taking staff on and letting them go. Both halves, from the first day it exists.</summary>
+        public StaffService Staff { get; private set; }
+
+        /// <summary>
+        /// What the rooms are earning. Owned by the clock, because room income is time
+        /// passing; surfaced here so a screen has one obvious place to ask.
+        /// </summary>
+        public TradeService Trade => Clock?.Trade;
+
+        /// <summary>The queue of customers the player can serve by hand.</summary>
+        public TakingsService Takings => Clock?.Takings;
+
         public TrainingService Training { get; private set; }
 
         public QuestDispatchService Dispatch { get; private set; }
@@ -101,6 +113,7 @@ namespace IdleGuild.App
             Clock = new SimulationClock(World, Dispatch);
             Buildings = new BuildingUpgradeService(World);
             Recruitment = new RecruitmentService(World);
+            Staff = new StaffService(World);
             Training = new TrainingService(World);
             Tiers = new TierAdvancementService(World);
             Saves = new GameSaveService(World, Clock, new FileSaveStore());

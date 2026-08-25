@@ -5,6 +5,7 @@ using IdleGuild.Core;
 using IdleGuild.Economy;
 using IdleGuild.Guild;
 using IdleGuild.Quests;
+using IdleGuild.Staff;
 
 namespace IdleGuild.App
 {
@@ -56,6 +57,7 @@ namespace IdleGuild.App
             GuildState = new GuildState(buildings, startingTier);
             Economy = new PlayerEconomy();
             Roster = new AdventurerRoster();
+            Staff = new StaffRoster();
             QuestLog = new QuestLog();
         }
 
@@ -66,6 +68,13 @@ namespace IdleGuild.App
         public PlayerEconomy Economy { get; }
 
         public AdventurerRoster Roster { get; }
+
+        /// <summary>
+        /// Everyone on the payroll. The guild's throughput, and the only one of §3.1's
+        /// three levers that is a roster rather than a curve — which is why the trade
+        /// layer that combines it with the building stats has to live in App.
+        /// </summary>
+        public StaffRoster Staff { get; }
 
         public QuestLog QuestLog { get; }
 

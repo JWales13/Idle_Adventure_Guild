@@ -84,6 +84,18 @@ namespace IdleGuild.App.Saves
         public SavedBuilding[] Buildings;
         public SavedCurrency[] Currencies;
         public SavedAdventurer[] Adventurers;
+
+        /// <summary>
+        /// The payroll. Added on Day 16 with no version bump, which is the compatibility
+        /// rule working exactly as written: fields are only ever added, a pre-revision
+        /// save simply does not carry this one, and it arrives null and restores as an
+        /// empty payroll — which is the truth about a guild that had no staff.
+        /// </summary>
+        public SavedStaff[] Staff;
+
+        /// <summary>What the rooms have taken over the guild's lifetime, and who is still waiting at the bar.</summary>
+        public SavedTrade Trade;
+
         public SavedQuestRun[] QuestRuns;
         public SavedAssignment[] Assignments;
         public SavedClock Clock;
@@ -124,6 +136,41 @@ namespace IdleGuild.App.Saves
         public string ActiveQuestInstanceId;
 
         public double RestRemainingSeconds;
+    }
+
+    /// <summary>
+    /// One employee on the books.
+    ///
+    /// Two fields and no more, because a <c>StaffMember</c> has two fields and no more.
+    /// An employee has no level, no activity and no rest timer — the revision cut
+    /// individual progression precisely so gold flows into rooms rather than into
+    /// people, and a save that carried a staff level would be the first thing to argue
+    /// for putting one back.
+    /// </summary>
+    [Serializable]
+    public sealed class SavedStaff
+    {
+        public string InstanceId;
+        public string DefinitionId;
+    }
+
+    /// <summary>
+    /// The department accrual state: lifetime room takings, lifetime wages, and the
+    /// queue of customers waiting to be served by hand.
+    ///
+    /// The first two are a record rather than a resource — nothing spends them — but the
+    /// ratio they form with contract commission is the design requirement the revision
+    /// is tuned against, and a ratio measured over one session is noise. The third is a
+    /// live resource and is capped on the way back in, so a save written under a longer
+    /// queue cannot hand today's player more taps than today's rules allow.
+    /// </summary>
+    [Serializable]
+    public sealed class SavedTrade
+    {
+        public double GrossEarned;
+        public double WagesPaid;
+        public double TakingsEarned;
+        public double WaitingCustomers;
     }
 
     /// <summary>

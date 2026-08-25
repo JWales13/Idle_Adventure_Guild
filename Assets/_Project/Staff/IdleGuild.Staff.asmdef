@@ -1,14 +1,7 @@
 {
-    "name": "IdleGuild.App",
-    "rootNamespace": "IdleGuild.App",
-    "references": [
-        "IdleGuild.Core",
-        "IdleGuild.Guild",
-        "IdleGuild.Quests",
-        "IdleGuild.Adventurers",
-        "IdleGuild.Economy",
-        "IdleGuild.Staff"
-    ],
+    "name": "IdleGuild.Staff",
+    "rootNamespace": "IdleGuild.Staff",
+    "references": ["IdleGuild.Core"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

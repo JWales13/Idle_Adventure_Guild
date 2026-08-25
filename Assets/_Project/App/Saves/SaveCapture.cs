@@ -5,6 +5,7 @@ using IdleGuild.Core;
 using IdleGuild.Economy;
 using IdleGuild.Guild;
 using IdleGuild.Quests;
+using IdleGuild.Staff;
 using UnityEngine;
 
 namespace IdleGuild.App.Saves
@@ -40,6 +41,8 @@ namespace IdleGuild.App.Saves
                 Buildings = CaptureBuildings(world.GuildState),
                 Currencies = CaptureCurrencies(world.Economy),
                 Adventurers = CaptureRoster(world.Roster),
+                Staff = CaptureStaff(world.Staff),
+                Trade = CaptureTrade(clock),
                 QuestRuns = CaptureQuestRuns(world.QuestLog),
                 Assignments = CaptureAssignments(world.Assignments),
                 Clock = CaptureClock(clock)
@@ -94,6 +97,40 @@ namespace IdleGuild.App.Saves
             }
 
             return saved;
+        }
+
+        private static SavedStaff[] CaptureStaff(StaffRoster staff)
+        {
+            IReadOnlyList<StaffMember> employees = staff.Employees;
+            SavedStaff[] saved = new SavedStaff[employees.Count];
+
+            for (int index = 0; index < employees.Count; index++)
+            {
+                StaffMember employee = employees[index];
+                saved[index] = new SavedStaff
+                {
+                    InstanceId = employee.InstanceId,
+                    DefinitionId = employee.Definition.Id
+                };
+            }
+
+            return saved;
+        }
+
+        private static SavedTrade CaptureTrade(SimulationClock clock)
+        {
+            if (clock == null)
+            {
+                return new SavedTrade();
+            }
+
+            return new SavedTrade
+            {
+                GrossEarned = clock.GrossEarned,
+                WagesPaid = clock.WagesPaid,
+                TakingsEarned = clock.Takings.LifetimeTakings,
+                WaitingCustomers = clock.Takings.WaitingCustomers
+            };
         }
 
         private static SavedQuestRun[] CaptureQuestRuns(QuestLog questLog)

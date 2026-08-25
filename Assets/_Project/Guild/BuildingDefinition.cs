@@ -65,6 +65,69 @@ namespace IdleGuild.Guild
             return targetLevel >= 1 && targetLevel <= _maxLevel;
         }
 
+        /// <summary>
+        /// This building's own contribution to <paramref name="stat"/> at
+        /// <paramref name="level"/>, with no other building involved.
+        ///
+        /// The seam the revenue engine needs and the reason no new field was added to
+        /// this asset to get it. A room's takings are its own seats times its own spend
+        /// against its own demand, and none of those three survive being summed across
+        /// the guild — see <see cref="GuildStatScope"/>. Reading them here, off the
+        /// definition that owns them, is what lets Revenue be an effect like every other
+        /// effect rather than a special case bolted onto BuildingDefinition. Adding a
+        /// sixth department stays one new .asset file and zero code, which is the bet.
+        ///
+        /// Additive entries are summed and multiplicative ones accumulate as a bonus
+        /// fraction onto 1.0, exactly as <c>GuildState.Aggregate</c> does it — the two
+        /// must agree, because a stat that means one thing guild-wide and another
+        /// per-room is a stat nobody can balance. Returns zero at level 0: an unbuilt
+        /// room contributes nothing, here as everywhere.
+        /// </summary>
+        public float EffectAt(GuildStat stat, int level)
+        {
+            if (level < 1)
+            {
+                return 0f;
+            }
+
+            float additiveTotal = 0f;
+            float multiplicativeBonus = 0f;
+
+            foreach (BuildingEffect effect in Effects)
+            {
+                if (effect.Stat != stat)
+                {
+                    continue;
+                }
+
+                float value = effect.ValuePerLevel.Evaluate(level);
+                if (effect.Kind == ModifierKind.Additive)
+                {
+                    additiveTotal += value;
+                }
+                else
+                {
+                    multiplicativeBonus += value;
+                }
+            }
+
+            return additiveTotal * (1f + multiplicativeBonus);
+        }
+
+        /// <summary>True when this building carries at least one effect targeting <paramref name="stat"/>.</summary>
+        public bool Produces(GuildStat stat)
+        {
+            foreach (BuildingEffect effect in Effects)
+            {
+                if (effect.Stat == stat)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         // Nothing to clamp here, so OnValidate only queues the self-check. See
         // AssetValidation for why it cannot run inline.
         private void OnValidate()

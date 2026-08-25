@@ -57,6 +57,40 @@ namespace IdleGuild.Economy
         }
 
         /// <summary>
+        /// Add idle income without announcing it.
+        ///
+        /// The one mutation on this class that publishes nothing, and it is not a
+        /// shortcut — it is what <see cref="CurrencyChanged"/>'s own remark asks for:
+        /// "Idle income accrues continuously; publishing per frame would flood the bus
+        /// for no benefit. Continuously-ticking displays should read the balance
+        /// directly and treat this event as a correction signal." Before the revision
+        /// nothing accrued continuously, so no caller had ever needed this. Four rooms
+        /// earning gold per hour is exactly the caller it was written for.
+        ///
+        /// The rule that keeps it honest: <b>only the clock may call this, and only for
+        /// income the player did not ask for.</b> Anything the player pressed a button
+        /// to cause announces itself — a tap goes through <see cref="Grant"/>, because a
+        /// tap is a decision and wants to land visibly. If a second caller ever appears
+        /// here, the question to ask is whether it is really idle income or whether it
+        /// is a transaction wearing idle income's clothes.
+        ///
+        /// Non-positive amounts are ignored for the same reason <see cref="Grant"/>
+        /// ignores them: a negative accrual is a caller bug, and letting it drain a
+        /// balance silently would be far harder to trace than doing nothing. Wages are
+        /// netted off before this is called and never arrive here as a negative — see
+        /// the floor in the trade layer.
+        /// </summary>
+        public void Accrue(CurrencyType currency, double amount)
+        {
+            if (amount <= 0d || double.IsNaN(amount) || double.IsInfinity(amount))
+            {
+                return;
+            }
+
+            _balances[currency] = Get(currency) + amount;
+        }
+
+        /// <summary>
         /// Deduct if affordable. Returns false and changes nothing otherwise, so callers
         /// can gate a purchase on the return value without checking the balance first.
         /// </summary>

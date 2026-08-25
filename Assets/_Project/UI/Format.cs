@@ -153,6 +153,17 @@ namespace IdleGuild.UI
                 GuildStat.QuestSlots => "Quest slots",
                 GuildStat.MaxQuestTier => "Max quest tier",
                 GuildStat.FailureRateReduction => "Failure reduction",
+
+                // Day 16. Named from the player's side of the counter rather than the
+                // engine's: nobody upgrades a room to raise its "service demand". They
+                // upgrade it because it has run out of seats, or because the people in
+                // them are not spending enough, or because there is a queue at the door.
+                GuildStat.ServiceSeats => "Seats",
+                GuildStat.CustomerSpend => "Spend per head",
+                GuildStat.ServiceDemand => "Custom",
+                GuildStat.StaffSlots => "Staff slots",
+                GuildStat.ContractCommission => "Commission",
+
                 _ => stat.ToString()
             };
         }
@@ -173,6 +184,17 @@ namespace IdleGuild.UI
                 GuildStat.QuestSlots => Math.Floor(value).ToString("0", CultureInfo.InvariantCulture),
                 GuildStat.MaxQuestTier => Math.Floor(value).ToString("0", CultureInfo.InvariantCulture),
                 GuildStat.RecruitableRarity => ((Rarity)Math.Clamp((int)value, 0, (int)Rarity.Legendary)).ToString(),
+
+                // Counts of people, so whole numbers. Spend and commission fall through
+                // to Bonus deliberately: spend is gold and reads as an amount, and the
+                // Front Desk's commission is a raw figure the trade layer saturates into
+                // a percentage, so printing it as a percentage here would be a lie the
+                // player could check.
+                GuildStat.ServiceSeats => Math.Floor(value).ToString("0", CultureInfo.InvariantCulture),
+                GuildStat.ServiceDemand => Math.Floor(value).ToString("0", CultureInfo.InvariantCulture) + "/hr",
+                GuildStat.StaffSlots => Math.Floor(value).ToString("0", CultureInfo.InvariantCulture),
+                GuildStat.CustomerSpend => Amount(value) + " g",
+
                 _ => Bonus(value)
             };
         }

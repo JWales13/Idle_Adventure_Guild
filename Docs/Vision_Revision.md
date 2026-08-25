@@ -106,6 +106,23 @@ neighbours and become a circuit.
 one-time. It means the tavern panel reports a *net* figure, and that over-hiring is a
 live mistake rather than merely a slow one.
 
+> **⚠ CORRECTION, Day 16 — the wage line above is not the rule that was tuned.** The
+> pseudocode says `wages/hr = Σ each staff member's wage`. `tycoon_model.wagesPerHour()`
+> has never done that: it computes `staffCapacity × averageSpendPerCustomer ×
+> WAGE_SHARE` and never reads the per-employee `wage` field at all, which is dead data
+> carried in `content()`, scaled by nothing and read by nothing. Every tuned number in
+> this project came out of the model, so the model is what Day 16 built, and the
+> reasoning is better than this section's anyway: **a flat wage against geometric room
+> revenue is decoration** — the model measured it at 3,973/hr against 15,118,239/hr of
+> gross, three hundredths of one percent. Staff in a grand hall are simply paid more.
+>
+> Two consequences. `StaffDefinition` carries **no wage field**, because a second source
+> of truth for a derived number is how a ratio authored in one place and paid for in
+> another goes unchecked for four days. And wages are charged against **capacity**, not
+> against customers actually served — charged against served customers, over-hiring
+> would be free and this whole second economy would be a slider that only goes up.
+> See §5 of `Docs/Day16_Staff_And_Revenue.md`.
+
 ### 3.2 · Quests, and what they are for
 
 Adventurers take contracts. Contracts pay **reputation**, and reputation is the **only**
@@ -155,6 +172,41 @@ Revenue        (8)   gold per hour at full service
 ServiceDemand  (9)   service needed to run at full
 StaffSlots    (10)   how many staff may be employed
 ```
+
+> **⚠ CORRECTION, Day 16 — those three stats were never built, because two of them
+> describe a game this document had already stopped designing by the time it was
+> finished.** There is no `revenue` curve on any room and there never was: revenue became
+> `seats × spend` when §3.1 split demand from capacity, and this paragraph did not follow.
+> `ServiceDemand` also changed meaning — it is not "service needed to run at full", it is
+> customers per hour who want in, and the service needed follows from that.
+>
+> This is exactly the staleness Day 15 found in the model's own `--checks` block, which
+> was testing for a `revenue` curve no room has and therefore silently inspected five
+> curves out of eleven. Same defect, one layer up: in the charter rather than in a tool.
+>
+> What shipped on Day 16:
+>
+> ```
+> ServiceSeats       (8)   PER-ROOM. seats at this level
+> CustomerSpend      (9)   PER-ROOM. gold one served customer leaves
+> ServiceDemand     (10)   PER-ROOM. customers/hr who want in, before the tier's market size
+> StaffSlots        (11)   guild-wide
+> ContractCommission(12)   guild-wide; the Front Desk's raw cut, saturated by the trade layer
+> ```
+>
+> Plus four fields on `GuildTierDefinition` — market size, contract reward scale, base
+> service per hour, base housing capacity — because the demand lever belongs to the tier
+> and had nowhere to live.
+>
+> **The paragraph below this box is still right, and is the more important half.** Revenue
+> is an effect like every other effect, adding a sixth department is one new `.asset` and
+> zero code, and nothing was added to `BuildingDefinition` to make any of it work. But it
+> understates one thing: seats, spend and demand are *per-room*, and summing them across
+> five rooms produces a number that is arithmetically fine and means nothing. That is a
+> worse failure than the absence this project keeps meeting, because it reads like a real
+> figure. `GuildStatScope` in Core names which stats aggregate; `GuildState.Aggregate`
+> refuses to produce the ones that do not, and `GuildState.EffectFor(building, stat)` is
+> the only sanctioned read. See §3 and §4 of `Docs/Day16_Staff_And_Revenue.md`.
 
 Every existing stat keeps a home:
 
@@ -406,6 +458,31 @@ Each of these would have shipped as a bug:
    designed in**, not retrofitted the way adventurers needed one on Day 12.
 4. **The staff ladder had Day 13's exact defect** — higher tiers cost more per unit
    delivered, so the model hired 96 Potboys and never upgraded once.
+
+   > **⚠ CORRECTION, Day 16 — this was never fixed, and the reason it could not be fixed
+   > is finding #3.** The tuned configuration hires **105 Potboys and never buys a single
+   > Server, Barkeep or Steward**, at every integration step. Gold per point of service
+   > still climbs across the ladder — 0.47, 2.06, 8.63, 32.69 — and the model's own
+   > comment above the staff table has claimed the opposite since Day 14: the fix was
+   > written as prose and never as arithmetic, and the prose has been read several times
+   > since.
+   >
+   > But **the price is not the cause.** Flattening the ladder so every tier costs exactly
+   > what it delivers still gives 98 Potboys and one Server, and moves no pacing figure.
+   > Starving staff slots to four still gives four Potboys. The cause is that
+   > `purchase()` can only ever *append* staff — **the model has no way to let anybody
+   > go** — so slots once filled with the cheapest help are filled forever and the ladder
+   > is unreachable at any price. An unreachable rung cannot cost the loss anything, so
+   > it was free to be priced arbitrarily, and was. Day 15 then raised the staff-slot
+   > curve to fix the opening silence, which was right for the thing it was aimed at and
+   > removed even the slot pressure that might have forced a climb.
+   >
+   > Day 16 built the dismiss action for the game and **deliberately authored no staff
+   > assets**, because pricing a ladder nothing has ever climbed is guesswork with a
+   > table in front of it. The balance pass must give the model the same action before it
+   > searches for those four numbers. Treat every staff figure in `tuned_params.json` as
+   > unmeasured rather than as tuned; the room curves are unaffected, since what the rooms
+   > see is the payroll's total service. §6 of `Docs/Day16_Staff_And_Revenue.md`.
 5. **Flat wages are decoration** against geometric revenue: 0.03% of gross at endgame.
    Wages have to scale with what a customer is worth.
 6. **Static contract rewards become rounding error** — Dragon's Roost paying 26,000 in a

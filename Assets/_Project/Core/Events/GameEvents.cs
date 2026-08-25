@@ -216,4 +216,88 @@ namespace IdleGuild.Core.Events
         /// <summary>Already scaled by Reward Yield. Zero on failure.</summary>
         public double ReputationAwarded { get; }
     }
+
+    /// <summary>Raised when a staff member is taken on.</summary>
+    public readonly struct StaffHired
+    {
+        public StaffHired(string definitionId, string instanceId, int employed, int slots)
+        {
+            DefinitionId = definitionId;
+            InstanceId = instanceId;
+            Employed = employed;
+            Slots = slots;
+        }
+
+        /// <summary>Identifies which StaffDefinition asset this came from.</summary>
+        public string DefinitionId { get; }
+
+        /// <summary>Identifies this specific employee, which is what saves reference.</summary>
+        public string InstanceId { get; }
+
+        /// <summary>Staff employed after the hire, and the slots available. Carried so a screen can render the squeeze without re-reading.</summary>
+        public int Employed { get; }
+
+        public int Slots { get; }
+    }
+
+    /// <summary>Raised when a staff member is let go at the player's request.</summary>
+    /// <remarks>
+    /// Exists on the same day the hire does, which is the whole point of it. §6C's third
+    /// finding is that staff slots are a one-way ratchet — fill them cheaply and you can
+    /// never upgrade — and that this is the Days 10-11 bed problem, which Day 12 had to
+    /// retrofit for adventurers. Retrofitting a reversal is how you discover the economy
+    /// was priced against a wall that no longer exists.
+    ///
+    /// Distinct from save restoration dropping an employee it could not resolve, for the
+    /// same reason <see cref="AdventurerDismissed"/> is: this one means a slot was freed
+    /// by a decision.
+    /// </remarks>
+    public readonly struct StaffDismissed
+    {
+        public StaffDismissed(string definitionId, string instanceId, int employed, int slots)
+        {
+            DefinitionId = definitionId;
+            InstanceId = instanceId;
+            Employed = employed;
+            Slots = slots;
+        }
+
+        public string DefinitionId { get; }
+
+        /// <summary>Identifies who left. No longer resolvable on the staff roster.</summary>
+        public string InstanceId { get; }
+
+        public int Employed { get; }
+
+        public int Slots { get; }
+    }
+
+    /// <summary>Raised when the player serves a waiting customer by hand.</summary>
+    /// <remarks>
+    /// The tap, and it is an obligation rather than an addition. §6B sells familiars on
+    /// "a free player can do everything a payer can and simply has to tap" — so for a
+    /// familiar that collects the takings to be worth a Boon, the takings have to
+    /// otherwise need collecting. The premium pillar was load-bearing on a mechanic
+    /// neither the code nor the model had.
+    ///
+    /// Published per tap rather than accrued silently, unlike idle room income, because
+    /// a tap is something the player did and wants to see land.
+    /// </remarks>
+    public readonly struct TakingsCollected
+    {
+        public TakingsCollected(string buildingId, double gold, double waitingCustomers)
+        {
+            BuildingId = buildingId;
+            Gold = gold;
+            WaitingCustomers = waitingCustomers;
+        }
+
+        /// <summary>The room the served customer was sitting in — the best-paying one still going unserved.</summary>
+        public string BuildingId { get; }
+
+        public double Gold { get; }
+
+        /// <summary>How many are still waiting afterwards. Zero means the staff have the room covered.</summary>
+        public double WaitingCustomers { get; }
+    }
 }

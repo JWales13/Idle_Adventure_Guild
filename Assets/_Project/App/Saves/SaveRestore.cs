@@ -4,6 +4,7 @@ using IdleGuild.Adventurers;
 using IdleGuild.Core;
 using IdleGuild.Guild;
 using IdleGuild.Quests;
+using IdleGuild.Staff;
 using UnityEngine;
 
 namespace IdleGuild.App.Saves
@@ -20,6 +21,7 @@ namespace IdleGuild.App.Saves
         public SaveRestoreReport(
             int unknownBuildings,
             int droppedAdventurers,
+            int droppedStaff,
             int droppedQuestRuns,
             int droppedAssignments,
             int repairedAdventurers,
@@ -27,6 +29,7 @@ namespace IdleGuild.App.Saves
         {
             UnknownBuildings = unknownBuildings;
             DroppedAdventurers = droppedAdventurers;
+            DroppedStaff = droppedStaff;
             DroppedQuestRuns = droppedQuestRuns;
             DroppedAssignments = droppedAssignments;
             RepairedAdventurers = repairedAdventurers;
@@ -38,6 +41,15 @@ namespace IdleGuild.App.Saves
 
         /// <summary>Roster members whose archetype is gone, or whose id was unusable.</summary>
         public int DroppedAdventurers { get; }
+
+        /// <summary>
+        /// Employees whose archetype is gone, or whose id was unusable.
+        ///
+        /// A save written before the revision carries no payroll at all, which is not a
+        /// repair and must not read as one — it is the truth about a guild that had no
+        /// staff. Only a named employee the catalogue cannot resolve counts here.
+        /// </summary>
+        public int DroppedStaff { get; }
 
         /// <summary>Runs in flight whose quest is gone. The party is sent home instead.</summary>
         public int DroppedQuestRuns { get; }
@@ -52,8 +64,8 @@ namespace IdleGuild.App.Saves
         public bool TierFellBack { get; }
 
         public bool HasRepairs =>
-            UnknownBuildings > 0 || DroppedAdventurers > 0 || DroppedQuestRuns > 0 ||
-            DroppedAssignments > 0 || RepairedAdventurers > 0 || TierFellBack;
+            UnknownBuildings > 0 || DroppedAdventurers > 0 || DroppedStaff > 0 ||
+            DroppedQuestRuns > 0 || DroppedAssignments > 0 || RepairedAdventurers > 0 || TierFellBack;
 
         public override string ToString()
         {
@@ -63,6 +75,7 @@ namespace IdleGuild.App.Saves
             }
 
             return $"{UnknownBuildings} unknown building(s), {DroppedAdventurers} adventurer(s) dropped, " +
+                   $"{DroppedStaff} employee(s) dropped, " +
                    $"{DroppedQuestRuns} run(s) dropped, {DroppedAssignments} order(s) dropped, " +
                    $"{RepairedAdventurers} adventurer(s) sent home" + (TierFellBack ? ", tier fell back" : string.Empty);
         }
@@ -113,15 +126,18 @@ namespace IdleGuild.App.Saves
             RestoreEconomy(world, data);
 
             int droppedAdventurers = RestoreRoster(world, data);
+            int droppedStaff = RestoreStaff(world, data);
             int droppedQuestRuns = RestoreQuestRuns(world, data);
             int repairedAdventurers = RestoreAdventurerActivity(world, data);
             int droppedAssignments = RestoreAssignments(world, data);
 
             RestoreClock(clock, data);
+            RestoreTrade(clock, data);
 
             return new SaveRestoreReport(
                 unknownBuildings,
                 droppedAdventurers,
+                droppedStaff,
                 droppedQuestRuns,
                 droppedAssignments,
                 repairedAdventurers,
@@ -157,9 +173,12 @@ namespace IdleGuild.App.Saves
             }
 
             world.Roster.Clear();
+            world.Staff.Clear();
             world.QuestLog.Clear();
             world.ClearAssignments();
             clock?.RestoreCounters(0L, 0L, 0L, 0d);
+            clock?.RestoreTradeTotals(0d, 0d);
+            clock?.Takings.RestoreState(0d, 0d);
         }
 
         /// <summary>
@@ -275,6 +294,54 @@ namespace IdleGuild.App.Saves
         /// below, which finds them pointing at a run that no longer exists and sends them
         /// home rather than leaving them permanently out.
         /// </summary>
+        /// <summary>
+        /// The payroll. Returns how many employees had to be dropped.
+        ///
+        /// <b>A null array is not a repair.</b> Every save written before the revision
+        /// lacks this field entirely, and JsonUtility leaves an absent array null rather
+        /// than empty — so guarding here is what keeps the compatibility rule's promise
+        /// that "everything it did not write arrives at a neutral default". A guild with
+        /// no staff is exactly what those saves describe, and reporting a repair for it
+        /// would turn every existing fixture red for having been written honestly.
+        /// </summary>
+        private static int RestoreStaff(GameWorld world, SaveGameData data)
+        {
+            world.Staff.Clear();
+
+            if (data.Staff == null)
+            {
+                return 0;
+            }
+
+            int dropped = 0;
+            foreach (SavedStaff saved in data.Staff)
+            {
+                if (saved == null || string.IsNullOrWhiteSpace(saved.InstanceId))
+                {
+                    dropped++;
+                    continue;
+                }
+
+                StaffDefinition definition = world.Content.FindStaff(saved.DefinitionId);
+                if (definition == null)
+                {
+                    dropped++;
+                    Debug.LogWarning(
+                        $"Save holds an employee of kind '{saved.DefinitionId}', which is not in the " +
+                        "catalogue. That employee has been let go.");
+                    continue;
+                }
+
+                if (!world.Staff.Add(new StaffMember(saved.InstanceId, definition)))
+                {
+                    // Two employees sharing an instance id. Only a hand-edited file gets here.
+                    dropped++;
+                }
+            }
+
+            return dropped;
+        }
+
         private static int RestoreQuestRuns(GameWorld world, SaveGameData data)
         {
             world.QuestLog.Clear();
@@ -420,6 +487,33 @@ namespace IdleGuild.App.Saves
         }
 
         /// <summary>True when the run this member claims to be on exists and lists them.</summary>
+        /// <summary>
+        /// Lifetime room takings and the queue at the bar. Absent on every pre-revision
+        /// save, which correctly restores as a guild that has never traded.
+        ///
+        /// Deliberately restored <i>after</i> the guild and its buildings, because the
+        /// takings queue is clamped against a capacity read from the catalogue and the
+        /// clamp wants today's rules rather than the file's.
+        /// </summary>
+        private static void RestoreTrade(SimulationClock clock, SaveGameData data)
+        {
+            if (clock == null)
+            {
+                return;
+            }
+
+            SavedTrade trade = data.Trade;
+            if (trade == null)
+            {
+                clock.RestoreTradeTotals(0d, 0d);
+                clock.Takings.RestoreState(0d, 0d);
+                return;
+            }
+
+            clock.RestoreTradeTotals(trade.GrossEarned, trade.WagesPaid);
+            clock.Takings.RestoreState(trade.WaitingCustomers, trade.TakingsEarned);
+        }
+
         private static bool IsOnRun(GameWorld world, SavedAdventurer saved)
         {
             ActiveQuest run = world.QuestLog.Find(saved.ActiveQuestInstanceId);

@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using IdleGuild.Adventurers;
 using IdleGuild.App.Saves;
 using IdleGuild.Core;
 using IdleGuild.Guild;
 using IdleGuild.Quests;
+using IdleGuild.Staff;
 using UnityEngine;
 
 namespace IdleGuild.App
@@ -35,6 +37,7 @@ namespace IdleGuild.App
         [Tooltip("Fraction of the screen width the panel occupies.")]
         private float _panelWidthFraction = 0.45f;
 
+        private readonly List<RoomTrade> _rooms = new List<RoomTrade>(8);
         private Action _queuedAction;
         private Vector2 _scrollPosition;
         private string _message = "Ready.";
@@ -93,6 +96,8 @@ namespace IdleGuild.App
                 DrawTimeControls();
                 DrawSaves();
                 DrawBuildings();
+                DrawTrade();
+                DrawStaff();
                 DrawRecruitment();
                 DrawRoster();
                 DrawQuests();
@@ -271,6 +276,126 @@ namespace IdleGuild.App
 
                 GUI.enabled = true;
             }
+        }
+
+        /// <summary>
+        /// The tycoon half of the game, and — until Day 23 builds the real room panels —
+        /// the only place any of it can be seen at all. Worth remembering that this
+        /// console was the only way the game was playable for fifteen days, and that it
+        /// stays until the real interface has actually been exercised rather than merely
+        /// written.
+        ///
+        /// It shows gross and wages as separate lines on purpose, which is the same
+        /// requirement §6.1 puts on the shipping UI: over-hiring has to read as a
+        /// visible squeeze rather than as a mysterious slowdown.
+        /// </summary>
+        private void DrawTrade()
+        {
+            TradeService trade = _bootstrap.Trade;
+            TakingsService takings = _bootstrap.Takings;
+            if (trade == null)
+            {
+                return;
+            }
+
+            Section("Trade");
+            GUILayout.Label(
+                $"service {trade.ServiceCapacityPerHour():N0}/hr  of demand {trade.TotalWantPerHour():N0}/hr" +
+                $"   throttle {trade.Throttle() * 100f:N0}%");
+            GUILayout.Label(
+                $"gross {Amount(trade.GrossPerHour())} g/hr   wages {Amount(trade.WagesPerHour())} g/hr" +
+                $"   net {Amount(trade.NetPerHour())} g/hr");
+            GUILayout.Label(
+                $"lifetime rooms {Amount(_bootstrap.Clock.GrossEarned)} g   " +
+                $"wages {Amount(_bootstrap.Clock.WagesPaid)} g   " +
+                $"by hand {Amount(takings.LifetimeTakings)} g");
+
+            _rooms.Clear();
+            trade.CollectRooms(_rooms);
+            foreach (RoomTrade room in _rooms)
+            {
+                if (!room.IsEarning)
+                {
+                    GUILayout.Label($"  {room.Room.DisplayName}: earns nothing directly");
+                    continue;
+                }
+
+                string binding = room.IsTurningPeopleAway ? "SEATS" : "crowd";
+                GUILayout.Label(
+                    $"  {room.Room.DisplayName}: served {room.ServedPerHour:N0} of {room.WantPerHour:N0}/hr " +
+                    $"(demand {room.DemandPerHour:N0}, seats {room.SeatCapacityPerHour:N0}, limit {binding})  " +
+                    $"{Amount(room.RevenuePerHour)} g/hr");
+            }
+
+            // The tap. It exists here before it exists on a screen because §6B sells the
+            // familiars on automating it, so a version of this game where it can only be
+            // done by a familiar is a version that sells power rather than convenience.
+            int waiting = takings.ServableNow;
+            double next = takings.PreviewCollect(out BuildingDefinition room2);
+            GUI.enabled = waiting >= 1;
+            if (GUILayout.Button(
+                    $"Serve a customer ({waiting} waiting" +
+                    (room2 != null ? $", {room2.DisplayName}, {Amount(next)} g" : string.Empty) + ")"))
+            {
+                Queue(() =>
+                {
+                    _message = takings.TryCollect(out double gold, out BuildingDefinition served)
+                        ? $"Served a customer at the {served.DisplayName} for {Amount(gold)} g."
+                        : "Nobody is waiting — the staff have every room covered.";
+                });
+            }
+
+            GUI.enabled = true;
+        }
+
+        /// <summary>
+        /// The payroll, with letting somebody go sitting directly beside taking them on.
+        ///
+        /// Deliberately adjacent rather than tucked away, because the failure this
+        /// subsystem is most likely to have is the one §6C's third finding names: slots
+        /// filled cheaply and never upgradable. A player who cannot see the way out will
+        /// not look for it.
+        /// </summary>
+        private void DrawStaff()
+        {
+            StaffService staff = _bootstrap.Staff;
+            Section($"Staff ({staff.Employed}/{staff.Slots} slots)");
+
+            foreach (StaffDefinition definition in _bootstrap.World.Content.Staff)
+            {
+                if (definition == null)
+                {
+                    continue;
+                }
+
+                StaffDefinition target = definition;
+                HireOutcome state = staff.Preview(target);
+                int employed = _bootstrap.World.Staff.CountOf(target);
+
+                GUI.enabled = state == HireOutcome.Hired;
+                if (GUILayout.Button(
+                        $"Hire {target.DisplayName} x{employed}  {Amount(target.HireCostGold)} g  " +
+                        $"{target.ServicePerHour:N0}/hr  [{state}]"))
+                {
+                    Queue(() => _message = $"Hire {target.DisplayName}: {staff.TryHire(target, out StaffMember _)}");
+                }
+
+                GUI.enabled = true;
+            }
+
+            GUI.enabled = staff.Employed > 0;
+            if (GUILayout.Button("Let the least capable employee go"))
+            {
+                Queue(() =>
+                {
+                    LetGoOutcome outcome = staff.TryLetGoLeastCapable(out StaffMember released);
+                    _message = outcome == LetGoOutcome.LetGo
+                        ? $"Let {released.Definition.DisplayName} go. Slot free."
+                        : $"Let go: {outcome}";
+                });
+            }
+
+            GUI.enabled = true;
         }
 
         private void DrawRecruitment()

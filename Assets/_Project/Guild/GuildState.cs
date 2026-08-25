@@ -187,6 +187,29 @@ namespace IdleGuild.Guild
             return _statCache.TryGetValue(stat, out float value) ? value : NeutralBaseFor(stat);
         }
 
+        /// <summary>
+        /// One building's own contribution to <paramref name="stat"/> at the level it
+        /// currently stands at. Unknown ids and unbuilt buildings read zero.
+        ///
+        /// The only sanctioned way to read a per-room stat — seats, spend and demand
+        /// belong to a room rather than to the guild, and <see cref="Get"/> deliberately
+        /// hands back zero for them. Guild-wide stats can be read either way and will
+        /// agree, because this and <c>Aggregate</c> combine effects by the same rule.
+        /// </summary>
+        public float EffectFor(BuildingDefinition building, GuildStat stat)
+        {
+            return building == null ? 0f : building.EffectAt(stat, GetLevel(building.Id));
+        }
+
+        /// <summary>
+        /// As <see cref="EffectFor(BuildingDefinition, GuildStat)"/>, by id. Convenient
+        /// where the caller already holds an id and not the asset.
+        /// </summary>
+        public float EffectFor(string buildingId, GuildStat stat)
+        {
+            return EffectFor(FindBuilding(buildingId), stat);
+        }
+
         private BuildingDefinition FindBuilding(string buildingId)
         {
             foreach (BuildingDefinition building in _buildings)
@@ -217,6 +240,18 @@ namespace IdleGuild.Guild
 
         private float Aggregate(GuildStat stat)
         {
+            // A per-room stat summed across the guild is arithmetically fine and means
+            // nothing — sixty-eight seats reads exactly like a real figure while being
+            // five rooms' seats in a trench coat. Refusing here is what makes the
+            // mistake loud: a room that reads zero seats earns zero gold, which anybody
+            // notices, where a plausible wrong total is what ships. GuildStatScope is
+            // the one place the distinction lives; EffectFor below is the sanctioned
+            // way to read one.
+            if (GuildStatScope.IsPerBuilding(stat))
+            {
+                return 0f;
+            }
+
             float additiveTotal = NeutralBaseFor(stat);
             float multiplicativeBonus = 0f;
 
@@ -268,6 +303,7 @@ namespace IdleGuild.Guild
             {
                 GuildStat.RewardYield => 1f,
                 GuildStat.RecoverySpeed => 1f,
+                GuildStat.HousingCapacity => _currentTier.BaseHousingCapacity,
                 GuildStat.QuestSlots => _currentTier.QuestSlots,
                 GuildStat.MaxQuestTier => _currentTier.MaxQuestTier,
                 _ => 0f
