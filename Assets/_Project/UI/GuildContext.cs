@@ -31,6 +31,7 @@ namespace IdleGuild.UI
             TrainingService training,
             QuestDispatchService dispatch,
             TierAdvancementService tiers,
+            StipendService stipend,
             Action<string, bool> report)
         {
             World = world ?? throw new ArgumentNullException(nameof(world));
@@ -39,6 +40,7 @@ namespace IdleGuild.UI
             Training = training ?? throw new ArgumentNullException(nameof(training));
             Dispatch = dispatch ?? throw new ArgumentNullException(nameof(dispatch));
             Tiers = tiers ?? throw new ArgumentNullException(nameof(tiers));
+            Stipend = stipend ?? throw new ArgumentNullException(nameof(stipend));
             _report = report;
         }
 
@@ -53,6 +55,15 @@ namespace IdleGuild.UI
         public QuestDispatchService Dispatch { get; }
 
         public TierAdvancementService Tiers { get; }
+
+        /// <summary>
+        /// The crown's stipend, and the one thing on this screen that works no matter
+        /// what the guild looks like. §01's rule — no sequence of choices may leave the
+        /// player unable to make progress — is only true if the player can reach it, and
+        /// it lived in the debug console alone for exactly as long as it took somebody to
+        /// try playing without one.
+        /// </summary>
+        public StipendService Stipend { get; }
 
         /// <summary>The aggregated building effects, as everything outside Guild sees them.</summary>
         public IGuildStats Stats => World.Stats;

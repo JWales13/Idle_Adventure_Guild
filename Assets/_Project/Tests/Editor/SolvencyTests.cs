@@ -3,7 +3,10 @@ using IdleGuild.App.Saves;
 using IdleGuild.Core;
 using IdleGuild.Core.Events;
 using IdleGuild.Guild;
+using IdleGuild.UI;
+using IdleGuild.UI.Views;
 using NUnit.Framework;
+using UnityEngine.UIElements;
 
 namespace IdleGuild.Tests
 {
@@ -286,6 +289,56 @@ namespace IdleGuild.Tests
 
             Assert.That(clock.Stipend.DeliveriesWaiting, Is.EqualTo(0));
             Assert.That(clock.Stipend.LifetimeStipend, Is.EqualTo(0d));
+        }
+
+        // ---- can the player actually reach it ------------------------------------
+
+        [Test]
+        public void TheTreasuryBarPutsTheStipendWhereThePlayerCanSeeIt()
+        {
+            // This is the test that was missing, and its absence cost a playtest.
+            //
+            // The stipend shipped working, saved, tested and documented — and only in the
+            // debug console. The player-facing screen had no reference to it anywhere, so
+            // the answer to "where is the mailbox" was that it did not exist. That is the
+            // same shape as the takings tap shipping inert the day before, and as an
+            // interface that built into the void for fifteen days: A GUARANTEE THE PLAYER
+            // CANNOT REACH IS NOT A GUARANTEE.
+            //
+            // A UI Toolkit element builds its children in its constructor with no panel
+            // attached, so this is assertable in EditMode even though the pixels are not.
+            // It does not prove the control is legible — that is still the hand-check this
+            // project has owed for three days — but it does prove it is there, which is
+            // the half that failed.
+            GameWorld world = Shipped.NewGuild();
+            SimulationClock clock = ClockFor(world);
+            GuildContext context = new GuildContext(
+                world,
+                new BuildingUpgradeService(world),
+                new RecruitmentService(world),
+                new TrainingService(world),
+                new QuestDispatchService(world),
+                new TierAdvancementService(world),
+                clock.Stipend,
+                (message, ok) => { });
+
+            TreasuryBar bar = new TreasuryBar();
+            bar.Refresh(context);
+
+            Button mailbox = bar.Q<Button>(className: "stipend");
+
+            Assert.That(mailbox, Is.Not.Null,
+                "The treasury bar carries no stipend control, so the one action that always works " +
+                "is invisible to the player.");
+            Assert.That(mailbox.text, Is.Not.Empty);
+            Assert.That(mailbox.enabledSelf, Is.False, "A new guild starts on a fresh cooldown.");
+
+            clock.Advance(clock.Stipend.CooldownSeconds + 1d);
+            bar.Refresh(context);
+
+            Assert.That(mailbox.enabledSelf, Is.True, "A delivery has arrived and the control is still dead.");
+            Assert.That(mailbox.ClassListContains("stipend--ready"), Is.True,
+                "Nothing distinguishes a mailbox with post in it from an empty one.");
         }
 
         // ---- the containment invariant -------------------------------------------

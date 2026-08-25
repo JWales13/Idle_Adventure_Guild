@@ -205,12 +205,51 @@ guard that would not have caught the bug that prompted it is not a guard.
 
 ---
 
-## 7. What this does not fix
+## 7. And then it shipped invisible
+
+The stipend went in working, saved, tested and documented — **and only into the debug
+console.** `grep -rln "Stipend" Assets/_Project/UI/` returned nothing. The next playtest
+asked "is the mailbox hidden?", and the answer was that it did not exist on any screen a
+player looks at.
+
+That is **twice in two days, and the same failure both times**: a mechanic verified from
+the inside and never from the player's side. The tap shipped inert because no room feeds
+it; the stipend shipped invisible because no view renders it. Set beside `AssetValidation`
+crying wolf, Day 13's canaries watching no training cost, Day 15's `--checks` block looking
+for a curve no room has, and fifteen days of an interface drawn into the void, this is the
+sixth and seventh appearances of the same shape — and the standing note that **nobody has
+judged this interface**, deferred twice now, is what would have caught both.
+
+The stated rule is worth writing down in the form the playtest produced it:
+
+> **A guarantee the player cannot reach is not a guarantee.**
+
+Fixed by putting the mailbox in `TreasuryBar` — the permanent chrome, beside Gold and Rep,
+which is where somebody looks when the treasury is the problem. It is **always present and
+never hidden**: disabled with a countdown while empty, gold-bordered and enabled with a
+count when there is post. Collapsing it while there is nothing to collect is tidier and is
+the wrong trade, because an action that is absent and an action that is unavailable look
+identical on screen — the Day 15 icon rule, applied to a button, having just been
+re-learned the hard way. `GuildContext` gains `Stipend` so the view reaches the service
+through the boundary rather than around it.
+
+And there is now a test for the half that failed.
+`TheTreasuryBarPutsTheStipendWhereThePlayerCanSeeIt` builds the bar headless — a UI Toolkit
+element constructs its children with no panel attached — and asserts the control exists,
+starts disabled on a fresh cooldown, and lights up once a delivery lands. It cannot prove
+the thing is *legible*; that is still the hand-check. It proves it is *there*.
+
+---
+
+## 8. What this does not fix
 
 - **The tap is still inert** until a room produces `ServiceDemand`. The stipend makes the
   build playable; it does not make the revenue engine live.
 - **Pacing measured before the rooms land is measuring the mailbox**, not the game.
 - **A Capital guild over-hired to net zero with an empty treasury** is not rescued by an
   8-gold delivery. It is rescued by `TryLetGo`, which is free. The Principle holds at every
-  stage, by different means at different stages — and that means the staff panel has to
-  make letting somebody go findable, or the guarantee is theoretical.
+  stage, by different means at different stages.
+- **And the late-stage escape is currently unreachable**, which is §7's failure with the
+  paint still wet: `StaffService` is on no screen and not on `GuildContext`. Until the
+  staff panel lands on Day 23, §01's rule is only true in its early form. Named here
+  rather than closed with unused plumbing.

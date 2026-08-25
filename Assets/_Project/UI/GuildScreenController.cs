@@ -289,6 +289,7 @@ namespace IdleGuild.UI
                     _bootstrap.Training,
                     _bootstrap.Dispatch,
                     _bootstrap.Tiers,
+                    _bootstrap.Stipend,
                     Report);
                 _structureDirty = true;
             }
