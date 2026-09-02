@@ -1,12 +1,15 @@
 using System;
+using IdleGuild.App;
+using IdleGuild.Core.Events;
+using IdleGuild.Guild;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace IdleGuild.World
 {
     /// <summary>
-    /// The one MonoBehaviour in the World assembly: it points the camera at the hall and
-    /// lets a finger drag it around.
+    /// The one MonoBehaviour in the World assembly: it points the camera at the hall, lets
+    /// a finger drag it around, and draws the rooms.
     ///
     /// It is the third seam of its kind and deliberately the same shape as the other two.
     /// <c>GameBootstrap</c> is the seam between Unity's lifecycle and the simulation;
@@ -14,12 +17,16 @@ namespace IdleGuild.World
     /// this is the seam between Unity's lifecycle and the hall. Everything underneath all
     /// three is plain C#.
     ///
-    /// **It reads nothing from the economy, and step 2 is where that starts.** Recorded
-    /// because the rule this view exists under is that it DEPICTS rather than CAUSES
-    /// (section 4 of Docs/World_View_Design.md), and the way a depiction turns into a
-    /// cause is one convenient calculation at a time. When the rooms arrive they read
-    /// their state through <c>GuildState</c> and their trade through
-    /// <c>TradeService.CollectRooms()</c>, and this class stays a camera.
+    /// The refresh model is <c>GuildScreenController</c>'s, for its reasons: events set a
+    /// flag and the next frame acts on it, so a handler that does nothing but assign a
+    /// bool cannot take another subscriber's delivery down with it when the bus abandons a
+    /// publish. The hall differs from the screen in one way only -- it has no live numbers
+    /// to poll yet, so there is no timed tick, just the dirty flag. Step 4 brings the first
+    /// thing that moves on its own.
+    ///
+    /// **It DEPICTS and does not CAUSE** (section 4 of Docs/World_View_Design.md). It reads
+    /// levels and unlock state off <see cref="GuildState"/> and computes nothing. No gold
+    /// is granted here, and nothing in this assembly may decide a cost, a gate or a rate.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class WorldView : MonoBehaviour
@@ -29,8 +36,17 @@ namespace IdleGuild.World
         private Camera _camera;
 
         [SerializeField]
+        [Tooltip("The bootstrap driving the simulation. Found in the scene if left empty.")]
+        private GameBootstrap _bootstrap;
+
+        [Header("The hall")]
+        [SerializeField]
         [Tooltip("The extent of the hall in world units. Grows as new wings unlock.")]
-        private Rect _floorBounds = new Rect(-16f, -12f, 32f, 24f);
+        private Rect _floorBounds = HallPlan.DefaultFloor;
+
+        [SerializeField]
+        [Tooltip("Where each room stands. Keyed by BuildingDefinition Id.")]
+        private HallRoom[] _plan = HallPlan.Default();
 
         [SerializeField]
         [Min(0f)]
@@ -39,6 +55,10 @@ namespace IdleGuild.World
 
         private GreyBoxFloor _floor;
         private Transform _floorRoot;
+
+        private RoomRectangles _rooms;
+        private Transform _roomsRoot;
+        private bool _roomsDirty = true;
 
         private bool _dragging;
         private bool _wasPressed;
@@ -52,51 +72,45 @@ namespace IdleGuild.World
         /// interface rather than to the hall. Returning true lets the press through to the
         /// chrome and the hall does not pan.
         ///
-        /// It is a delegate rather than a call into <c>IdleGuild.UI</c> on purpose. World
-        /// and UI are siblings above App and neither references the other; a view that
-        /// reached across would put the two presentation layers into a cycle for the sake
-        /// of a hit test. The overlay side knows where its own panels are, so it is the
-        /// side that answers. Left unset, nothing blocks -- which is correct today,
-        /// because the chrome does not yet sit over the hall.
+        /// **Currently unset, and that is a decision rather than an omission.** The obvious
+        /// implementation -- ask the UIDocument's panel what sits under the pixel -- makes
+        /// things worse today, because every screen is a full-bleed ScrollView and the panel
+        /// therefore reports the interface under every pixel of the content area. Wiring it
+        /// would trade an occasional double-drag for a hall that cannot be panned at all.
+        ///
+        /// It goes live when section 7 of Docs/World_View_Design.md is settled and the
+        /// chrome stops being the whole screen. The ambiguity it has to resolve -- dragging
+        /// the empty background of a list: scroll the list, or pan the hall? -- is that
+        /// section's question rather than this class's.
+        ///
+        /// A delegate rather than a call into <c>IdleGuild.UI</c> on purpose: World and UI
+        /// are siblings above App and neither references the other, so a hit test that
+        /// reached across would put the two presentation layers into a cycle.
         /// </summary>
         public Func<Vector2, bool> IsPointerOverChrome { get; set; }
 
         private void OnEnable()
         {
-            if (_camera == null)
+            if (!ResolveCamera())
             {
-                _camera = Camera.main;
-            }
-
-            if (_camera == null)
-            {
-                Debug.LogError(
-                    "[World] No camera. Assign one on WorldView or tag a camera MainCamera.",
-                    this);
                 enabled = false;
                 return;
             }
 
-            if (!_camera.orthographic)
-            {
-                // Loud rather than merely wrong. A perspective camera still renders the
-                // floor, so the failure would show up as panning that drifts with distance
-                // -- which reads as a tuning problem for as long as it takes to look here.
-                Debug.LogError(
-                    $"[World] {_camera.name} is not orthographic. The hall is a 2D floor " +
-                    "plan and every world measurement here assumes an orthographic view.",
-                    this);
-                enabled = false;
-                return;
-            }
+            ResolveBootstrap();
 
             ConfigureSorting();
             BuildFloor();
+            EnsureRoomsRoot();
             ClampCameraIntoBounds();
+
+            Subscribe();
+            _roomsDirty = true;
         }
 
         private void OnDisable()
         {
+            Unsubscribe();
             _dragging = false;
             _wasPressed = false;
         }
@@ -120,6 +134,50 @@ namespace IdleGuild.World
         }
 
         private void Update()
+        {
+            HandlePan();
+            RefreshRoomsIfNeeded();
+        }
+
+        // ---------------------------------------------------------------- the hall -----
+
+        private void RefreshRoomsIfNeeded()
+        {
+            if (!_roomsDirty)
+            {
+                return;
+            }
+
+            GuildState guild = _bootstrap == null ? null : _bootstrap.World?.GuildState;
+
+            if (guild == null)
+            {
+                // The world may not exist yet -- Awake ordering between two objects in one
+                // scene is not something to rely on, which is the note GuildScreenController
+                // carries for the same reason. Stay dirty and try again next frame.
+                return;
+            }
+
+            _rooms.Rebuild(_plan, guild);
+            _roomsDirty = false;
+        }
+
+        private void EnsureRoomsRoot()
+        {
+            if (_roomsRoot != null)
+            {
+                return;
+            }
+
+            var root = new GameObject("Rooms");
+            root.transform.SetParent(transform, false);
+            _roomsRoot = root.transform;
+            _rooms = new RoomRectangles(_roomsRoot);
+        }
+
+        // ------------------------------------------------------------------- input -----
+
+        private void HandlePan()
         {
             // One device covers both cases: Touchscreen derives from Pointer, so a finger
             // on a phone and a mouse in the editor arrive through the same two controls
@@ -189,6 +247,75 @@ namespace IdleGuild.World
             MoveCameraTo(desired);
         }
 
+        // ------------------------------------------------------------------ events -----
+
+        private void Subscribe()
+        {
+            EventBus.Subscribe<GameLoaded>(OnStructureChanged);
+            EventBus.Subscribe<BuildingUpgraded>(OnStructureChanged);
+            EventBus.Subscribe<GuildTierAdvanced>(OnStructureChanged);
+        }
+
+        private void Unsubscribe()
+        {
+            EventBus.Unsubscribe<GameLoaded>(OnStructureChanged);
+            EventBus.Unsubscribe<BuildingUpgraded>(OnStructureChanged);
+            EventBus.Unsubscribe<GuildTierAdvanced>(OnStructureChanged);
+        }
+
+        private void OnStructureChanged<TEvent>(TEvent _) where TEvent : struct
+        {
+            _roomsDirty = true;
+        }
+
+        // ------------------------------------------------------------------- setup -----
+
+        private bool ResolveCamera()
+        {
+            if (_camera == null)
+            {
+                _camera = Camera.main;
+            }
+
+            if (_camera == null)
+            {
+                Debug.LogError(
+                    "[World] No camera. Assign one on WorldView or tag a camera MainCamera.",
+                    this);
+                return false;
+            }
+
+            if (!_camera.orthographic)
+            {
+                // Loud rather than merely wrong. A perspective camera still renders the
+                // floor, so the failure would show up as panning that drifts with distance
+                // -- which reads as a tuning problem for as long as it takes to look here.
+                Debug.LogError(
+                    $"[World] {_camera.name} is not orthographic. The hall is a 2D floor " +
+                    "plan and every world measurement here assumes an orthographic view.",
+                    this);
+                return false;
+            }
+
+            return true;
+        }
+
+        private void ResolveBootstrap()
+        {
+            if (_bootstrap == null)
+            {
+                _bootstrap = FindAnyObjectByType<GameBootstrap>();
+            }
+
+            if (_bootstrap == null)
+            {
+                Debug.LogError(
+                    "[World] No GameBootstrap in the scene, so the hall has no guild to " +
+                    "draw and every room will be missing. The floor will still pan.",
+                    this);
+            }
+        }
+
         private void ConfigureSorting()
         {
             // Depth into a high three-quarter floor plan is world Y, so that is what the
@@ -217,6 +344,8 @@ namespace IdleGuild.World
 
             _floor.Rebuild(_floorBounds, _gridSpacing);
         }
+
+        // ------------------------------------------------------------------ camera -----
 
         private void ClampCameraIntoBounds()
         {

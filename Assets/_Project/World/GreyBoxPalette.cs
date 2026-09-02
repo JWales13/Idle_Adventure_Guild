@@ -32,5 +32,28 @@ namespace IdleGuild.World
         /// because "where is nothing" is the first question an empty floor raises.
         /// </summary>
         internal static readonly Color FloorOrigin = new Color(1f, 1f, 1f, 0.16f);
+
+        /// <summary>
+        /// A room the guild tier has not unlocked yet. Barely there: section 5 wants
+        /// unbuilt rooms "dark and shuttered where the wing will be", which is the tier
+        /// gate's missing requirements shown diegetically instead of as a list.
+        /// </summary>
+        internal static readonly Color RoomLocked = new Color(0.20f, 0.20f, 0.24f, 0.35f);
+
+        /// <summary>Unlocked, affordable, not yet built. Visibly a room-shaped absence.</summary>
+        internal static readonly Color RoomUnbuilt = new Color(0.24f, 0.23f, 0.30f, 0.85f);
+
+        /// <summary>A room that exists.</summary>
+        internal static readonly Color RoomBuilt = new Color(0.42f, 0.38f, 0.50f, 1f);
+
+        /// <summary>
+        /// The unfilled part of a room's level bar. Drawn even at level 1, so that a
+        /// ninety-level Tavern at level 1 reads as "barely started" rather than as nothing
+        /// -- the bar's job is the ratio, and a ratio needs both halves on screen.
+        /// </summary>
+        internal static readonly Color RoomLevelTrack = new Color(0f, 0f, 0f, 0.45f);
+
+        /// <summary>How far up its own tree a room has been taken.</summary>
+        internal static readonly Color RoomLevelFill = new Color(0.85f, 0.72f, 0.42f, 1f);
     }
 }
