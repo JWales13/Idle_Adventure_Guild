@@ -65,6 +65,7 @@ namespace IdleGuild.UI
         private IVisualElementScheduledItem _tick;
         private GuildScreen _screen = GuildScreen.Hall;
         private bool _structureDirty = true;
+        private string _pendingRoomId;
 
         private void OnEnable()
         {
@@ -165,6 +166,15 @@ namespace IdleGuild.UI
             _root.Clear();
             _root.AddToClassList("guild-root");
 
+            // The hall renders behind this panel and the world camera reads the pointer
+            // device directly, so every full-screen pass-through container here has to
+            // decline to be picked. Without this ChromeHitTest finds the root under every
+            // pixel on the screen, the whole display reads as chrome, and the hall stops
+            // panning -- which looks exactly like the pan being broken rather than like a
+            // picking mode. Children keep their own picking and stay clickable, so nothing
+            // the player can actually press is affected.
+            _root.pickingMode = PickingMode.Ignore;
+
             if (_tokens != null)
             {
                 _root.styleSheets.Add(_tokens);
@@ -183,16 +193,18 @@ namespace IdleGuild.UI
             }
 
             _treasury = new TreasuryBar();
-            _hall = new HallView(OnBuildingSelected);
+            _hall = new HallView();
             _quests = new QuestsView(ChoosePartyFor);
             _roster = new RosterView(AskToConfirm);
 
             VisualElement content = Ui.Box("guild-content");
+            content.pickingMode = PickingMode.Ignore;
             content.Add(_hall);
             content.Add(_quests);
             content.Add(_roster);
 
             _toast = new ToastBar();
+            _toast.pickingMode = PickingMode.Ignore;
             _tabs = new TabBar(Show);
             _buildingDetail = new BuildingDetailOverlay();
             _party = new PartyOverlay();
@@ -223,6 +235,7 @@ namespace IdleGuild.UI
         private void Subscribe()
         {
             EventBus.Subscribe<GameLoaded>(OnGameLoaded);
+            EventBus.Subscribe<RoomSelected>(OnRoomSelected);
             EventBus.Subscribe<BuildingUpgraded>(OnStructureChanged);
             EventBus.Subscribe<GuildTierAdvanced>(OnStructureChanged);
             EventBus.Subscribe<AdventurerRecruited>(OnStructureChanged);
@@ -236,6 +249,7 @@ namespace IdleGuild.UI
         private void Unsubscribe()
         {
             EventBus.Unsubscribe<GameLoaded>(OnGameLoaded);
+            EventBus.Unsubscribe<RoomSelected>(OnRoomSelected);
             EventBus.Unsubscribe<BuildingUpgraded>(OnStructureChanged);
             EventBus.Unsubscribe<GuildTierAdvanced>(OnStructureChanged);
             EventBus.Unsubscribe<AdventurerRecruited>(OnStructureChanged);
@@ -273,6 +287,21 @@ namespace IdleGuild.UI
             _structureDirty = true;
         }
 
+        /// <summary>
+        /// A room was touched in the hall. Recorded here and acted on in <see cref="Tick"/>
+        /// for the reason every other handler on this class does nothing but assign a
+        /// field: EventBus abandons the rest of a publish if a handler throws, and opening
+        /// an overlay is a great deal more code than setting a string.
+        ///
+        /// The hall does not know this overlay exists -- it published an Id and stopped.
+        /// See <c>PresentationEvents</c> for why the two presentation layers talk through
+        /// Core rather than through a reference.
+        /// </summary>
+        private void OnRoomSelected(RoomSelected selected)
+        {
+            _pendingRoomId = selected.BuildingId;
+        }
+
         private void Tick()
         {
             if (_bootstrap == null || !_bootstrap.IsReady)
@@ -302,6 +331,13 @@ namespace IdleGuild.UI
                 _roster.Rebuild(_context);
             }
 
+            if (_pendingRoomId != null)
+            {
+                string roomId = _pendingRoomId;
+                _pendingRoomId = null;
+                OnBuildingSelected(_context.World.Content.FindBuilding(roomId));
+            }
+
             _treasury.Refresh(_context);
             _hall.Refresh(_context);
             _quests.Refresh(_context);
@@ -321,7 +357,10 @@ namespace IdleGuild.UI
 
         private void OnBuildingSelected(BuildingDefinition building)
         {
-            if (_context != null)
+            // Null when the hall names a room the catalogue does not have, which the plan
+            // and the catalogue are kept in step to prevent -- but a view that trusts an Id
+            // it did not mint is a view that crashes on the day they disagree.
+            if (_context != null && building != null)
             {
                 _buildingDetail.Open(_context, building);
             }

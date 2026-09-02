@@ -43,6 +43,36 @@ namespace IdleGuild.World
                 ClampAxis(desiredCentre.y, viewSize.y, bounds.yMin, bounds.yMax));
         }
 
+        /// <summary>
+        /// The orthographic size that puts <paramref name="shortEdgeWorldUnits"/> across
+        /// the screen's SHORTER edge, whichever that is.
+        ///
+        /// The zoom policy in one line, and the short edge is the right thing to fix
+        /// because it is what constrains legibility. Fixing the height suits a landscape
+        /// window and leaves a portrait phone showing a strip narrower than one room --
+        /// which is what the first version did, and it made a room fill 89% of the screen.
+        /// Fixing the width has the same fault the other way round. Fixing the short edge
+        /// means a room occupies the same fraction of the tight dimension on any device,
+        /// and the long dimension gets whatever extra it has.
+        ///
+        /// Unity's orthographic size is HALF the visible height, which is why the two
+        /// branches look asymmetric when the policy is not.
+        /// </summary>
+        public static float OrthographicSizeFor(float shortEdgeWorldUnits, float aspect)
+        {
+            // A camera with no aspect yet -- one frame before layout, or a zero-sized game
+            // view. Returning the span unscaled keeps the size positive and finite; a
+            // divide here would hand Unity an infinity it renders as a blank screen.
+            if (aspect <= 0f)
+            {
+                return shortEdgeWorldUnits * 0.5f;
+            }
+
+            return aspect >= 1f
+                ? shortEdgeWorldUnits * 0.5f
+                : (shortEdgeWorldUnits / aspect) * 0.5f;
+        }
+
         private static float ClampAxis(float centre, float viewExtent, float min, float max)
         {
             float half = viewExtent * 0.5f;

@@ -18,6 +18,14 @@ namespace IdleGuild.World
     /// </summary>
     internal static class GreyBoxPalette
     {
+        /// <summary>
+        /// Beyond the hall's edge. Darker and warmer than the floor, so the boundary
+        /// between inside and outside reads without a wall being drawn -- and so that the
+        /// early game, when the hall is smaller than the screen, looks like a small guild
+        /// standing in a street rather than like a rendering fault.
+        /// </summary>
+        internal static readonly Color Outside = new Color(0.09f, 0.085f, 0.08f, 1f);
+
         /// <summary>The floor of the hall. Dark, so anything drawn on it reads.</summary>
         internal static readonly Color Floor = new Color(0.14f, 0.15f, 0.18f, 1f);
 
@@ -45,6 +53,14 @@ namespace IdleGuild.World
 
         /// <summary>A room that exists.</summary>
         internal static readonly Color RoomBuilt = new Color(0.42f, 0.38f, 0.50f, 1f);
+
+        /// <summary>
+        /// The band drawn around every room's edge. Without it adjacent rooms of the same
+        /// state merge into one field of colour and the plan stops reading as rooms at all
+        /// -- which is not a cosmetic problem in a grey box whose entire job is to be
+        /// judged by eye.
+        /// </summary>
+        internal static readonly Color RoomWall = new Color(0.10f, 0.09f, 0.13f, 1f);
 
         /// <summary>
         /// The unfilled part of a room's level bar. Drawn even at level 1, so that a

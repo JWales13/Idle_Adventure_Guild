@@ -4,6 +4,7 @@ using IdleGuild.Core.Events;
 using IdleGuild.Guild;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UIElements;
 
 namespace IdleGuild.World
 {
@@ -39,11 +40,12 @@ namespace IdleGuild.World
         [Tooltip("The bootstrap driving the simulation. Found in the scene if left empty.")]
         private GameBootstrap _bootstrap;
 
-        [Header("The hall")]
         [SerializeField]
-        [Tooltip("The extent of the hall in world units. Grows as new wings unlock.")]
-        private Rect _floorBounds = HallPlan.DefaultFloor;
+        [Tooltip("The interface, so a press that lands on it does not also reach the hall. " +
+                 "Found in the scene if left empty.")]
+        private UIDocument _chromeDocument;
 
+        [Header("The hall")]
         [SerializeField]
         [Tooltip("Where each room stands. Keyed by BuildingDefinition Id.")]
         private HallRoom[] _plan = HallPlan.Default();
@@ -53,6 +55,15 @@ namespace IdleGuild.World
         [Tooltip("Grey-box grid spacing in world units. 0 draws no grid. Dies with the grey box.")]
         private float _gridSpacing = 2f;
 
+        /// <summary>
+        /// How much of the hall the screen's shorter edge shows. A room is eight units
+        /// wide, so fourteen puts one room across roughly half the width of a portrait
+        /// phone with its neighbour and the corridor visible past it -- close enough to
+        /// read as a floor plan rather than as a wall.
+        /// </summary>
+        private const float WorldUnitsAcrossTheShortEdge = 14f;
+
+        private Rect _floorBounds;
         private GreyBoxFloor _floor;
         private Transform _floorRoot;
 
@@ -60,8 +71,13 @@ namespace IdleGuild.World
         private Transform _roomsRoot;
         private bool _roomsDirty = true;
 
+        private ChromeHitTest _chrome;
+
+        private bool _pressOnTheHall;
         private bool _dragging;
         private bool _wasPressed;
+        private Vector2 _pressStartPixel;
+        private float _travelledPixels;
         private Vector2 _grabbedWorldPoint;
 
         /// <summary>The hall's current extent in world units.</summary>
@@ -72,20 +88,12 @@ namespace IdleGuild.World
         /// interface rather than to the hall. Returning true lets the press through to the
         /// chrome and the hall does not pan.
         ///
-        /// **Currently unset, and that is a decision rather than an omission.** The obvious
-        /// implementation -- ask the UIDocument's panel what sits under the pixel -- makes
-        /// things worse today, because every screen is a full-bleed ScrollView and the panel
-        /// therefore reports the interface under every pixel of the content area. Wiring it
-        /// would trade an occasional double-drag for a hall that cannot be panned at all.
+        /// Wired from <see cref="_chromeDocument"/> when the scene has an interface, and
+        /// left settable so a test or a future overlay owner can answer instead.
         ///
-        /// It goes live when section 7 of Docs/World_View_Design.md is settled and the
-        /// chrome stops being the whole screen. The ambiguity it has to resolve -- dragging
-        /// the empty background of a list: scroll the list, or pan the hall? -- is that
-        /// section's question rather than this class's.
-        ///
-        /// A delegate rather than a call into <c>IdleGuild.UI</c> on purpose: World and UI
-        /// are siblings above App and neither references the other, so a hit test that
-        /// reached across would put the two presentation layers into a cycle.
+        /// It is a delegate rather than a call into <c>IdleGuild.UI</c> on purpose: World
+        /// and UI are siblings above App and neither references the other, so a hit test
+        /// that reached across would put the two presentation layers into a cycle.
         /// </summary>
         public Func<Vector2, bool> IsPointerOverChrome { get; set; }
 
@@ -98,10 +106,14 @@ namespace IdleGuild.World
             }
 
             ResolveBootstrap();
+            ResolveChrome();
 
-            ConfigureSorting();
+            _floorBounds = HallPlan.FloorFor(_plan);
+
+            ConfigureCamera();
+            FrameHall();
             BuildFloor();
-            EnsureRoomsRoot();
+            EnsureRooms();
             ClampCameraIntoBounds();
 
             Subscribe();
@@ -111,31 +123,14 @@ namespace IdleGuild.World
         private void OnDisable()
         {
             Unsubscribe();
+            _pressOnTheHall = false;
             _dragging = false;
             _wasPressed = false;
         }
 
-        /// <summary>
-        /// Grows (or moves) the hall, rebuilding the floor and pulling the camera back
-        /// inside it. Section 5: the hall physically expands as rooms unlock, and the
-        /// camera's reach has to expand with it.
-        /// </summary>
-        public void SetFloorBounds(Rect bounds)
-        {
-            _floorBounds = bounds;
-
-            if (!isActiveAndEnabled)
-            {
-                return;
-            }
-
-            BuildFloor();
-            ClampCameraIntoBounds();
-        }
-
         private void Update()
         {
-            HandlePan();
+            HandlePointer();
             RefreshRoomsIfNeeded();
         }
 
@@ -158,26 +153,27 @@ namespace IdleGuild.World
                 return;
             }
 
+            EnsureRooms();
             _rooms.Rebuild(_plan, guild);
             _roomsDirty = false;
         }
 
-        private void EnsureRoomsRoot()
+        private void EnsureRooms()
         {
-            if (_roomsRoot != null)
+            if (EnsureChild("Rooms", ref _roomsRoot))
             {
-                return;
+                _rooms = null;
             }
 
-            var root = new GameObject("Rooms");
-            root.transform.SetParent(transform, false);
-            _roomsRoot = root.transform;
-            _rooms = new RoomRectangles(_roomsRoot);
+            if (_rooms == null)
+            {
+                _rooms = new RoomRectangles(_roomsRoot);
+            }
         }
 
         // ------------------------------------------------------------------- input -----
 
-        private void HandlePan()
+        private void HandlePointer()
         {
             // One device covers both cases: Touchscreen derives from Pointer, so a finger
             // on a phone and a mouse in the editor arrive through the same two controls
@@ -190,6 +186,7 @@ namespace IdleGuild.World
 
             if (pointer == null)
             {
+                _pressOnTheHall = false;
                 _dragging = false;
                 _wasPressed = false;
                 return;
@@ -200,13 +197,13 @@ namespace IdleGuild.World
 
             if (pressed && !_wasPressed)
             {
-                BeginDrag(pixel);
+                BeginPress(pixel);
             }
-            else if (!pressed)
+            else if (!pressed && _wasPressed)
             {
-                _dragging = false;
+                EndPress(pixel);
             }
-            else if (_dragging)
+            else if (pressed && _dragging)
             {
                 ContinueDrag(pixel);
             }
@@ -214,20 +211,71 @@ namespace IdleGuild.World
             _wasPressed = pressed;
         }
 
-        private void BeginDrag(Vector2 pixel)
+        private void BeginPress(Vector2 pixel)
         {
             // Decided once, when the press starts, and not re-asked while it is held. A
-            // drag that begins on the treasury bar belongs to the treasury bar for its
-            // whole life, even when the finger travels off the panel -- otherwise
-            // dragging the mailbox flicks the hall sideways the moment you leave it.
+            // press that begins on the treasury bar belongs to the treasury bar for its
+            // whole life, even when the finger travels off the panel -- otherwise dragging
+            // the mailbox flicks the hall sideways the moment you leave it.
             if (IsPointerOverChrome != null && IsPointerOverChrome(pixel))
             {
+                _pressOnTheHall = false;
                 _dragging = false;
                 return;
             }
 
+            _pressOnTheHall = true;
             _dragging = true;
+            _pressStartPixel = pixel;
+            _travelledPixels = 0f;
             _grabbedWorldPoint = ScreenToWorld(pixel);
+        }
+
+        private void EndPress(Vector2 pixel)
+        {
+            bool wasATap = _pressOnTheHall && _travelledPixels <= TapSlackPixels();
+
+            _pressOnTheHall = false;
+            _dragging = false;
+
+            if (wasATap)
+            {
+                TapAt(pixel);
+            }
+        }
+
+        /// <summary>
+        /// How far a finger may wander and still have meant a tap, in pixels.
+        ///
+        /// Measured as a fraction of the screen rather than as a pixel count, because a
+        /// pixel is not a fixed size: forty pixels of slack is a comfortable thumb on a
+        /// phone and an invisible twitch on a tablet, and the tolerance the player
+        /// actually has is a fraction of the thing they are looking at.
+        /// </summary>
+        private static float TapSlackPixels()
+        {
+            const float FractionOfScreenHeight = 0.02f;
+            return Screen.height * FractionOfScreenHeight;
+        }
+
+        private void TapAt(Vector2 pixel)
+        {
+            HallRoom room = HallPlan.FindAt(_plan, ScreenToWorld(pixel));
+
+            if (room == null)
+            {
+                // Floor, corridor or street. Tapping nothing is a legitimate thing to do
+                // and must stay silent -- step 6 gives the street its own meaning when the
+                // tap is re-homed onto a waiting customer.
+                return;
+            }
+
+            // The hall states what the player touched and stops there. It does not open the
+            // panel, because it does not own one, and it does not check whether the room is
+            // affordable or even built -- that is a rule, and rules live in services. See
+            // PresentationEvents for why this crosses through Core rather than through a
+            // reference.
+            EventBus.Publish(new RoomSelected(room.BuildingId));
         }
 
         private void ContinueDrag(Vector2 pixel)
@@ -238,6 +286,13 @@ namespace IdleGuild.World
             // orthographic size and on any screen density for free, where a
             // pixels-times-speed version needs re-tuning every time either changes and is
             // never quite right at the edges of a drag.
+            // Furthest from where the finger landed, not distance travelled: a finger that
+            // wanders out and comes back has still not tapped, and a path length would
+            // forgive it. Recorded on every frame of the drag so the release can tell a tap
+            // from a pan without a timer, which would make a slow deliberate tap fail.
+            _travelledPixels = Mathf.Max(
+                _travelledPixels, Vector2.Distance(pixel, _pressStartPixel));
+
             Vector2 pointsAtNow = ScreenToWorld(pixel);
             Vector3 position = _camera.transform.position;
 
@@ -300,6 +355,24 @@ namespace IdleGuild.World
             return true;
         }
 
+        private void ResolveChrome()
+        {
+            if (_chromeDocument == null)
+            {
+                _chromeDocument = FindAnyObjectByType<UIDocument>();
+            }
+
+            if (_chromeDocument == null)
+            {
+                // Not an error: a scene with no interface is a legitimate way to look at
+                // the hall on its own, and nothing then needs to block a press.
+                return;
+            }
+
+            _chrome = new ChromeHitTest(_chromeDocument);
+            IsPointerOverChrome = _chrome.Covers;
+        }
+
         private void ResolveBootstrap()
         {
             if (_bootstrap == null)
@@ -316,7 +389,7 @@ namespace IdleGuild.World
             }
         }
 
-        private void ConfigureSorting()
+        private void ConfigureCamera()
         {
             // Depth into a high three-quarter floor plan is world Y, so that is what the
             // camera sorts transparency along. Set here rather than in Graphics settings
@@ -325,27 +398,83 @@ namespace IdleGuild.World
             // inherit it.
             _camera.transparencySortMode = TransparencySortMode.CustomAxis;
             _camera.transparencySortAxis = new Vector3(0f, 1f, 0f);
+
+            // What lies beyond the floor. The hall is smaller than the screen early on and
+            // section 5 wants outside visible at the entrance anyway, so something is
+            // always showing past the edge -- and the default was Unity's blue skybox,
+            // which reads as a void rather than as ground the guild stands on.
+            _camera.clearFlags = CameraClearFlags.SolidColor;
+            _camera.backgroundColor = GreyBoxPalette.Outside;
         }
 
         private void BuildFloor()
         {
-            if (_floorRoot == null)
+            if (EnsureChild("Floor", ref _floorRoot))
             {
-                var root = new GameObject("Floor");
-                root.transform.SetParent(transform, false);
-                _floorRoot = root.transform;
+                _floor = null;
+            }
 
-                // Built together with the root, not lazily beside it. A scene change
-                // destroys the root and leaves this field holding a Transform that is
-                // null to Unity and not to C#, so a floor cached across that point would
-                // quietly rebuild itself into an object that no longer exists.
+            if (_floor == null)
+            {
                 _floor = new GreyBoxFloor(_floorRoot);
             }
 
             _floor.Rebuild(_floorBounds, _gridSpacing);
         }
 
+        /// <summary>
+        /// Finds this view's named child, making it if it has gone, and reports whether it
+        /// had to.
+        ///
+        /// **The two halves of a pair like this must be checked separately, and an earlier
+        /// version of this class checked them together and threw.** A plain C# helper and
+        /// the Transform it draws into do not have the same lifetime: a domain reload while
+        /// the editor sits in Play mode -- which is what happens every time a script is
+        /// recompiled mid-session, so it is the common case here rather than an exotic one
+        /// -- clears the managed object and leaves the Unity reference standing. Building
+        /// the helper only inside the "the child is missing" branch then skips it forever
+        /// and the next call dereferences null.
+        ///
+        /// The reverse direction is real too, which is why this reports the creation rather
+        /// than swallowing it: a helper that survives while its parent is replaced would go
+        /// on drawing into an object nothing renders, and that failure is silent, where
+        /// this one at least threw.
+        /// </summary>
+        private bool EnsureChild(string name, ref Transform holder)
+        {
+            if (holder != null)
+            {
+                return false;
+            }
+
+            var child = new GameObject(name);
+            child.transform.SetParent(transform, false);
+            holder = child.transform;
+            return true;
+        }
+
         // ------------------------------------------------------------------ camera -----
+
+        /// <summary>
+        /// Sets the zoom from the plan and the screen, rather than from a number typed into
+        /// the scene.
+        ///
+        /// The camera shipped at orthographic size 5 -- a ten-unit window onto a
+        /// twenty-four-unit floor -- which was right when the floor was empty and made a
+        /// single room larger than the viewport the moment rooms existed. That is a magic
+        /// number in the exact sense Principle 01 means: a value that has to agree with
+        /// something else and has nothing keeping it honest.
+        ///
+        /// The policy itself lives in <see cref="WorldCameraBounds.OrthographicSizeFor"/>,
+        /// where it can be tested. This is the whole of the project's zoom handling for
+        /// now, and it is a placeholder: pinch-to-zoom supersedes it and is not among
+        /// section 9's nine steps.
+        /// </summary>
+        private void FrameHall()
+        {
+            _camera.orthographicSize = WorldCameraBounds.OrthographicSizeFor(
+                WorldUnitsAcrossTheShortEdge, _camera.aspect);
+        }
 
         private void ClampCameraIntoBounds()
         {

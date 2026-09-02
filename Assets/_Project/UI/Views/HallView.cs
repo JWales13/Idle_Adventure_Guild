@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using IdleGuild.App;
 using IdleGuild.Core;
 using IdleGuild.Guild;
@@ -8,57 +6,59 @@ using UnityEngine.UIElements;
 namespace IdleGuild.UI.Views
 {
     /// <summary>
-    /// Home: what the guild is worth, what it is capable of, and the three buildings
-    /// that change both.
+    /// What the guild is worth and what it still owes the next tier.
     ///
-    /// The building list is built from <c>GameContent.Buildings</c> and nothing else, so
-    /// the post-launch Quest Board and Armory appear here by being added to that
-    /// catalogue — no case, no layout branch, no new card type. That is the same bet the
-    /// simulation makes, checked from the other end.
+    /// **It used to be the home screen and is not any more.** Section 7 of
+    /// Docs/World_View_Design.md demotes the interface to chrome around the hall, and
+    /// section 10 obsoletes this view's building grid outright: rooms are the game, and a
+    /// room is now a rectangle on the floor that opens its own panel when tapped. So the
+    /// grid is gone, <c>BuildingCard</c> has no caller left, and what remains is the one
+    /// thing that has nowhere diegetic to live yet -- the tier gate and the button that
+    /// passes through it.
+    ///
+    /// It keeps its name for now, because <c>GuildScreen.Hall</c>, the tab bar and the USS
+    /// all speak it, and the rename belongs to the day the tab bar goes rather than to a
+    /// step that only empties this out.
+    ///
+    /// **Why the tier card survived the cull.** Deleting the whole view would have been
+    /// tidier and would have left advancing a tier reachable from nowhere -- a sequence of
+    /// choices that leaves the player unable to make progress, which §01 forbids in almost
+    /// those words. Unbuilt rooms showing dark on the floor covers the *diagnosis* half of
+    /// finding #7 diegetically; it does not cover the action. That waits for the room
+    /// panels to be re-homed properly.
+    ///
+    /// It no longer fills the screen either -- see <c>guild-screen--panel</c>. Everything
+    /// below it is hall.
     /// </summary>
     public sealed class HallView : ScrollView
     {
-        private readonly Action<BuildingDefinition> _onSelectBuilding;
-        private readonly List<BuildingCard> _cards = new List<BuildingCard>();
-
         private GuildContext _context;
         private Label _tierTitle;
+        private Label _tierSummary;
+        private VisualElement _detail;
+        private bool _expanded;
         private VisualElement _requirements;
         private VisualElement _stats;
         private Button _advance;
 
-        public HallView(Action<BuildingDefinition> onSelectBuilding)
+        public HallView()
             : base(ScrollViewMode.Vertical)
         {
-            _onSelectBuilding = onSelectBuilding;
             AddToClassList("guild-screen");
+            AddToClassList("guild-screen--panel");
         }
 
         /// <summary>
-        /// Build the parts whose existence depends on the world: the tier card and one
-        /// card per building. Called when something structural changes, not every frame.
+        /// Build the parts whose existence depends on the world. Called when something
+        /// structural changes, not every frame.
         /// </summary>
         public void Rebuild(GuildContext context)
         {
             _context = context;
             Clear();
-            _cards.Clear();
 
             Add(Ui.Text("Guild", "section-title", "section-title--first"));
             Add(BuildTierCard());
-
-            Add(Ui.Text("Buildings", "section-title"));
-            foreach (BuildingDefinition building in context.World.Content.Buildings)
-            {
-                if (building == null)
-                {
-                    continue;
-                }
-
-                BuildingCard card = new BuildingCard(building, _onSelectBuilding);
-                _cards.Add(card);
-                Add(card);
-            }
 
             Refresh(context);
         }
@@ -82,20 +82,36 @@ namespace IdleGuild.UI.Views
 
             RefreshRequirements(context, tier);
             RefreshStats(context);
+            _tierSummary.text = SummaryFor(context, tier, next);
 
             _advance.text = next != null ? $"Advance to {next.DisplayName}" : "Fully grown";
             _advance.SetEnabled(context.Tiers.Preview() == TierAdvanceOutcome.Advanced);
-
-            foreach (BuildingCard card in _cards)
-            {
-                card.Refresh(context);
-            }
         }
 
+        /// <summary>
+        /// A one-line summary that opens into the full gate when tapped, and starts closed.
+        ///
+        /// The card is reference material -- what the guild is worth and what the next tier
+        /// still wants -- and reference material read once a session should not hold the
+        /// middle of the screen while the hall is behind it. Closed, it is a row; open, it
+        /// is exactly what it was before.
+        ///
+        /// Advancing is two presses rather than one, which is the cost and is worth naming.
+        /// It is paid a handful of times in a whole run, against a hall that is on screen
+        /// for all of it.
+        /// </summary>
         private VisualElement BuildTierCard()
         {
             VisualElement card = Ui.Box("card");
+
             _tierTitle = Ui.Text(string.Empty, "card__title");
+            _tierSummary = Ui.Text(string.Empty, "card__meta");
+
+            VisualElement summary = Ui.Box("card__summary");
+            summary.Add(_tierTitle);
+            summary.Add(_tierSummary);
+            summary.RegisterCallback<ClickEvent>(_ => ToggleDetail());
+
             _requirements = Ui.Box("stat-row");
             _stats = Ui.Box("stat-row");
             _advance = Ui.Action(string.Empty, OnAdvance, "button--primary", "button--wide");
@@ -103,11 +119,27 @@ namespace IdleGuild.UI.Views
             VisualElement actions = Ui.Box("card__row");
             actions.Add(_advance);
 
-            card.Add(_tierTitle);
-            card.Add(_requirements);
-            card.Add(_stats);
-            card.Add(actions);
+            _detail = Ui.Box("card__detail");
+            _detail.Add(_requirements);
+            _detail.Add(_stats);
+            _detail.Add(actions);
+
+            card.Add(summary);
+            card.Add(_detail);
+
+            ApplyExpansion();
             return card;
+        }
+
+        private void ToggleDetail()
+        {
+            _expanded = !_expanded;
+            ApplyExpansion();
+        }
+
+        private void ApplyExpansion()
+        {
+            _detail.EnableInClassList("card__detail--collapsed", !_expanded);
         }
 
         /// <summary>
@@ -145,6 +177,48 @@ namespace IdleGuild.UI.Views
                 "Reputation",
                 $"{Format.Amount(reputation)}/{Format.Amount(tier.ReputationToAdvance)}",
                 reputation >= tier.ReputationToAdvance));
+        }
+
+        /// <summary>
+        /// What the closed row has to say on its own. It reports the shortfall as a count
+        /// rather than saying nothing, because a collapsed gate that reads "Village" tells
+        /// the player less than the screen it replaced -- and finding #7 is already owed a
+        /// gate that names what it is missing.
+        /// </summary>
+        private static string SummaryFor(
+            GuildContext context, GuildTierDefinition tier, GuildTierDefinition next)
+        {
+            if (next == null)
+            {
+                return "Nothing further to reach";
+            }
+
+            int met = 0;
+            int total = 1;
+
+            foreach (BuildingLevelRequirement requirement in tier.RequirementsToAdvance)
+            {
+                if (requirement.Building == null)
+                {
+                    continue;
+                }
+
+                total++;
+
+                if (context.World.GuildState.GetLevel(requirement.Building.Id) >= requirement.MinimumLevel)
+                {
+                    met++;
+                }
+            }
+
+            if (context.World.Economy.Get(CurrencyType.Reputation) >= tier.ReputationToAdvance)
+            {
+                met++;
+            }
+
+            return met >= total
+                ? $"Ready for {next.DisplayName}"
+                : $"{met} of {total} met for {next.DisplayName}";
         }
 
         private static VisualElement Requirement(string label, string value, bool met)

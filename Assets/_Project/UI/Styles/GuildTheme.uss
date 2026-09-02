@@ -40,10 +40,41 @@
 
 .guild-screen {
     flex-grow: 1;
+
+    /* A full-screen destination is opaque. The root went transparent so the hall could
+       show behind the chrome, which left every screen showing floor between its cards --
+       correct for a panel, wrong for a menu that is meant to BE the screen. This is also
+       what gives --color-surface-base its consumer back after §7 took it away from the
+       root. Panels below opt out again. */
+    background-color: var(--color-surface-base);
     padding-top: var(--space-md);
     padding-bottom: var(--space-md);
     padding-left: var(--space-md);
     padding-right: var(--space-md);
+}
+
+/* A screen that is a panel over the hall rather than the whole screen. The hall
+   renders behind the interface now, so a view that flex-grows fills the display with
+   chrome and hides the game -- see §7 of Docs/World_View_Design.md. Everything below
+   a panel is floor. */
+/* The tier card's always-visible row: title on the left, shortfall on the right. */
+.card__summary {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card__detail--collapsed {
+    display: none;
+}
+
+.guild-screen--panel {
+    flex-grow: 0;
+    flex-shrink: 0;
+
+    /* Everything below a panel is hall, including the panel's own background. Declared
+       after .guild-screen so it wins on order rather than on specificity. */
+    background-color: rgba(0, 0, 0, 0);
 }
 
 .guild-screen--hidden {

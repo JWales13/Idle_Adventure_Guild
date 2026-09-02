@@ -214,7 +214,73 @@ where things stand in a sentence or two before writing any code.
 
 ### Current status
 
-**Current status:** Week 3, Day 16 complete — **the revision is being built.** A sixth
+**Current status:** Week 3, Day 17 complete — **the guild is a place.** A tenth assembly
+draws the hall, the interface stopped being the game, and the grey-box did the job it was
+built for by rejecting a plan drawn for the wrong device.
+
+`IdleGuild.World` sits beside `IdleGuild.UI` above App, and **no production assembly
+references it** — only `IdleGuild.Tests.Editor`, which references everything by design. The
+five feature assemblies are still Core-only and **no `.asset` file changed**, on the seventh
+occasion it could have. Verified by reading all ten `.asmdef` files rather than asserted:
+Adventurers, Economy, Guild, Quests and Staff each list `IdleGuild.Core` and nothing else,
+App lists the five, and UI and World list App without listing each other.
+
+> **CORRECTION, issued Day 17.** This document has said **six** feature assemblies since Day
+> 16, and there are **five** — Economy, Adventurers, Quests, Guild, Staff. Day 16 called
+> Staff "the sixth feature assembly" while the same paragraph listed four before it, and the
+> arithmetic was never done. Harmless, and the second counting error this session after the
+> 115/117 suite figure — both the same shape as every other finding in this file: **a number
+> nobody could check, carried forward as though somebody had.** Total assembly count is now
+> **ten**, which was nine before `IdleGuild.World`. Steps 1 and 2 of §9 of `Docs/World_View_Design.md` are done — an
+orthographic camera panned by pinning the world point under the finger, a grey-box floor
+and grid, and the three rooms as walled rectangles reading level and unlock state off
+`GuildState` with a level bar drawn against **each room's own tree length**, since the
+trees are 90/40/30 and a shared denominator reports a finished Inn as permanently behind.
+
+**§7 is half settled, and the half that is left is blocked on content.** `HallView` lost its
+building grid — §10 obsoleted it — and kept the tier card, now collapsed to one line that
+reports the shortfall. Deleting the whole view would have been tidier and would have left
+advancing a tier reachable from nowhere, which §01 forbids in almost those words. Rooms are
+tapped instead, publishing `RoomSelected` through a new `Core/Events/PresentationEvents.cs`
+to the overlay that already existed. **The tab bar survives**, and its removal is now pinned
+to a date rather than left open: contracts open from the Front Desk and the roster from the
+Barracks, and neither building is authored, so removing it today would strand two screens.
+
+**The day's finding is that §9's own step order does not survive contact with the data.**
+Step 3 is *"seats, derived from `ServiceSeats` — the first moment the economy is visible"*,
+and **no shipped room produces `ServiceSeats`, `CustomerSpend` or `ServiceDemand`.** The
+Tavern produces Reward Yield and Recruitable Rarity and nothing else. So step 3 draws zero
+seats, step 4 zero townsfolk, step 5 an empty queue and step 6 an inert tap — and step 7
+needs staff assets the ladder finding forbids authoring. **Of steps 3–8, only step 8
+(adventurers) is buildable against today's catalogue.** Steps 3–6 are one dependency: the
+five rooms as assets. Caught by reading the assets before writing the code rather than after,
+which is the first time this project has met that shape in advance.
+
+**The second finding is what the grey-box is for.** The first hall plan was thirty-two units
+wide with twelve-unit rooms — a landscape shape on a portrait device. At any zoom where a
+room was legible a 1080×1920 screen showed 13.5 units across, so one room filled **89% of the
+screen width** and two could never be seen at once. No art would have fixed that. The plan is
+now portrait-native (8-wide rooms stacked either side of a 2-wide corridor, growing upward),
+the floor is **derived from the plan** rather than authored — killing a stale serialized
+rectangle that would otherwise have outlived every edit — and the zoom policy is *the
+screen's short edge shows 14 world units*, which is the dimension that constrains
+legibility. §11's "where the rooms sit" is still open, but now with a constraint attached
+rather than drawn free-hand.
+
+**Suite: 136, confirmed green, three Ignored.** It went 103 → 117 → 136 across the day, and
+the first of those was a correction rather than work: see the Day 16 block below.
+
+**What has NOT been done, and is owed.** The reshaped plan **has never been seen running on
+a portrait screen** — every screenshot this session was taken in a landscape Game view, which
+is not a smaller version of the target but a different one, and three of the day's reported
+problems were partly that. Set the Game view to 1080×1920 before judging anything. The
+25-minute interface hand-check is now deferred a **fourth** time.
+
+---
+
+**Superseded — Week 3, Day 16:**
+
+Week 3, Day 16 — **the revision is being built.** A sixth
 feature assembly exists, four rooms can earn gold per hour, and the payroll can be let go
 on the same day it can be hired.
 
@@ -410,7 +476,7 @@ The passes earned their keep immediately. Step 1 of the Day 6 document found a r
 
 The Week 1 checkpoint holds, minus the UI that Day 7 adds.
 
-**Next action:** step 1 of §9 of `Docs/World_View_Design.md`** — the `IdleGuild.World` assembly and a drag-panned camera over an empty floor. **All art work is deferred** by decision; eight of that document's nine steps need no art at all, and the grey-box has to prove the view before a batch is worth generating.
+**Next action:** set the Game view to **1080×1920** and look at the hall, which nobody has yet done on the aspect this game ships in. Then **the five rooms as assets** — §8 of `Docs/Vision_Revision.md`'s third item, and the single dependency standing under steps 3, 4, 5 and 6 of §9 of `Docs/World_View_Design.md`. **All art work is still deferred** by decision; none of those steps needs any.
 
 The tuner has the two hardest targets already: rooms at **68%** of lifetime income
 against a 70% target, and a **6-minute** 90th-percentile purchase gap against a 10-minute
@@ -682,7 +748,8 @@ Three structural decisions, the first two from Day 1 and the third from Day 4–
 Implementation runs in **Claude Cowork**, not a terminal session. Its shell is a Linux VM with the project folder mounted, which has two consequences that hold until decided otherwise:
 
 - **Claude runs NO git commands at all. The developer commits through GitHub Desktop.** The bridge blocks file deletion, and git unlinks constantly, so anything from Claude's side leaves stale `.git/*.lock` files that then block the developer's own git. This includes commands that merely *look* read-only: **`git status` refreshes the index, which is a write, and it leaves a lock behind.** Learned twice on Day 1 and again on Day 3. Genuinely safe for inspection: `git log`, `git show`, `git ls-tree`, `git ls-files`. Claude writes files and states the commit message it would use; the developer commits.
-- **Unity Editor and Xcode steps are manual.** `unity` and `dotnet` are not on Claude's PATH. Claude also cannot make Unity import new files — the developer must focus the Editor window, after which Claude can verify compilation by checking for `Library/ScriptAssemblies/IdleGuild.*.dll` and grepping `Logs/` for `error CS`. Fine through Day 7, which is entirely file-level. **Week 4 (Days 22–26: device builds, TestFlight, App Store Connect) is not solvable from Cowork** and needs either a terminal session or the developer driving Xcode directly. Decide before Day 22, not on it.
+- **Claude never deletes a file inside `Assets/`. The developer deletes it in the Project window.** Same shape as the git rule and learned the same way, on Day 17. Removing a `.cs` from the bridge leaves Unity's Bee build graph holding a source list that still names it, and the compile then fails with `error CS2001: source file could not be found` — which **`Assets > Refresh` does not clear**, because the failing compile never gets far enough to regenerate the list. Recovery is to put the file back, let it compile green, and delete it through the Project window so the AssetDatabase drops the `.cs`, its `.meta` and the compiler's source list together. Claude writes files; the developer deletes them.
+- **Unity Editor and Xcode steps are manual.** `unity` and `dotnet` are not on Claude's PATH. Claude also cannot make Unity import new files — the developer must focus the Editor window, after which Claude can verify compilation by checking for `Library/ScriptAssemblies/IdleGuild.*.dll` and grepping `Logs/` for `error CS`. **Correction, Day 17: the "any `error CS` after the last `Finished compiling graph`" rule gives false positives.** Unity emits that marker only on full graph rebuilds, so after an incremental fix the log's last marker sits *above* the errors it already resolved. The reliable signals are the **DLL timestamp** and **the suite loading at all** — a test run that reports a count has, by definition, compiled every assembly. Fine through Day 7, which is entirely file-level. **Week 4 (Days 22–26: device builds, TestFlight, App Store Connect) is not solvable from Cowork** and needs either a terminal session or the developer driving Xcode directly. Decide before Day 22, not on it.
 
 Recovery command if a git operation from Claude's side ever leaves debris:
 
@@ -703,6 +770,14 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 - **NVIDIA MotionBricks was evaluated and rejected for this project.** Real, released mid-2026, Apache 2.0 code with commercially-usable weights — and it generates **3D humanoid skeletal motion** and needs a **CUDA GPU**, so it fits neither the 2D sprite pipeline nor an Apple Silicon Mac. The deeper reason it does not fit: it solves motion *variety*, and this project needs five clips total reused across fifteen characters. The problem here is character *consistency*, which Unity's built-in 2D Animation package solves for free. Recorded so it is not re-evaluated. **What it did surface is worth keeping**: if the character spike fails and 2D rigging also disappoints, **pre-rendering 3D characters to 2D sprite sheets** is the proven fallback — Diablo II, Fallout, Age of Empires — and it eliminates frame drift by construction. The door into that is a free rigged-character library and a fixed camera, not a motion-generation research model.
 
 - **The presentation layer is being replaced and the art requirement with it.** `Docs/World_View_Design.md` settles: depict-not-cause, high-angle three-quarter floor plan, free pan, the hall physically expanding, redecoration at thresholds, and townsfolk, staff and adventurers all moving. A seventh assembly `IdleGuild.World` sits beside `IdleGuild.UI` above App; the features stay Core-only. **Still open**: whether animation frames are authored or baked out of a rig (decided by taking one character end to end, not in the abstract — image generators cannot produce consistent frames of the same character, and the resolution to test is rig-once-and-bake); whether the tab bar survives; how many redecoration states per room; and where the five rooms sit on the plan. **`Day15_Art_Brief.md` §4 and `Art_Generation_Guide.md` §3's asset lists are both obsolete** — the guide's licence and pipeline sections are not.
+
+- **§9's step order does not survive contact with the catalogue, and only step 8 is buildable.** Steps 3–6 read `ServiceSeats`, `CustomerSpend` and `ServiceDemand`, and **no shipped room produces any of them** — the Tavern carries Reward Yield and Recruitable Rarity and nothing else. So seats draw as zero, townsfolk never spawn, the queue stays empty and the tap stays inert; step 7 needs staff assets the ladder finding forbids authoring. **Steps 3–6 are one dependency — the five rooms as assets — and that is the next real day of work.** Step 8, adventurers from `AdventurerActivity`, is the one step that runs against today's data, and it needs the Inn standing in for a Barracks that does not exist.
+
+- **Four fields on `GuildTierDefinition` have never been written to any tier `.asset`, and one of them is a zero that matters.** Day 16 added `_marketSize`, `_contractRewardScale`, `_baseServicePerHour` and `_baseHousingCapacity` and — correctly, per §8's order — touched no asset, so none of the four appears in a tier's YAML and each reads its C# initialiser. Two are harmless (`= 1f`). **`_baseServicePerHour` has no initialiser and reads 0 at every tier**, which is the cold-start value its own tooltip warns about: *"Must be above zero, or an unstaffed guild can never start trading."* It is guarded, but the guard is gated on *rooms producing demand* rather than on itself, so it goes live the day the rooms do rather than the day the field was added. Harmless while nothing trades. **Author it with the rooms.**
+
+- **The world view has a category of failure the first sixteen days did not, and the suite cannot reach it.** All 136 tests drive plain C#; none constructs a MonoBehaviour or survives a domain reload. Day 17's only runtime crash was exactly that — a plain C# helper and the `Transform` it draws into do not have the same lifetime, and a domain reload while the editor sits in Play mode (which this working arrangement causes constantly) clears one and leaves the other standing. Constructing the pair together made it only as safe as that assumption. **Play mode is the only thing that checks this class of bug**, and the fix pattern is `EnsureChild`: check each half separately, and drop the helper whenever its parent is remade.
+
+- **The hall plan's proportions are a device question, not a taste question.** §11 lists where the rooms sit as open; Day 17 attached a constraint. A room eight units wide against a fourteen-unit visible span is about 57% of a portrait phone's width, which reads. Twelve units against 13.5 was 89%, which did not, and no art would have rescued it. Whatever the five-room layout ends up being, check it against the span before drawing it.
 
 - **There is no hard ship date.** The Day 38 / Day 42 targets were a rough sense of how long the project should take, not a commitment. Recorded because two documents treat them as deadlines and a future session should not cut scope to protect a date that was never real.
 
@@ -954,124 +1029,166 @@ not detectable, and will be found by accident or not at all.**
 **Most recent continuation prompt:**
 
 ```
-I'm continuing work on Idle Adventurer's Guild, a solo Unity mobile game. The design was
-revised on Day 14 from a fantasy management sim into an IDLE HOTEL TYCOON with an
-isekai/anime guild-hall theme. THERE IS NO HARD SHIP DATE - the Day 38 / Day 42 targets
-were a rough sense of how long the project should take, never a commitment, and several
-documents had begun treating them as deadlines. Do not cut scope to protect a date. Day
-numbers below are sequence markers, not obligations.
+I'm continuing work on Idle Adventurer's Guild, a solo Unity mobile game - an IDLE HOTEL
+TYCOON with an isekai/anime guild-hall theme, revised into that on Day 14 from a fantasy
+management sim. THERE IS NO HARD SHIP DATE; the Day 38 / Day 42 targets were a rough sense
+of how long the project should take, never a commitment, and several documents had begun
+treating them as deadlines. Day numbers are sequence markers. Do not cut scope to protect
+a date.
 
-The project lives at ~/Idle_Adventure_Guild. Read GUILD_LEDGER.md in the repo root in
-full first - it is the source of truth for what EXISTS, and section 06 carries a
-CORRECTION that invalidates several things earlier entries call verified. Then read
-Docs/Vision_Revision.md in full - the source of truth for what we are BUILDING, which
-supersedes sections 02, 03 and 05 of the Ledger, and which now carries three CORRECTION
-boxes of its own in 3.1, 4 and 6C where it described mechanisms the tuned model does not
-use. Then Docs/Day16_Staff_And_Revenue.md (what was built yesterday and the one finding
-that changes what you can trust), Docs/Day16_Followup_Solvency.md (a playtest walked into
-an unrecoverable state; this is the fix, and the new Principle it produced), and
-Docs/Tests.md (short, changes how you verify things - note section 7 on the tests that
+The project lives at ~/Idle_Adventure_Guild. Read GUILD_LEDGER.md in the repo root IN FULL
+first - it is the source of truth for what EXISTS, and section 06 carries corrections that
+invalidate things earlier entries state as fact. Then Docs/Vision_Revision.md in full (the
+source of truth for what we are BUILDING; supersedes sections 02, 03 and 05 of the Ledger,
+and carries three CORRECTION boxes of its own in 3.1, 4 and 6C). Then
+Docs/World_View_Design.md (the presentation charter - but read the Ledger's correction to
+its section 9 step order BEFORE planning against it). Then Docs/Day16_Staff_And_Revenue.md,
+Docs/Day16_Followup_Solvency.md and Docs/Tests.md (short; section 7 covers the tests that
 are Ignored on purpose).
 
-Current position: Week 3, Day 17 - continuing the revision. ART IS DEFERRED; the next
-work is the grey-box world view.
-Last completed: Week 1 in full; Days 8-9 building trees; Days 10-11 tier transitions plus
-the test suite; Day 12 recruitment and assignment UI; Day 13 first balance pass; Day 14
-playtest and the design revision; Day 15 economy tuning, the icon wire, and the discovery
-that the interface had never been rendered; Day 16 the Staff assembly, the revenue engine,
-and a follow-up adding the crown's stipend after a playtest found a dead end. Unity 6000.5.0f1 / URP 2D, private GitHub repo via GitHub Desktop, Git LFS live.
-NINE assemblies: IdleGuild.Core at the bottom; FIVE feature assemblies depending on Core
-and nothing else (Economy, Adventurers, Quests, Guild, and as of Day 16 Staff);
-IdleGuild.App above them holding composition and cross-feature transactions;
-IdleGuild.UI above that; IdleGuild.Tests.Editor above everything. A TENTH,
-IdleGuild.World, is the first thing the next session builds - it sits beside
-IdleGuild.UI above App, and nothing references it.
+Current position: Week 3, Day 18 - continuing the revision. ART IS STILL DEFERRED and
+nothing on the next list needs any.
 
-WHAT EXISTS AND WHAT DOES NOT, precisely, because this is the confusing part:
-the revenue ENGINE is built and NO ROOM USES IT. Day 16 added IdleGuild.Staff, the
-TradeService revenue engine, StaffService with hire AND dismiss, TakingsService (the
-tap), five appended GuildStats, four new tier fields, and the save fields - and touched
-NOT ONE .asset file. So the game that actually runs is still the one-economy version:
-three buildings, gold only from contracts, individual adventurer training, plus the
-crown's stipend. Day 17 is where the assets start to change.
+Last completed: Week 1 in full; Days 8-9 building trees; Days 10-11 tier transitions and the
+test suite; Day 12 recruitment and assignment UI; Day 13 first balance pass; Day 14 playtest
+and the design revision; Day 15 economy tuning and the discovery that the interface had
+never been rendered; Day 16 the Staff assembly, the revenue engine and the crown's stipend;
+Day 17 the world view - steps 1 and 2 of section 9, and half of section 7.
 
-AND NOTE WHAT THAT MEANS FOR THE TAP: TakingsService shipped tested and documented and is
-INERT. No room produces ServiceDemand and no tier carries a base service, so total demand
-is zero, unserved demand is zero, the queue never fills and TryCollect returns false
-forever. It goes live with the room assets and not before. ANY PACING MEASURED BEFORE THEN
-IS MEASURING THE MAILBOX, NOT THE GAME.
+Unity 6000.5.0f1 / URP 2D, private GitHub repo via GitHub Desktop. Git LFS patterns are
+declared; `git lfs install` on the machine is still outstanding and must happen before the
+first binary is committed.
 
-THE SUITE IS 117 AND CONFIRMED. The 115 this document carried for two sessions was its
-own arithmetic error - SolvencyTests.cs holds fourteen tests, not the eleven-plus-one it
-was recorded as - and 103 + 14 = 117. Three of the 117 report as IGNORED rather than
-green, on purpose, and say why.
+TEN assemblies. IdleGuild.Core at the bottom. FIVE feature assemblies depending on Core and
+NOTHING else: Economy, Adventurers, Quests, Guild, Staff. (The Ledger said "six" from Day 16
+until Day 17 corrected it; it is five.) IdleGuild.App above them holds composition and
+cross-feature transactions. IdleGuild.UI and IdleGuild.World sit as SIBLINGS above App and
+NEITHER REFERENCES THE OTHER - that constraint is load-bearing, and is why a tap in the hall
+reaches an overlay through a Core event rather than through a call. IdleGuild.Tests.Editor
+is above everything and references everything.
 
-Next task: step 1 of section 9 of Docs/World_View_Design.md - the grey-box world view.
-  1. A seventh assembly, IdleGuild.World, sitting beside IdleGuild.UI above App. Nothing
-     references it; the six feature assemblies stay Core-only.
-  2. An orthographic camera with drag-to-pan and bounds, over an empty floor.
-  3. Rooms as coloured rectangles, reading level and built-state from GuildState. Dark
-     where unbuilt.
-  4. Seats derived from the ServiceSeats stat - the first moment the economy is visible.
-  5. Townsfolk as capsules, spawned every 3600/ServedPerHour seconds, walking a waypoint
-     path to a free seat, sitting for the real 90 seconds under a radial timer, leaving
-     with a coin popup worth exactly SpendPerCustomer.
-  6. The queue outside, density from UnservedPerHour.
-  7. The tap re-homed: tapping a waiting customer seats them. TakingsService already does
-     the work and is currently INERT because no room produces demand.
-  8. Staff, walking to the allocation-priority room. Then adventurers, from
-     AdventurerActivity.
+FIRST, TWO THINGS THAT COST NOTHING AND ARE OWED:
 
-NONE OF STEPS 1-8 NEEDS ANY ART. Do not generate art. The pipeline is chosen and written
-up (Docs/Draw_Things_Walkthrough.md, Docs/Art_Generation_Guide.md) and deliberately
-parked - eight of nine steps need none, and generating a batch before the grey-box proves
-the view is fun is the exact shape this project keeps getting caught by.
+1. SET THE GAME VIEW TO 1080x1920 AND LOOK AT THE HALL. Nobody has. Every screenshot on
+   Day 17 was taken in a landscape Game view, and three of that day's reported problems
+   were partly that - a landscape window is not a smaller version of the target but a
+   different one, and it makes chrome look like 58% of the screen where a phone shows 18%.
+2. The 25-minute interface hand-check, now deferred FOUR times. It needs your eyes rather
+   than Claude's and is implicated in two shipped-unusable bugs.
 
-STILL OWED AND NOW OVERDUE: the 25-minute interface hand-check. It has been deferred
-three times. It is cheap, it needs your eyes rather than Claude's, and it is implicated in
-both of the week's shipped-unusable bugs.
+WHAT EXISTS AND WHAT DOES NOT, because this is the confusing part:
 
-AFTER THE GREY-BOX: arrivals (recruitment from shop to "who is drinking here tonight",
-sections 3.3 and 6.3 of Vision_Revision.md - and two of section 6B's three familiar
-automations still have no manual version, hiring from the crowd and dispatching
-contracts), then the five rooms as assets. That last is the day save_day14_played_in.json
-goes red, because deleting the Training Room is exactly what its zero-repairs pin was put
-there to catch. UNDERSTAND ITS NUMBER BEFORE UPDATING IT.
+THE REVENUE ENGINE IS BUILT AND NO ROOM USES IT. Day 16 added IdleGuild.Staff, TradeService,
+StaffService (hire AND dismiss), TakingsService (the tap), five appended GuildStats, four new
+tier fields and the save fields - and touched NOT ONE .asset. So the game that actually runs
+is still the one-economy version: three buildings, gold only from contracts, individual
+adventurer training, plus the crown's stipend.
 
-Three requirements on the BUILD carried forward, all still open:
-* the tier panel must show what the gate is still MISSING - and this is now concrete:
-  TierAdvancementService.Preview returns RequirementsNotMet and names nothing. It owes a
-  shortfall description (which building, how many levels, how much reputation), and it
-  belongs in the SERVICE not the view, because views hold no rules.
-* the Barracks must visibly look like it makes money - cannot be closed until the Front
-  Desk is authored, because the number that fixes it is what the Barracks is worth
-  through the commission. ContractCommission is declared with no producer, deliberately.
-* the TAP must exist - HALF DONE AND CURRENTLY INERT. Collecting takings ships
-  (TakingsService.TryCollect, serving one customer from a capped queue) but cannot fire
-  until a room produces demand. Hiring from the crowd and dispatching contracts still need
-  their manual versions.
+THE WORLD VIEW IS BUILT AND DEPICTS ALMOST NOTHING, for exactly the same reason. It draws the
+three rooms, their level and their unlock state. It cannot draw seats, townsfolk, the queue
+or the tap, because those read ServiceSeats / CustomerSpend / ServiceDemand and NO SHIPPED
+ROOM PRODUCES ANY OF THEM - Building_Tavern carries Reward Yield and Recruitable Rarity,
+full stop.
 
-A FOURTH, added by the Day 16 playtest and now written into section 01 of the Ledger as a
-Principle: NO SEQUENCE OF CHOICES MAY LEAVE THE PLAYER UNABLE TO MAKE PROGRESS. There is
-always an action that improves the player's position - early that is the crown's stipend,
-late it is letting staff go, which is free and is half of why dismiss exists. It is a
-property rather than a balance figure and is asserted in SolvencyTests against the shipped
-catalogue. It governs decisions not yet made: whether a room can be sold, whether wages
-can bankrupt you, whether prestige can strand a run.
+SO SECTION 9's STEP ORDER IS WRONG AND THE LEDGER CORRECTS IT. Steps 3 (seats), 4
+(townsfolk), 5 (the queue) and 6 (the tap) are ALL blocked on one dependency: the five rooms
+as assets. Step 7 (staff) is blocked on staff assets, which the Day 16 ladder finding forbids
+authoring. Step 8 (adventurers, from AdventurerActivity) is the ONE step buildable against
+today's catalogue, and it needs the Inn standing in for a Barracks that does not exist.
 
-THE ONE THING FROM DAY 16 THAT CHANGES WHAT YOU CAN TRUST:
-the staff ladder in tuned_params.json is UNMEASURED, not tuned. Gold per point of service
-climbs 0.47 -> 2.06 -> 8.63 -> 32.69 across the four tiers, and the tuned configuration
-hires 105 Potboys and never buys a Server, Barkeep or Steward at ANY integration step.
-It is not a pricing problem - flattening the ladder still gives 98 Potboys and one
-Server, and starving slots to four still gives four Potboys. tycoon_model.purchase() can
-only ever APPEND staff, so slots once filled with the cheapest help are filled forever
-and the ladder is unreachable at any price. Nothing has ever measured what the upper
-rungs are worth. DO NOT AUTHOR STAFF ASSETS until the model has the dismiss action the
-game now has - replace the least capable when the replacement is better the day it
-arrives, which is the rule Day 13 landed on for adventurers. Section 6 of
-Docs/Day16_Staff_And_Revenue.md has the tables. The ROOM curves are unaffected: what the
-rooms see is the payroll's total service, and 105 Potboys deliver it.
+NEXT TASK: THE FIVE ROOMS AS ASSETS - section 8 of Docs/Vision_Revision.md's third item.
+
+This is the day the .asset files finally change, and it is the day described in advance more
+than any other:
+  * save_day14_played_in.json is PINNED AT ZERO REPAIRS specifically so that deleting the
+    Training Room shows up as a red test with a number in it rather than as a silence.
+    EXPECT IT TO GO RED. UNDERSTAND ITS NUMBER BEFORE UPDATING IT.
+  * Author _baseServicePerHour on every tier while you are in there. Day 16 added four
+    fields to GuildTierDefinition and wrote none of them to any asset; three read harmless
+    C# initialisers and this one reads 0, which its own tooltip calls the cold-start failure
+    ("an unstaffed guild can never start trading"). Its guard is gated on rooms producing
+    demand, so it goes live the day you do this and not before.
+  * The moment a room produces ServiceDemand, TradeEngineTests' ignored guard stops being
+    ignored and starts asserting. That is deliberate. Two of the three Ignored tests are
+    waiting on this day.
+  * TakingsService is INERT until then, so ANY PACING MEASURED BEFORE THIS IS MEASURING THE
+    MAILBOX, NOT THE GAME.
+
+Then steps 3 through 6 of section 9 become real, in order, and none of them needs art.
+
+DO NOT AUTHOR STAFF ASSETS. The four staff prices in tuned_params.json are UNMEASURED, not
+tuned: gold per point of service climbs 0.47 -> 2.06 -> 8.63 -> 32.69, and the tuned
+configuration hires 105 Potboys and never buys a Server, Barkeep or Steward at ANY
+integration step. Not a pricing problem - flattening the ladder still gives 98 Potboys.
+tycoon_model.purchase() can only APPEND staff, so the ladder is unreachable at any price and
+nothing has ever measured what the upper rungs are worth. Give the model the dismiss action
+the game already has first. Section 6 of Docs/Day16_Staff_And_Revenue.md has the tables.
+
+THE WORLD VIEW, PRECISELY:
+  IdleGuild.World holds WorldView (the one MonoBehaviour, third seam of the same kind as
+  GameBootstrap and GuildScreenController), WorldCameraBounds (the clamp and the zoom
+  policy - plain C# and tested), HallPlan (where rooms stand, and the floor DERIVED from
+  them), RoomRectangles, GreyBoxFloor, WorldShapes, WorldSorting, GreyBoxPalette and
+  ChromeHitTest.
+
+  THE RULE IT LIVES UNDER IS DEPICT, NOT CAUSE (section 4). It reads state and computes
+  nothing. The way that gets broken is one convenient calculation at a time: a view that
+  works out whether a room is affordable so it can tint it now owns a rule
+  BuildingUpgradeService also owns, and the two can disagree.
+
+  The hall plan is PORTRAIT-NATIVE as of Day 17, and that was a finding rather than a
+  preference - the first version had twelve-unit rooms on a thirty-two-unit plan, which put
+  one room across 89% of a 1080x1920 screen with two never visible at once, and no art would
+  have fixed it. Rooms are now 8 wide, stacked either side of a 2-wide corridor, growing
+  UPWARD. The floor is derived from the footprints plus a margin and the street, so
+  authoring a room grows the ground and the camera's reach together - section 5's
+  requirement, satisfied by construction. Zoom policy: the screen's SHORT edge shows 14
+  world units. CHECK ANY NEW LAYOUT AGAINST THAT SPAN BEFORE DRAWING IT.
+
+SECTION 7 IS HALF SETTLED AND THE OTHER HALF IS PINNED TO THE NEXT DAY. HallView lost its
+building grid and kept the tier card, collapsed to one row; rooms are tapped instead. THE TAB
+BAR SURVIVES because contracts open from the Front Desk and the roster from the Barracks and
+neither is authored - removing it today would strand two screens, which section 01 forbids.
+Author those two rooms and the tab bar can go.
+
+TESTING: EditMode suite at Assets/_Project/Tests/Editor/ - 136 tests, confirmed green, well
+under a second, of which THREE are deliberately Ignored and say why (section 7 of
+Docs/Tests.md). Run it (Window > General > Test Runner > EditMode > Run All) before you start
+and before you commit. It asserts SHAPE rather than NUMBERS on purpose; the value-asserting
+ones are [Category("BalanceCanary")] and are expected to move on a balance pass. It loads the
+real .asset files through AssetDatabase rather than building fixtures - EXCEPT TradeFixture,
+which builds rooms in memory because it tests mechanism rather than content.
+
+  A LIMIT FOUND ON DAY 17: every test drives plain C#, so nothing in the suite constructs a
+  MonoBehaviour or survives a domain reload - and the world view's only runtime crash that
+  day was exactly that class of bug (a plain C# helper and the Transform it draws into do not
+  have the same lifetime). PLAY MODE IS THE ONLY THING THAT CHECKS IT. Do not read a green
+  suite as evidence the view runs.
+
+WORKING ARRANGEMENT (section 06 has it in full; it gained two rules on Day 17):
+  * Claude runs NO git commands. Safe for inspection only: git log, git show, git ls-tree,
+    git ls-files. Tell me the commit message and I commit through GitHub Desktop.
+  * CLAUDE NEVER DELETES A FILE INSIDE Assets/. Deleting from the bridge leaves Unity's Bee
+    build graph naming a source file that is gone, and the resulting CS2001 is NOT cleared by
+    Assets > Refresh. Claude writes files; I delete them in the Project window.
+  * `unity` and `dotnet` are not on Claude's PATH. Ask me to focus the Editor to import. To
+    verify a compile, check the Library/ScriptAssemblies/IdleGuild.*.dll timestamps - NOT the
+    "error CS after the last Finished compiling graph" rule, which gives false positives
+    because that marker is only emitted on full graph rebuilds. A test run that reports a
+    count has, by definition, compiled every assembly.
+  * ScriptableObject values can be written directly into .asset YAML, and a texture's .meta
+    can be too - but this project imports textures as Sprite Mode MULTIPLE by default, which
+    auto-slices any image with a detached element. Set spriteMode: 1.
+  * ADDING A SERIALIZED FIELD DOES NOT REACH OBJECTS ALREADY IN A SCENE OR ASSET, AND IT
+    FAILS IN BOTH DIRECTIONS. A field ABSENT from the YAML keeps its C# initialiser (which
+    is why _baseServicePerHour reads 0, and why HallPlan.Default() reached a WorldView that
+    predates it). A field ALREADY PRESENT keeps its OLD serialized value and your new default
+    is ignored entirely - which is why Day 17 stopped serializing the floor bounds and
+    derived them instead. Check the YAML before assuming a new default took.
+
+MODELLED MINUTES ARE NOT LIVED MINUTES - roughly 2.2x on the one noisy sample this project
+has (Day 14 took 17.6 real minutes to reach Town against a predicted 8). Re-measure on the
+next playthrough; do not tune to modelled numbers as though a player experiences them.
 
 The economy is otherwise tuned and Docs/tools/tuned_params.json holds the result. Verify
 before you trust it:
@@ -1079,77 +1196,35 @@ before you trust it:
     python3 Docs/tools/tycoon_model.py --profile --checks
     python3 Docs/tools/tuner.py 0 --resume --report
 
-The second prints the opening trace and a per-step table. THE PER-STEP TABLE IS THE
-POINT: the model used to give different answers at different integration steps - about
-2x - and every headline figure in section 6C was an artefact of scoring at step=60. It is
-now stable to a few percent across step 5 to 60 (Town 0h22-24m, Capital 5h19-29m, rooms
-65-69%). If a future change makes those rows disagree again, that is the first thing to
-fix and nothing else is trustworthy until it is.
+THE PER-STEP TABLE IS THE POINT: the model used to give different answers at different
+integration steps - about 2x - and every headline figure in section 6C was an artefact of
+scoring at step=60. It is now stable to a few percent across step 5 to 60. If a future change
+makes those rows disagree again, that is the first thing to fix and nothing else is
+trustworthy until it is.
 
-Note there are TWO models on purpose. guild_model.py describes the game that actually
-exists and stays until the rooms are authored. tycoon_model.py describes the game being
-built. Retire the first when the second becomes true.
+Two models on purpose. guild_model.py describes the game that EXISTS; tycoon_model.py
+describes the game being BUILT. Retire the first when the second becomes true - which is the
+day you author the five rooms.
 
-MODELLED MINUTES ARE NOT LIVED MINUTES - roughly 2.2x on the one noisy sample this
-project has (Day 14 took 17.6 real minutes to reach Town against a predicted 8). Village
-is 23 MODELLED minutes. Re-measure on the next playthrough; do not tune to modelled
-numbers as though a player experiences them.
-
-Testing: EditMode suite at Assets/_Project/Tests/Editor/ - 117 tests, confirmed green,
-well under a second, of which THREE are
-deliberately Ignored rather than green and say why
-(section 7 of Docs/Tests.md). Run it (Window > General > Test Runner > EditMode > Run
-All) before you start and before you commit. It asserts SHAPE rather than NUMBERS on
-purpose; the value-asserting ones are tagged [Category("BalanceCanary")] and are expected
-to move on a balance pass, while an INVARIANT moving is a warning - though Day 16 is the
-case that shows a moving invariant can also be the system working, since
-EveryGuildStatHasAPlayerFacingName caught five appended stats with no display name. It
-loads the real .asset files through AssetDatabase rather than building fixtures - EXCEPT
-TradeFixture, which builds rooms in memory because it tests mechanism rather than
-content, and which carries the warning that NO shipped room produces seats, spend or
-demand yet, so the value half of the revenue engine has no coverage at all. Four save
-fixtures, including save_day14_played_in.json - pinned at zero repairs so that the
-revision deleting the Training Room shows up as a red test with a number in it rather
-than a silence. EXPECT THAT TEST TO GO RED WHEN THE ROOMS LAND AND UNDERSTAND ITS NUMBER
-BEFORE UPDATING IT.
-
-Known issues/blockers: the crown's stipend is sized for a build where nothing else earns
-and should be re-checked the day the rooms land - recovering from an empty treasury takes
-about twelve and a half minutes, pinned as a BalanceCanary; if that still bites once rooms
-and the tap are live, the fix already designed is a HARDSHIP LINE that stops accrual above
-a per-tier threshold. The whole game is 6h54m of modelled content against a 20-hour
-target - a curve-length question for Day 22, stable across every step so it is not noise.
-Tapping is 87% of room income across the first thirty modelled minutes, high enough to be
-a design decision rather than a side effect - settle it before monetisation on Day 28.
-The worst opening silence is 5 modelled minutes against a 2-minute target and looks like
-a real frontier. Bundle ID and product name are still template defaults and are also the
-save directory, so changing either strands every save (the Day 14 fixture has been
-captured). Save files are plain text and trivially editable; the guild_save.json.corrupt-*
-quarantine files are never capped. The debug console must be deleted or excluded before
-submission - and note it was the ONLY way this game was playable for fifteen days and is
-still the only place the trade layer, the payroll and the tap can be seen at all, so do
-not remove it before the real UI has been exercised. Week 4 execution surface (device
-builds, TestFlight, App Store Connect) is not solvable from Cowork and needs deciding by
-Day 22. Ad network and IAP provider unchosen. Apple Developer enrollment IS approved.
-
-Working arrangement (see section 06): this runs in Claude Cowork, whose shell is a Linux
-VM with the project folder mounted - git exists but `unity` and `dotnet` do not. You
-write and edit files and never run git, not even `git status`, which leaves index locks
-that break my GitHub Desktop; tell me the commit message and I commit through the GUI.
-When you add scripts, ask me to focus the Unity Editor so it imports them, then verify by
-checking for Library/ScriptAssemblies/IdleGuild.*.dll and grepping Logs/ for "error CS" -
-note that transient errors appear mid-write and what matters is whether any error line
-comes AFTER the last "Finished compiling graph". Tests are the same loop: you write them,
-I run them and paste failures. The Python models run fine on the Cowork shell.
-ScriptableObject values can be written directly into the .asset YAML rather than retyped
-through the Inspector, and a texture's .meta can be too - but note this project imports
-textures as Sprite Mode MULTIPLE by default, which auto-slices any image with a detached
-element into pieces. Set spriteMode: 1.
+Known issues and blockers: the crown's stipend is sized for a build where nothing else earns
+and must be re-checked the day the rooms land (a HARDSHIP LINE is already designed if it
+still bites). The whole game is 6h54m of modelled content against a 20-hour target - a
+curve-length question for Day 22. Tapping is 87% of room income across the first thirty
+modelled minutes, high enough to be a design decision rather than a side effect. The worst
+opening silence is 5 modelled minutes against a 2-minute target. Bundle ID and product name
+are still template defaults AND are the save directory, so changing either strands every
+save. Save files are plain text and trivially editable; the guild_save.json.corrupt-* files
+are never capped. The debug console must be deleted or excluded before submission - and note
+it is STILL the only place the trade layer, the payroll and the tap can be seen at all, so do
+not remove it before the real UI has been exercised. Week 4 execution surface (device builds,
+TestFlight, App Store Connect) is not solvable from Cowork and needs deciding by Day 22. Ad
+network and IAP provider unchosen. Apple Developer enrollment IS approved.
 
 Follow the Principles section of the Ledger (Clean Code, data-driven ScriptableObject
 architecture, event-driven decoupling, UI Toolkit/USS styling) without needing it
-re-explained. Confirm your understanding of where things stand in a sentence or two
-before writing any code.
+re-explained - including the Day 16 addition that NO SEQUENCE OF CHOICES MAY LEAVE THE PLAYER
+UNABLE TO MAKE PROGRESS. Confirm your understanding of where things stand in a sentence or
+two before writing any code.
 ```
 
 ### Session log
@@ -1188,6 +1263,8 @@ before writing any code.
 
 
 20. **W3D16 third follow-up — the art pipeline chosen, and then deferred** — A working session with no game code in it. The generation route is settled: **Draw Things on Apple Silicon with FLUX.1 [schnell]** — local, free, unlimited, offline, and Apache 2.0, which is the half that matters because **this game ships with IAP and most free tiers do not grant commercial rights.** Leonardo is the trap worth remembering: 150 credits a day, the most generous free tier available, recommended everywhere, and its output cannot legally ship. A second licence sits underneath the first and nobody mentions it — **`FLUX.1 [dev]` is non-commercial** and is the better-looking model, which is precisely why it catches people. `Docs/Art_Generation_Guide.md` carries the licence and pipeline material; `Docs/Draw_Things_Walkthrough.md` is a click-by-click walkthrough written for somebody who has never opened the app, including the three schnell behaviours that would each cost an afternoon — **the negative prompt field is inert** (guidance-distilled at CFG 1.0, so there is nothing to push away from, which also makes the trailing negatives in `Day15_Portrait_Prompts.md` close to decorative), **more steps is worse rather than better** (distilled to finish in four), and **Flux wants prose rather than tags**. Two project-specific findings came out of writing it. The asset list had grown twice and nobody had updated it: the revision took it from three buildings to five rooms, and **Day 16 silently added four staff portraits** — `StaffDefinition._icon` exists and is unread, exactly as `BuildingDefinition._icon` was — plus a mailbox glyph. And **the Sprite Mode trap now has two correct answers**: Single for portraits, rooms and glyphs, but **Multiple with Grid By Cell Size for character walk sheets**, and getting it backwards is silent in both directions because a shredded portrait and an unsliced sheet both present as an empty sprite field. **NVIDIA MotionBricks was evaluated and rejected** — real, mid-2026, commercially licensable, and it generates 3D humanoid skeletal motion on a CUDA GPU, so it fits neither a 2D sprite pipeline nor this machine. The sharper reason is that it solves motion *variety* against a project needing five clips reused across fifteen characters; the problem here is character *consistency*, which Unity's built-in 2D Animation package solves for free. It did surface a real fallback worth keeping: **pre-rendering 3D characters to 2D sprite sheets** is proven (Diablo II, Fallout, Age of Empires) and eliminates frame drift by construction. **Then all of it was deferred**, which is the right call and the same one the project has made before: eight of §9's nine build steps need no art at all, and generating a batch before the grey-box proves the view is fun is the shape this project keeps getting caught by. **The suite is the one loose end**: 115 tests written and compiling clean with zero `error CS`, and **the last count a human confirmed is 103** — Day 12's situation exactly, and its note applies unchanged.
+
+21. **W3D17 — the guild becomes a place, and the grey box rejects a plan** — Steps 1 and 2 of §9 of `Docs/World_View_Design.md` plus half of §7, in a tenth assembly that **no production assembly references**, with **no `.asset` touched** and `SaveSchema.CurrentVersion` still never moved. The hall is an orthographic camera panned by pinning the world point under the finger — no speed constant, correct at any zoom or density — over a grey-box floor, with the three rooms as walled rectangles reading level and unlock state off `GuildState`. `IdleGuild.UI` stopped being the game: one line of USS (`.guild-root`'s opaque background) had been the entire wall in front of the hall, `HallView` lost the grid §10 obsoleted and kept the tier card collapsed to a single row, and rooms are tapped instead — publishing `RoomSelected` through a new `Core/Events/PresentationEvents.cs`, kept separate from `GameEvents` because that file is the *simulation's* vocabulary and a tap is not a fact about the guild. **Four findings, and the two that matter are about the plan rather than the code.** §9's step order does not survive contact with the catalogue: steps 3–6 read `ServiceSeats`, `CustomerSpend` and `ServiceDemand` and **no shipped room produces any of them**, so of steps 3–8 only step 8 is buildable and the other four are one dependency — the five rooms as assets. And **the first hall plan was a landscape shape on a portrait device**: twelve-unit rooms on a thirty-two-unit plan put one room across 89% of a 1080×1920 screen with two never visible at once, which no art would have fixed. Reshaped portrait-native, the floor **derived from the plan** rather than authored (killing a stale serialized rectangle that would have outlived every edit), and the zoom policy set to *the short screen edge shows fourteen world units*, which is the dimension that constrains legibility. Also: the project is on the **Input System exclusively**, so legacy `UnityEngine.Input` compiles clean and throws on device; `Mathf.Clamp` given a reversed range silently returns the max, which would have pinned the hall to one screen edge for the whole early game while looking merely badly composed; and the suite's **115 was this document's own arithmetic**, not the runner's — `SolvencyTests.cs` holds fourteen tests where it was recorded as eleven-plus-one, so 103 + 14 = 117. Suite 103 → **136**, three still Ignored, all three conditions re-verified against the shipped assets. Two new working-arrangement rules earned the hard way: **Claude never deletes a file inside `Assets/`**, and the `Finished compiling graph` log heuristic gives false positives. **Not done and owed: nobody has looked at the hall on a 1080×1920 screen** — every judgement this session was made in a landscape Game view — and the 25-minute interface hand-check is deferred a fourth time.
 
 ---
 

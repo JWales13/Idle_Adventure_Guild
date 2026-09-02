@@ -52,32 +52,79 @@ namespace IdleGuild.Tests
         }
 
         [Test]
-        public void EveryRoomIsInsideTheFloor()
+        public void TheFloorLeavesAStreetAtTheEntranceAndAMarginElsewhere()
         {
-            List<string> outside = HallPlan.FootprintsOutside(
-                HallPlan.Default(), HallPlan.DefaultFloor);
+            // This replaced two earlier tests -- "every room is inside the floor" and "the
+            // plan leaves the street clear" -- which BOTH became unfalsifiable the moment
+            // the floor stopped being authored and started being derived from the rooms.
+            // A guard that cannot fail is this project's oldest recurring fault wearing
+            // test clothes, and it is worth catching in our own suite rather than only in
+            // the game's. What is still worth asserting is that the derivation puts the
+            // margins where section 5 wants them.
+            HallRoom[] plan = HallPlan.Default();
+            Rect floor = HallPlan.FloorFor(plan);
 
-            Assert.That(outside, Is.Empty,
-                "These rooms sit outside the floor the camera is allowed to reach, so they " +
-                "cannot be panned to: " + string.Join(", ", outside) +
-                ". Either move them or grow the floor.");
+            float xMin = float.MaxValue, xMax = float.MinValue;
+            float yMin = float.MaxValue, yMax = float.MinValue;
+
+            foreach (HallRoom room in plan)
+            {
+                xMin = Mathf.Min(xMin, room.Footprint.xMin);
+                xMax = Mathf.Max(xMax, room.Footprint.xMax);
+                yMin = Mathf.Min(yMin, room.Footprint.yMin);
+                yMax = Mathf.Max(yMax, room.Footprint.yMax);
+            }
+
+            Assert.That(floor.yMin, Is.EqualTo(yMin - HallPlan.StreetDepth).Within(0.0001f),
+                "The entrance needs its street: it is where the queue outside the door stands.");
+            Assert.That(floor.xMin, Is.EqualTo(xMin - HallPlan.EdgeMargin).Within(0.0001f));
+            Assert.That(floor.xMax, Is.EqualTo(xMax + HallPlan.EdgeMargin).Within(0.0001f));
+            Assert.That(floor.yMax, Is.EqualTo(yMax + HallPlan.EdgeMargin).Within(0.0001f));
         }
 
         [Test]
-        public void ThePlanLeavesTheStreetClear()
+        public void AFloorTooSmallForItsRoomsIsReported()
         {
-            // Section 5: a bit of outside is visible at the entrance, and section 3 calls it
-            // "the most informative square metre on the screen" because unserved demand is
-            // what physically stands there. A room built over it would take the queue with
-            // it — so the street is a property of the plan rather than a drawing decision.
-            float streetTop = HallPlan.DefaultFloor.yMin + HallPlan.StreetDepth;
+            // The derived floor can never be too small, so the checker would go untested
+            // along with it. Handed a floor that IS too small, it has to name the rooms
+            // hanging off the edge -- otherwise it is a guard nobody has ever seen work,
+            // waiting for the day something else sets the bounds.
+            Rect tooSmall = new Rect(-2f, -2f, 4f, 4f);
 
-            foreach (HallRoom room in HallPlan.Default())
-            {
-                Assert.That(room.Footprint.yMin, Is.GreaterThanOrEqualTo(streetTop),
-                    $"{room.BuildingId} is built out over the street, which is where the " +
-                    "queue outside the door has to stand.");
-            }
+            Assert.That(
+                HallPlan.FootprintsOutside(HallPlan.Default(), tooSmall),
+                Is.EquivalentTo(new[] { "tavern", "inn", "training_room" }));
+        }
+
+        [Test]
+        public void ATapInsideARoomFindsThatRoom()
+        {
+            HallRoom[] plan = HallPlan.Default();
+
+            Assert.That(HallPlan.FindAt(plan, new Vector2(-5f, -8f))?.BuildingId, Is.EqualTo("tavern"));
+            Assert.That(HallPlan.FindAt(plan, new Vector2(5f, -10f))?.BuildingId, Is.EqualTo("inn"));
+            Assert.That(HallPlan.FindAt(plan, new Vector2(5f, 2f))?.BuildingId, Is.EqualTo("training_room"));
+        }
+
+        [Test]
+        public void ATapOnTheCorridorFindsNothing()
+        {
+            // The gap up the middle of the plan is circulation, not a room. It has to
+            // answer null rather than the nearest thing, or every miss opens a panel.
+            Assert.That(HallPlan.FindAt(HallPlan.Default(), new Vector2(0f, -8f)), Is.Null);
+        }
+
+        [Test]
+        public void ATapOnTheStreetFindsNothing()
+        {
+            // And the street stays tappable-but-empty on purpose: step 6 re-homes the tap
+            // onto a waiting customer standing exactly here, and it must not be competing
+            // with a room panel when it arrives.
+            float street = HallPlan.DefaultFloor.yMin + (HallPlan.StreetDepth * 0.5f);
+
+            // Deliberately off the corridor's axis, so this fails for being street rather
+            // than for being the gap between the two columns.
+            Assert.That(HallPlan.FindAt(HallPlan.Default(), new Vector2(-5f, street)), Is.Null);
         }
 
         [Test]

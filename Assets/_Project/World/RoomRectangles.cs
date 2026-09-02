@@ -35,6 +35,14 @@ namespace IdleGuild.World
         /// <summary>Height of the level bar in world units.</summary>
         private const float BarHeight = 0.5f;
 
+        /// <summary>
+        /// Wall thickness in world units. Every room is drawn as a dark slab at its full
+        /// footprint with the floor colour inset on top, so the band that shows is the
+        /// wall -- cheaper than an outline and, unlike one, it does not thin out as the
+        /// camera zooms.
+        /// </summary>
+        private const float WallThickness = 0.3f;
+
         private readonly Transform _parent;
 
         internal RoomRectangles(Transform parent)
@@ -105,7 +113,18 @@ namespace IdleGuild.World
                     : GreyBoxPalette.RoomLocked;
 
             WorldShapes.AddRect(
-                _parent, $"Room_{building.Id}", room.Footprint, body, WorldSorting.Rooms);
+                _parent,
+                $"Room_{building.Id}_Wall",
+                room.Footprint,
+                GreyBoxPalette.RoomWall,
+                WorldSorting.Rooms - 1);
+
+            WorldShapes.AddRect(
+                _parent,
+                $"Room_{building.Id}",
+                Inset(room.Footprint, WallThickness),
+                body,
+                WorldSorting.Rooms);
 
             if (!built)
             {
@@ -113,6 +132,23 @@ namespace IdleGuild.World
             }
 
             DrawLevelBar(building, room, level);
+        }
+
+        /// <summary>
+        /// Shrinks a rectangle by <paramref name="by"/> on every side, never past nothing.
+        /// A room too small to have an inside is drawn as solid wall rather than as an
+        /// inside-out rectangle, which is what a negative size renders as.
+        /// </summary>
+        private static Rect Inset(Rect rect, float by)
+        {
+            float width = Mathf.Max(0f, rect.width - (by * 2f));
+            float height = Mathf.Max(0f, rect.height - (by * 2f));
+
+            return new Rect(
+                rect.center.x - (width * 0.5f),
+                rect.center.y - (height * 0.5f),
+                width,
+                height);
         }
 
         private void DrawLevelBar(BuildingDefinition building, HallRoom room, int level)

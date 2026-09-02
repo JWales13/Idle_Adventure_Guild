@@ -53,32 +53,101 @@ namespace IdleGuild.World
     public static class HallPlan
     {
         /// <summary>
-        /// The hall's extent before any wing is added. One source of truth: the default on
-        /// <see cref="WorldView"/> reads it and so do the tests, so a plan that outgrows
-        /// its floor is a red test rather than a room drawn off the edge of the world.
-        /// </summary>
-        public static readonly Rect DefaultFloor = new Rect(-16f, -12f, 32f, 24f);
-
-        /// <summary>
         /// How much of the floor's bottom edge is street rather than building. Section 5:
         /// a bit of outside is visible at the entrance, and it is where unserved demand
-        /// physically lives — "the most informative square metre on the screen".
+        /// physically lives -- "the most informative square metre on the screen".
         /// </summary>
         public const float StreetDepth = 3f;
 
-        /// <summary>The provisional layout for the three rooms that currently exist.</summary>
+        /// <summary>Floor left beyond the outermost wall on the other three sides.</summary>
+        public const float EdgeMargin = 1f;
+
+        /// <summary>
+        /// The provisional layout, drawn for a portrait phone.
+        ///
+        /// **The first version of this was a landscape shape on a portrait device**, and the
+        /// grey box is what caught it: rooms twelve units wide on a plan thirty-two across,
+        /// which at any zoom where a room was legible meant one room filled 89% of the
+        /// screen width and two could never be seen at once. That is fatal for a view whose
+        /// whole job is showing the guild as a place, and no amount of art would have fixed
+        /// it. Exactly the sort of thing section 9 says to find out as rectangles.
+        ///
+        /// So: rooms eight units wide, stacked in pairs either side of a two-unit corridor
+        /// running up from the entrance. The hall grows **upward**, which suits both the
+        /// device and section 5's expanding hall, and leaves the left column above the
+        /// Tavern and the right column above the Training Room for the rooms the revision
+        /// has yet to author.
+        ///
+        /// Still provisional -- section 11 lists this as open -- but now with a constraint
+        /// attached rather than drawn free-hand.
+        /// </summary>
         public static HallRoom[] Default()
         {
             return new[]
             {
-                // The main room, and the biggest: it is the only building that compounds,
+                // The main room, and the tallest: it is the only building that compounds,
                 // so it is the one the player keeps feeding for ninety levels.
-                new HallRoom("tavern", new Rect(-14f, -9f, 12f, 10f)),
+                new HallRoom("tavern", new Rect(-9f, -14f, 8f, 12f)),
 
-                new HallRoom("inn", new Rect(2f, -9f, 12f, 8f)),
-                new HallRoom("training_room", new Rect(2f, 1f, 12f, 8f)),
+                new HallRoom("inn", new Rect(1f, -14f, 8f, 9f)),
+                new HallRoom("training_room", new Rect(1f, -3f, 8f, 9f)),
             };
         }
+
+        /// <summary>
+        /// The ground the hall stands on: everything the rooms occupy, plus a margin, plus
+        /// the street along the entrance.
+        ///
+        /// **Derived rather than authored, and that is the point.** A hand-set floor is a
+        /// number that has to agree with the plan and has nothing keeping it honest -- and
+        /// it had already gone stale in the scene, where a serialized rectangle from the
+        /// first layout would have survived every edit to this file. Deriving it means
+        /// section 5's requirement that "camera bounds grow with the hall" is satisfied by
+        /// construction: author a room, and the ground it stands on and the reach of the
+        /// camera both follow.
+        /// </summary>
+        public static Rect FloorFor(IReadOnlyList<HallRoom> plan)
+        {
+            if (plan == null || plan.Count == 0)
+            {
+                return Rect.zero;
+            }
+
+            float xMin = float.MaxValue;
+            float xMax = float.MinValue;
+            float yMin = float.MaxValue;
+            float yMax = float.MinValue;
+            bool any = false;
+
+            foreach (HallRoom room in plan)
+            {
+                if (room == null)
+                {
+                    continue;
+                }
+
+                Rect f = room.Footprint;
+                xMin = Mathf.Min(xMin, f.xMin);
+                xMax = Mathf.Max(xMax, f.xMax);
+                yMin = Mathf.Min(yMin, f.yMin);
+                yMax = Mathf.Max(yMax, f.yMax);
+                any = true;
+            }
+
+            if (!any)
+            {
+                return Rect.zero;
+            }
+
+            return Rect.MinMaxRect(
+                xMin - EdgeMargin,
+                yMin - StreetDepth,
+                xMax + EdgeMargin,
+                yMax + EdgeMargin);
+        }
+
+        /// <summary>The ground under the default layout.</summary>
+        public static Rect DefaultFloor => FloorFor(Default());
 
         /// <summary>The ground assigned to a building, or null if it has none.</summary>
         public static HallRoom Find(IReadOnlyList<HallRoom> plan, string buildingId)
@@ -91,6 +160,31 @@ namespace IdleGuild.World
             foreach (HallRoom room in plan)
             {
                 if (room != null && room.BuildingId == buildingId)
+                {
+                    return room;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// The room standing on a world point, or null for floor, corridor or street.
+        ///
+        /// Unambiguous only because footprints may not overlap, which
+        /// <c>NoTwoRoomsStandOnTheSameGround</c> asserts -- otherwise "which room did I
+        /// tap" would be answered by array order, which is not an answer.
+        /// </summary>
+        public static HallRoom FindAt(IReadOnlyList<HallRoom> plan, Vector2 worldPoint)
+        {
+            if (plan == null)
+            {
+                return null;
+            }
+
+            foreach (HallRoom room in plan)
+            {
+                if (room != null && room.Footprint.Contains(worldPoint))
                 {
                     return room;
                 }

@@ -109,6 +109,58 @@ namespace IdleGuild.Tests
         }
 
         [Test]
+        public void APortraitScreenShowsTheSpanAcrossItsWidth()
+        {
+            // 1080x1920, which is what GuildPanelSettings targets and what the game ships
+            // in. The width is the tight dimension, so the width is what the span buys.
+            const float Portrait = 1080f / 1920f;
+            const float Span = 14f;
+
+            float size = WorldCameraBounds.OrthographicSizeFor(Span, Portrait);
+            float visibleWidth = size * 2f * Portrait;
+
+            Assert.That(visibleWidth, Is.EqualTo(Span).Within(0.0001f),
+                "A portrait phone must show exactly the span across, or a room fills the screen.");
+            Assert.That(size * 2f, Is.GreaterThan(Span),
+                "And it gets more height than span, because height is the long edge.");
+        }
+
+        [Test]
+        public void ALandscapeScreenShowsTheSpanDownItsHeight()
+        {
+            const float Landscape = 1920f / 1080f;
+            const float Span = 14f;
+
+            float size = WorldCameraBounds.OrthographicSizeFor(Span, Landscape);
+
+            Assert.That(size * 2f, Is.EqualTo(Span).Within(0.0001f),
+                "Turn the screen and the short edge becomes the height; the policy follows it.");
+            Assert.That(size * 2f * Landscape, Is.GreaterThan(Span));
+        }
+
+        [Test]
+        public void ASquareScreenShowsTheSpanBothWays()
+        {
+            float size = WorldCameraBounds.OrthographicSizeFor(14f, 1f);
+
+            Assert.That(size * 2f, Is.EqualTo(14f).Within(0.0001f));
+            Assert.That(size * 2f * 1f, Is.EqualTo(14f).Within(0.0001f));
+        }
+
+        [Test]
+        public void AnAspectOfZeroDoesNotProduceAnImpossibleCamera()
+        {
+            // Camera.aspect is zero for a frame before layout, and in a zero-sized game
+            // view. Dividing by it hands Unity an infinity, which it renders as nothing at
+            // all -- a blank screen with no error, which is the failure shape this project
+            // has met more often than any other.
+            float size = WorldCameraBounds.OrthographicSizeFor(14f, 0f);
+
+            Assert.That(size, Is.GreaterThan(0f));
+            Assert.That(float.IsFinite(size), Is.True);
+        }
+
+        [Test]
         public void TheHallDoesNotHaveToBeCentredOnTheOrigin()
         {
             // Section 5: wings attach as rooms unlock, so the hall grows off to one side
