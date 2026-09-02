@@ -273,7 +273,12 @@ because while the mailbox refills continuously *recovery speed is a sustained ra
 inert** — no room produces demand, so unserved demand is zero and the queue never fills.
 Fifth appearance of a failure whose only symptom is an absence.
 
-**Suite at 115 green**, up from 71, of which **three are Ignored rather than green** and say
+**Suite: 115 tests, compiling clean, and the count is UNVERIFIED.** The last figure a human
+confirmed is **103**. Everything after that — the eleven `SolvencyTests` for the crown's
+stipend and the one `TreasuryBar` test — is written, imported and compiling with zero
+`error CS`, but nobody has watched it run. This is Day 12's situation exactly, and the note
+it left is the right one: *confirm the runner reports 115 rather than 103 before trusting
+them.* Three of the 115 are **Ignored rather than green** and say
 so — one guard is vacuous until a room produces custom, and the staff-ladder invariant has
 no ladder to guard. `Docs/Day16_Staff_And_Revenue.md` carries all of it, plus corrections
 to §3.1, §4 and §6C of the charter, all three of which described mechanisms the tuned
@@ -399,7 +404,7 @@ The passes earned their keep immediately. Step 1 of the Day 6 document found a r
 
 The Week 1 checkpoint holds, minus the UI that Day 7 adds.
 
-**Next action:** Day 17 — **the owed interface hand-check first**, then arrivals, then the five rooms as assets. The hand-check has now been deferred twice and it is the one that has to precede the art day, not follow it.
+**Next action:** run the suite and confirm 115. Then **step 1 of §9 of `Docs/World_View_Design.md`** — the `IdleGuild.World` assembly and a drag-panned camera over an empty floor. **All art work is deferred** by decision; eight of that document's nine steps need no art at all, and the grey-box has to prove the view before a batch is worth generating.
 
 The tuner has the two hardest targets already: rooms at **68%** of lifetime income
 against a 70% target, and a **6-minute** 90th-percentile purchase gap against a 10-minute
@@ -687,6 +692,10 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 - **The staff ladder has never been climbed by anything, so its four prices are guesses.** Day 16's finding: gold per point of service climbs 0.47 → 2.06 → 8.63 → 32.69 across the ladder, and the tuned configuration hires **105 Potboys and no employee from the three tiers above, at every integration step**. Not a pricing problem — flattening the ladder still gives 98 Potboys and one Server, and starving slots to four still gives four Potboys. `tycoon_model.purchase()` can only ever *append* staff, so the ladder is unreachable at any price and nothing has ever measured what the upper rungs are worth. **The balance pass must give the model the dismiss action the game now has before it searches for those four numbers** — replace the least capable when the replacement is better the day it arrives, which is the rule Day 13 landed on for adventurers after the naive version added eight hours. Until then treat every staff figure in `tuned_params.json` as unmeasured rather than tuned; the room curves are unaffected, since what the rooms see is the payroll's total service. `AHigherStaffTierNeverCostsMoreGoldPerPointOfService` ships **ignored**, with a pointer, rather than vacuously green. **No staff `.asset` was authored on Day 16 for this reason.**
 - **The crown's stipend is sized for a build where nothing else earns, and should be re-checked the day the rooms land.** 1/2/4/8 gold every 30 seconds, capped at three deliveries. It holds ~30% of what the guild earns at Village and Town, 11% at City and 0.01% at Capital — necessarily, because the earn rate at tier openings runs 418 → 730 → 4,208 → 15,859,700 g/hr and no ladder stays proportional across a ×3,768 jump. **Recovering from an empty treasury takes about twelve and a half minutes**, pinned as a `BalanceCanary` so the cost is visible rather than merely true. That figure is mostly an artefact of today's build having no other income; if it still bites once rooms and the tap are live, the fix already designed is a **hardship line** — accrual stops above a per-tier threshold, so the crown can never hold you above `line + one delivery`, which buys back fast recovery without making the mailbox farmable. `Docs/Day16_Followup_Solvency.md` §4.
 
+- **All art work is deferred, deliberately.** The generation pipeline is chosen and documented (Draw Things + FLUX.1 [schnell], local, free, Apache 2.0 and therefore shippable) and the walkthroughs exist — `Docs/Draw_Things_Walkthrough.md` is the click-by-click one, `Docs/Art_Generation_Guide.md` carries the commercial-licence and Unity-import material. **Nothing should be generated until the grey-box world view exists**, because eight of §9's nine steps need no art and the ninth is a single character spike whose only job is to settle how frames are made. The one exception worth doing early is the **app icon**, which gates the App Store Connect record.
+
+- **NVIDIA MotionBricks was evaluated and rejected for this project.** Real, released mid-2026, Apache 2.0 code with commercially-usable weights — and it generates **3D humanoid skeletal motion** and needs a **CUDA GPU**, so it fits neither the 2D sprite pipeline nor an Apple Silicon Mac. The deeper reason it does not fit: it solves motion *variety*, and this project needs five clips total reused across fifteen characters. The problem here is character *consistency*, which Unity's built-in 2D Animation package solves for free. Recorded so it is not re-evaluated. **What it did surface is worth keeping**: if the character spike fails and 2D rigging also disappoints, **pre-rendering 3D characters to 2D sprite sheets** is the proven fallback — Diablo II, Fallout, Age of Empires — and it eliminates frame drift by construction. The door into that is a free rigged-character library and a fixed camera, not a motion-generation research model.
+
 - **The presentation layer is being replaced and the art requirement with it.** `Docs/World_View_Design.md` settles: depict-not-cause, high-angle three-quarter floor plan, free pan, the hall physically expanding, redecoration at thresholds, and townsfolk, staff and adventurers all moving. A seventh assembly `IdleGuild.World` sits beside `IdleGuild.UI` above App; the features stay Core-only. **Still open**: whether animation frames are authored or baked out of a rig (decided by taking one character end to end, not in the abstract — image generators cannot produce consistent frames of the same character, and the resolution to test is rig-once-and-bake); whether the tab bar survives; how many redecoration states per room; and where the five rooms sit on the plan. **`Day15_Art_Brief.md` §4 and `Art_Generation_Guide.md` §3's asset lists are both obsolete** — the guide's licence and pipeline sections are not.
 
 - **There is no hard ship date.** The Day 38 / Day 42 targets were a rough sense of how long the project should take, not a commitment. Recorded because two documents treat them as deadlines and a future session should not cut scope to protect a date that was never real.
@@ -955,7 +964,8 @@ an unrecoverable state; this is the fix, and the new Principle it produced), and
 Docs/Tests.md (short, changes how you verify things - note section 7 on the tests that
 are Ignored on purpose).
 
-Current position: Week 3, Day 17 - continuing the revision.
+Current position: Week 3, Day 17 - continuing the revision. ART IS DEFERRED; the next
+work is the grey-box world view.
 Last completed: Week 1 in full; Days 8-9 building trees; Days 10-11 tier transitions plus
 the test suite; Day 12 recruitment and assignment UI; Day 13 first balance pass; Day 14
 playtest and the design revision; Day 15 economy tuning, the icon wire, and the discovery
@@ -980,18 +990,43 @@ is zero, unserved demand is zero, the queue never fills and TryCollect returns f
 forever. It goes live with the room assets and not before. ANY PACING MEASURED BEFORE THEN
 IS MEASURING THE MAILBOX, NOT THE GAME.
 
-Next task: Day 17, in this order.
-  1. THE OWED INTERFACE HAND-CHECK, FIRST. It has now been deferred twice and Day 17 is
-     the day it stops being free, because this is the day that sizes assets against a
-     judgement nobody has made. About 25 minutes in the Editor: Days 10-11's colour half
-     of step 6, Day 12's four visual checks, and whether the 96px room icon reads
-     correctly beside a 28px title. Claude cannot do this; it needs your eyes.
-  2. Arrivals - recruitment from shop to "who is drinking here tonight". Section 3.3 and
-     6.3 of Vision_Revision.md. Two of section 6B's three familiar-automations still have
-     no manual version: hiring from the crowd, and dispatching contracts.
-  3. The five rooms as assets - and this is the day save_day14_played_in.json goes red,
-     because deleting the Training Room is exactly what its zero-repairs pin was put
-     there to catch. UNDERSTAND ITS NUMBER BEFORE UPDATING IT.
+FIRST, A LOOSE END: the suite is 115 tests, compiling clean with zero error CS, and the
+last count a human confirmed is 103. Everything after that - eleven SolvencyTests for the
+crown's stipend and one TreasuryBar test - is written and imported but has never been
+watched running. Run it and confirm 115 (three of them report as IGNORED rather than
+green, on purpose, and say why) before trusting anything built on top.
+
+Next task: step 1 of section 9 of Docs/World_View_Design.md - the grey-box world view.
+  1. A seventh assembly, IdleGuild.World, sitting beside IdleGuild.UI above App. Nothing
+     references it; the six feature assemblies stay Core-only.
+  2. An orthographic camera with drag-to-pan and bounds, over an empty floor.
+  3. Rooms as coloured rectangles, reading level and built-state from GuildState. Dark
+     where unbuilt.
+  4. Seats derived from the ServiceSeats stat - the first moment the economy is visible.
+  5. Townsfolk as capsules, spawned every 3600/ServedPerHour seconds, walking a waypoint
+     path to a free seat, sitting for the real 90 seconds under a radial timer, leaving
+     with a coin popup worth exactly SpendPerCustomer.
+  6. The queue outside, density from UnservedPerHour.
+  7. The tap re-homed: tapping a waiting customer seats them. TakingsService already does
+     the work and is currently INERT because no room produces demand.
+  8. Staff, walking to the allocation-priority room. Then adventurers, from
+     AdventurerActivity.
+
+NONE OF STEPS 1-8 NEEDS ANY ART. Do not generate art. The pipeline is chosen and written
+up (Docs/Draw_Things_Walkthrough.md, Docs/Art_Generation_Guide.md) and deliberately
+parked - eight of nine steps need none, and generating a batch before the grey-box proves
+the view is fun is the exact shape this project keeps getting caught by.
+
+STILL OWED AND NOW OVERDUE: the 25-minute interface hand-check. It has been deferred
+three times. It is cheap, it needs your eyes rather than Claude's, and it is implicated in
+both of the week's shipped-unusable bugs.
+
+AFTER THE GREY-BOX: arrivals (recruitment from shop to "who is drinking here tonight",
+sections 3.3 and 6.3 of Vision_Revision.md - and two of section 6B's three familiar
+automations still have no manual version, hiring from the crowd and dispatching
+contracts), then the five rooms as assets. That last is the day save_day14_played_in.json
+goes red, because deleting the Training Room is exactly what its zero-repairs pin was put
+there to catch. UNDERSTAND ITS NUMBER BEFORE UPDATING IT.
 
 Three requirements on the BUILD carried forward, all still open:
 * the tier panel must show what the gate is still MISSING - and this is now concrete:
@@ -1050,8 +1085,9 @@ project has (Day 14 took 17.6 real minutes to reach Town against a predicted 8).
 is 23 MODELLED minutes. Re-measure on the next playthrough; do not tune to modelled
 numbers as though a player experiences them.
 
-Testing: EditMode suite at Assets/_Project/Tests/Editor/ - 115 tests, all green, well
-under a second, of which THREE are deliberately Ignored rather than green and say why
+Testing: EditMode suite at Assets/_Project/Tests/Editor/ - 115 tests, compiling clean but
+the count UNCONFIRMED since 103 (see above), well under a second, of which THREE are
+deliberately Ignored rather than green and say why
 (section 7 of Docs/Tests.md). Run it (Window > General > Test Runner > EditMode > Run
 All) before you start and before you commit. It asserts SHAPE rather than NUMBERS on
 purpose; the value-asserting ones are tagged [Category("BalanceCanary")] and are expected
@@ -1139,6 +1175,9 @@ before writing any code.
 
 
 19. **W3D16 second follow-up — the guild becomes a place** — A second playtest produced the largest presentation decision the project has made: **the menu-driven interface is not how this ships.** The game opens on the guild hall itself at a high three-quarter angle, panned with a finger; townsfolk walk in off the street and take a seat under a closing ring, staff move between rooms serving them, adventurers arrive in the tavern crowd and leave on contracts through the front door, and the hall grows new wings as rooms unlock. *Idle Hotel Empire Tycoon* is the reference for the systems, not the art. **The finding that makes it affordable is that the tuned economy was already seat-shaped and nobody had noticed**: `MAX_TURNS_PER_HOUR` tuned to 40, so **a seat is occupied for exactly 90 seconds and never turns over faster at any tier** — growth comes from more seats and more spend per head — which means the animation never has to speed up, the hard requirement for this kind of view, satisfied by accident. **Seats are the binding constraint at every single tier** (160/hr against 400 of demand at Village, 2,381 against 90,333 at max), so the room is always turning people away and **there is always a queue outside the door**: permanent visual content, free. And §3.1's three levers stop being spreadsheet columns — demand is how many people approach, capacity is how many seats, throughput is how fast they are seated. The opening will look empty and **that is correct**: 5.6 customers an hour against four seats is one every 10.7 minutes, which is the throttle visible for the first time and the reason tapping is 87% of early income. **Four decisions settled.** The view **depicts** rather than causes — a customer sprite appears because the economy served one, gold still accrues in the clock, offline needs no second formula, and because one customer is spawned per `3600/served` seconds each representing exactly `SpendPerCustomer`, the coin popups sum to the accrued total and the depiction is arithmetically exact rather than decorative. **High-angle three-quarter floor plan with free pan**, chosen over isometric for being more forgiving of AI art and over top-down because you would only see the tops of heads and the rarity ladder would be invisible. **Redecoration at thresholds**, the expensive option, taken deliberately because §6B monetises room themes and a room with no visual states has nothing to re-theme. **Everyone moves**, which needs no new state — `AdventurerActivity`'s Idle/OnQuest/Resting already mean exactly the three things the view must draw, and staff walking to the highest-spend room renders the priority allocation rule that stopped a new room cannibalising the others. **What survives is most of the project**: Core, all six feature assemblies, App, the saves, the whole suite and every tuned number, because the simulation never knew what was drawing it — the assembly discipline paying out a fifth time. `IdleGuild.UI` is demoted from *the game* to *the chrome*, and a seventh assembly `IdleGuild.World` joins beside it above App. **The build order is grey-box first** — rectangles for rooms, capsules for people, real pathing, real seats, real 90-second dwell, no art at all through eight of nine steps — which is exactly what Days 1-13 did and why the Day 14 revision cost no code. One risk is written down rather than discovered: **image generators cannot produce consistent frames of the same character**, so the 360-480 walk frames implied by 15 characters x 4 facings x 6-8 frames are not reachable by generating each frame; the resolution to test in the spike is generate-once, rig, animate, and bake out to sprite sheets. Also recorded: **there is no hard ship date** — Day 38 was a rough sense of duration and two documents had begun treating it as a deadline.
+
+
+20. **W3D16 third follow-up — the art pipeline chosen, and then deferred** — A working session with no game code in it. The generation route is settled: **Draw Things on Apple Silicon with FLUX.1 [schnell]** — local, free, unlimited, offline, and Apache 2.0, which is the half that matters because **this game ships with IAP and most free tiers do not grant commercial rights.** Leonardo is the trap worth remembering: 150 credits a day, the most generous free tier available, recommended everywhere, and its output cannot legally ship. A second licence sits underneath the first and nobody mentions it — **`FLUX.1 [dev]` is non-commercial** and is the better-looking model, which is precisely why it catches people. `Docs/Art_Generation_Guide.md` carries the licence and pipeline material; `Docs/Draw_Things_Walkthrough.md` is a click-by-click walkthrough written for somebody who has never opened the app, including the three schnell behaviours that would each cost an afternoon — **the negative prompt field is inert** (guidance-distilled at CFG 1.0, so there is nothing to push away from, which also makes the trailing negatives in `Day15_Portrait_Prompts.md` close to decorative), **more steps is worse rather than better** (distilled to finish in four), and **Flux wants prose rather than tags**. Two project-specific findings came out of writing it. The asset list had grown twice and nobody had updated it: the revision took it from three buildings to five rooms, and **Day 16 silently added four staff portraits** — `StaffDefinition._icon` exists and is unread, exactly as `BuildingDefinition._icon` was — plus a mailbox glyph. And **the Sprite Mode trap now has two correct answers**: Single for portraits, rooms and glyphs, but **Multiple with Grid By Cell Size for character walk sheets**, and getting it backwards is silent in both directions because a shredded portrait and an unsliced sheet both present as an empty sprite field. **NVIDIA MotionBricks was evaluated and rejected** — real, mid-2026, commercially licensable, and it generates 3D humanoid skeletal motion on a CUDA GPU, so it fits neither a 2D sprite pipeline nor this machine. The sharper reason is that it solves motion *variety* against a project needing five clips reused across fifteen characters; the problem here is character *consistency*, which Unity's built-in 2D Animation package solves for free. It did surface a real fallback worth keeping: **pre-rendering 3D characters to 2D sprite sheets** is proven (Diablo II, Fallout, Age of Empires) and eliminates frame drift by construction. **Then all of it was deferred**, which is the right call and the same one the project has made before: eight of §9's nine build steps need no art at all, and generating a batch before the grey-box proves the view is fun is the shape this project keeps getting caught by. **The suite is the one loose end**: 115 tests written and compiling clean with zero `error CS`, and **the last count a human confirmed is 103** — Day 12's situation exactly, and its note applies unchanged.
 
 ---
 
