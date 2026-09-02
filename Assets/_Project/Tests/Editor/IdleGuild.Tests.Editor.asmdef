@@ -10,6 +10,7 @@
         "IdleGuild.Staff",
         "IdleGuild.App",
         "IdleGuild.UI",
+        "IdleGuild.World",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

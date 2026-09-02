@@ -273,14 +273,20 @@ because while the mailbox refills continuously *recovery speed is a sustained ra
 inert** — no room produces demand, so unserved demand is zero and the queue never fills.
 Fifth appearance of a failure whose only symptom is an absence.
 
-**Suite: 115 tests, compiling clean, and the count is UNVERIFIED.** The last figure a human
-confirmed is **103**. Everything after that — the eleven `SolvencyTests` for the crown's
-stipend and the one `TreasuryBar` test — is written, imported and compiling with zero
-`error CS`, but nobody has watched it run. This is Day 12's situation exactly, and the note
-it left is the right one: *confirm the runner reports 115 rather than 103 before trusting
-them.* Three of the 115 are **Ignored rather than green** and say
-so — one guard is vacuous until a room produces custom, and the staff-ladder invariant has
-no ladder to guard. `Docs/Day16_Staff_And_Revenue.md` carries all of it, plus corrections
+**Suite: 117, confirmed by a human run on Day 17 — and the 115 was this document's own
+arithmetic, not the runner's.** The count was carried as *"the eleven `SolvencyTests` for
+the crown's stipend and the one `TreasuryBar` test"*, which is twelve on top of a confirmed
+103. `SolvencyTests.cs` did not exist before that commit and holds **fourteen** tests, one
+of which *is* the `TreasuryBar` test — so the arithmetic is 103 + 14 = **117**, confirmed
+against the tree with `git show` rather than inferred. **The shape is the familiar one
+wearing its cheapest costume: a number nobody could check was carried forward as though it
+had been.** It cost nothing here only because it was an undercount — a suite reporting more
+than expected is a pleasant surprise, where the same slip the other way is two tests that
+quietly stopped existing. Three of the 117 are **Ignored rather than green** and say
+so — one guard is vacuous until a room produces custom, the staff-ladder invariant has no
+ladder to guard, and the stipend-against-market containment has no market size authored yet.
+All three conditions were re-checked against the shipped assets on Day 17 and all three
+still hold. `Docs/Day16_Staff_And_Revenue.md` carries all of it, plus corrections
 to §3.1, §4 and §6C of the charter, all three of which described mechanisms the tuned
 model does not use.
 
@@ -404,7 +410,7 @@ The passes earned their keep immediately. Step 1 of the Day 6 document found a r
 
 The Week 1 checkpoint holds, minus the UI that Day 7 adds.
 
-**Next action:** run the suite and confirm 115. Then **step 1 of §9 of `Docs/World_View_Design.md`** — the `IdleGuild.World` assembly and a drag-panned camera over an empty floor. **All art work is deferred** by decision; eight of that document's nine steps need no art at all, and the grey-box has to prove the view before a batch is worth generating.
+**Next action:** step 1 of §9 of `Docs/World_View_Design.md`** — the `IdleGuild.World` assembly and a drag-panned camera over an empty floor. **All art work is deferred** by decision; eight of that document's nine steps need no art at all, and the grey-box has to prove the view before a batch is worth generating.
 
 The tuner has the two hardest targets already: rooms at **68%** of lifetime income
 against a 70% target, and a **6-minute** 90th-percentile purchase gap against a 10-minute
@@ -950,7 +956,10 @@ not detectable, and will be found by accident or not at all.**
 ```
 I'm continuing work on Idle Adventurer's Guild, a solo Unity mobile game. The design was
 revised on Day 14 from a fantasy management sim into an IDLE HOTEL TYCOON with an
-isekai/anime guild-hall theme. Submission target Day 38, buffer through Day 42.
+isekai/anime guild-hall theme. THERE IS NO HARD SHIP DATE - the Day 38 / Day 42 targets
+were a rough sense of how long the project should take, never a commitment, and several
+documents had begun treating them as deadlines. Do not cut scope to protect a date. Day
+numbers below are sequence markers, not obligations.
 
 The project lives at ~/Idle_Adventure_Guild. Read GUILD_LEDGER.md in the repo root in
 full first - it is the source of truth for what EXISTS, and section 06 carries a
@@ -971,10 +980,12 @@ the test suite; Day 12 recruitment and assignment UI; Day 13 first balance pass;
 playtest and the design revision; Day 15 economy tuning, the icon wire, and the discovery
 that the interface had never been rendered; Day 16 the Staff assembly, the revenue engine,
 and a follow-up adding the crown's stipend after a playtest found a dead end. Unity 6000.5.0f1 / URP 2D, private GitHub repo via GitHub Desktop, Git LFS live.
-NINE assemblies now: six feature assemblies depending on Core and nothing else
-(Economy, Adventurers, Quests, Guild, and as of Day 16 Staff), IdleGuild.App above them
-holding composition and cross-feature transactions, IdleGuild.UI above that,
-IdleGuild.Tests.Editor above everything.
+NINE assemblies: IdleGuild.Core at the bottom; FIVE feature assemblies depending on Core
+and nothing else (Economy, Adventurers, Quests, Guild, and as of Day 16 Staff);
+IdleGuild.App above them holding composition and cross-feature transactions;
+IdleGuild.UI above that; IdleGuild.Tests.Editor above everything. A TENTH,
+IdleGuild.World, is the first thing the next session builds - it sits beside
+IdleGuild.UI above App, and nothing references it.
 
 WHAT EXISTS AND WHAT DOES NOT, precisely, because this is the confusing part:
 the revenue ENGINE is built and NO ROOM USES IT. Day 16 added IdleGuild.Staff, the
@@ -990,11 +1001,10 @@ is zero, unserved demand is zero, the queue never fills and TryCollect returns f
 forever. It goes live with the room assets and not before. ANY PACING MEASURED BEFORE THEN
 IS MEASURING THE MAILBOX, NOT THE GAME.
 
-FIRST, A LOOSE END: the suite is 115 tests, compiling clean with zero error CS, and the
-last count a human confirmed is 103. Everything after that - eleven SolvencyTests for the
-crown's stipend and one TreasuryBar test - is written and imported but has never been
-watched running. Run it and confirm 115 (three of them report as IGNORED rather than
-green, on purpose, and say why) before trusting anything built on top.
+THE SUITE IS 117 AND CONFIRMED. The 115 this document carried for two sessions was its
+own arithmetic error - SolvencyTests.cs holds fourteen tests, not the eleven-plus-one it
+was recorded as - and 103 + 14 = 117. Three of the 117 report as IGNORED rather than
+green, on purpose, and say why.
 
 Next task: step 1 of section 9 of Docs/World_View_Design.md - the grey-box world view.
   1. A seventh assembly, IdleGuild.World, sitting beside IdleGuild.UI above App. Nothing
@@ -1085,8 +1095,8 @@ project has (Day 14 took 17.6 real minutes to reach Town against a predicted 8).
 is 23 MODELLED minutes. Re-measure on the next playthrough; do not tune to modelled
 numbers as though a player experiences them.
 
-Testing: EditMode suite at Assets/_Project/Tests/Editor/ - 115 tests, compiling clean but
-the count UNCONFIRMED since 103 (see above), well under a second, of which THREE are
+Testing: EditMode suite at Assets/_Project/Tests/Editor/ - 117 tests, confirmed green,
+well under a second, of which THREE are
 deliberately Ignored rather than green and say why
 (section 7 of Docs/Tests.md). Run it (Window > General > Test Runner > EditMode > Run
 All) before you start and before you commit. It asserts SHAPE rather than NUMBERS on

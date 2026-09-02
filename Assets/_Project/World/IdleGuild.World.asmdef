@@ -1,0 +1,23 @@
+{
+    "name": "IdleGuild.World",
+    "rootNamespace": "IdleGuild.World",
+    "references": [
+        "IdleGuild.Core",
+        "IdleGuild.Guild",
+        "IdleGuild.Quests",
+        "IdleGuild.Adventurers",
+        "IdleGuild.Economy",
+        "IdleGuild.Staff",
+        "IdleGuild.App",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

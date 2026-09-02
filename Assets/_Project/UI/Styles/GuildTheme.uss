@@ -16,7 +16,18 @@
 
 .guild-root {
     flex-grow: 1;
-    background-color: var(--color-surface-base);
+
+    /* Transparent, and this is the line where the interface stopped being the game.
+       Section 2 of Docs/World_View_Design.md demotes IdleGuild.UI from the screen to the
+       chrome around it, and the hall now renders behind this panel -- so a full-screen
+       opaque backdrop here is simply a wall in front of it. Nothing else was hiding the
+       world: GuildPanelSettings has Clear Color off, so this was the whole of it.
+
+       Every element that needs a surface under it already carries its own
+       (--color-surface-raised and friends). This one deliberately does not, which leaves
+       --color-surface-base with no consumer for the moment; it is kept in Tokens.uss
+       because a genuinely full-screen overlay is the obvious next thing to want it. */
+    background-color: rgba(0, 0, 0, 0);
     color: var(--color-text-primary);
     font-size: var(--text-body);
 }
