@@ -10,24 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 98564af1443fa40259307c657fb1dda0, type: 3}
-  m_Name: Building_TrainingRoom
+  m_Name: Building_FrontDesk
   m_EditorClassIdentifier: IdleGuild.Guild::IdleGuild.Guild.BuildingDefinition
-  _id: training_room
-  _displayName: Training Room
-  _description: 'Drills, sparring and a rack of practice weapons. Raises the Power
-    of every adventurer on the roster at once, which shortens quests and keeps the
-    harder ones survivable.'
+  _id: front_desk
+  _displayName: Front Desk
+  _description: 'Where contracts are posted, argued over and paid out. The guild''s cut of
+    every completed job comes across this counter, so a better desk is worth
+    more than the adventurers who walk away from it.'
   _icon: {fileID: 0}
   _minimumTierOrder: 0
-  _maxLevel: 40
+  _maxLevel: 52
   _costToReachLevel:
-    BaseValue: 45
+    BaseValue: 52.563
     LinearPerLevel: 0
-    GrowthPerLevel: 0.19
+    GrowthPerLevel: 0.11
   _effects:
-  - Stat: 2
-    Kind: 0
+  - Stat: 0
+    Kind: 1
     ValuePerLevel:
-      BaseValue: 2
+      BaseValue: 0.2
       LinearPerLevel: 0
-      GrowthPerLevel: 0.14
+      GrowthPerLevel: 0.143741

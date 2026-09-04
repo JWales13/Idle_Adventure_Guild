@@ -17,12 +17,17 @@ MonoBehaviour:
   _order: 2
   _questSlots: 3
   _maxQuestTier: 3
+  _marketSize: 37.084446
+  _baseServicePerHour: 5.6062
+  _baseHousingCapacity: 2
+  _stipendGold: 4
   _requirementsToAdvance:
   - _building: {fileID: 11400000, guid: 3290872f038bc430f9dea3e256e800bf, type: 2}
-    _minimumLevel: 48
-  - _building: {fileID: 11400000, guid: bd6ef315d6a414d739084873b8c69477, type: 2}
-    _minimumLevel: 26
+    _minimumLevel: 36
+  - _building: {fileID: 11400000, guid: 33349d502fd342d2b3a5e6fd10db3a9e, type: 2}
+    _minimumLevel: 24
   - _building: {fileID: 11400000, guid: 82c1ec95ef7c54fafb2abeb57b879109, type: 2}
-    _minimumLevel: 21
-  _stipendGold: 4
+    _minimumLevel: 22
+  - _building: {fileID: 11400000, guid: 5a5e1022a7f64d1c91eee6d523743374, type: 2}
+    _minimumLevel: 17
   _reputationToAdvance: 65000

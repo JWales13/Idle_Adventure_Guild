@@ -17,6 +17,9 @@ MonoBehaviour:
   _order: 3
   _questSlots: 4
   _maxQuestTier: 4
-  _requirementsToAdvance: []
+  _marketSize: 225.833151
+  _baseServicePerHour: 5.6062
+  _baseHousingCapacity: 2
   _stipendGold: 8
+  _requirementsToAdvance: []
   _reputationToAdvance: 0

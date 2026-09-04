@@ -87,23 +87,83 @@ namespace IdleGuild.Tests
         public void ThePostLaunchStatsStillHaveNoProducer()
         {
             GameWorld world = Shipped.NewGuild();
-            Shipped.SetLevels(world, tavern: 90, trainingRoom: 40, inn: 30);
+            Shipped.SetLevels(world, tavern: 57, frontDesk: 52, barracks: 41, inn: 53, provisioner: 48);
             Shipped.MoveTo(world, "capital");
 
             Assert.That(world.Stats.Get(GuildStat.FailureRateReduction), Is.EqualTo(0f).Within(0.0001f),
                 "Armory has not shipped, so the hardest quests keep a flat base failure rate.");
         }
 
+        /// <summary>
+        /// The rooms arrive on a schedule, and it is a data decision rather than a code one.
+        ///
+        /// This test used to assert the opposite — that every building was available from
+        /// the start — and said in its own message that "a tier-gated building would be a
+        /// design change, not a data one". It was right, the design change happened on
+        /// Day 18, and the change was still one field on three assets. §6.2 of
+        /// Vision_Revision.md put two shapes up, by-cost and by-tier, and leaned by-tier
+        /// for legibility; the tuned model is by-tier and this is its answer.
+        ///
+        /// What is asserted is the SHAPE — every tier opens at least one new room, and the
+        /// two the guild starts with are the two the Village gate requires — rather than
+        /// the schedule itself, which a balance pass may move. The one thing that is not
+        /// negotiable is that the starting tier can be played: §01's rule, one layer down.
+        /// </summary>
         [Test]
-        public void EveryBuildingIsAvailableFromTheStart()
+        public void EachTierOpensAtLeastOneNewRoomAndVillageOpensWhatItsGateAsksFor()
+        {
+            GameWorld world = Shipped.NewGuild();
+            List<GuildTierDefinition> tiers = Shipped.TiersInOrder();
+
+            var openedAt = new Dictionary<int, List<string>>();
+            foreach (BuildingDefinition building in world.Content.Buildings)
+            {
+                if (!openedAt.TryGetValue(building.MinimumTierOrder, out List<string> rooms))
+                {
+                    rooms = new List<string>();
+                    openedAt[building.MinimumTierOrder] = rooms;
+                }
+
+                rooms.Add(building.Id);
+            }
+
+            for (int order = 0; order < tiers.Count - 1; order++)
+            {
+                Assert.That(openedAt.ContainsKey(order), Is.True,
+                    $"{tiers[order].Id} opens no room the tier below it did not already have, so advancing " +
+                    "to it is a reward with nothing in it.");
+            }
+
+            GuildTierDefinition village = tiers[0];
+            foreach (BuildingLevelRequirement requirement in village.RequirementsToAdvance)
+            {
+                Assert.That(requirement.Building.MinimumTierOrder, Is.EqualTo(0),
+                    $"Village's gate asks for {requirement.Building.Id}, which cannot be built at Village. " +
+                    "That is a tier the player can never leave.");
+            }
+        }
+
+        /// <summary>
+        /// The Barracks is a Town room, so the settlement has to sleep the roster before
+        /// there is anywhere to put it — otherwise a Village guild recruits nobody, earns
+        /// no reputation and never reaches the tier that would sell it a bed.
+        ///
+        /// This is Day 4-5's opening deadlock for the third time, and it is solved the same
+        /// way it was the first two: in data. What is different is that §01 now has the rule
+        /// written down, and that the tier's own housing is the field which makes it true.
+        /// </summary>
+        [Test]
+        public void EveryTierSleepsAtLeastOneAdventurerBeforeAnythingIsBuilt()
         {
             GameWorld world = Shipped.NewGuild();
 
-            foreach (BuildingDefinition building in world.Content.Buildings)
+            foreach (GuildTierDefinition tier in Shipped.TiersInOrder())
             {
-                Assert.That(world.GuildState.IsAvailable(building), Is.True,
-                    $"'{building.Id}' is not available at the starting tier. The MVP set is three buildings, all " +
-                    "from Village; a tier-gated building would be a design change, not a data one.");
+                world.GuildState.AdvanceTo(tier);
+
+                Assert.That(world.Roster.CapacityWith(world.Stats), Is.GreaterThanOrEqualTo(1),
+                    $"{tier.Id} grants no beds of its own, and a guild that has built no Barracks there " +
+                    "can recruit nobody — which is a tier with no way out of it.");
             }
         }
 

@@ -60,6 +60,11 @@ namespace IdleGuild.Tests
 
                 foreach (BuildingEffect effect in building.Effects)
                 {
+                    if (IsDeliberatelyFlat(effect.Stat))
+                    {
+                        continue;
+                    }
+
                     float lastStep = effect.ValuePerLevel.Evaluate(building.MaxLevel);
                     float previousStep = effect.ValuePerLevel.Evaluate(building.MaxLevel - 1);
 
@@ -68,6 +73,33 @@ namespace IdleGuild.Tests
                         $"to {building.MaxLevel}. The last level is a purchase that buys nothing.");
                 }
             }
+        }
+
+        /// <summary>
+        /// The one stat a room is not meant to buy more of.
+        ///
+        /// Day 18 walked this invariant into its first honest exception. "No dead levels"
+        /// was written on Days 8-9 and assumed, without ever saying so, that every effect
+        /// is a thing the player upgrades — and <see cref="GuildStat.ServiceDemand"/> is
+        /// not. Demand belongs to the tier: how many people want in is the settlement
+        /// growing around the hall, and a room whose own level raised its demand would
+        /// collapse two of §3.1's three levers into one and delete the rhythm the whole
+        /// revision is built on. So its curve is flat by design and reads the same at
+        /// level one and level fifty-seven.
+        ///
+        /// Named here rather than skipped by a special case at the call site, and named by
+        /// stat rather than by room, for the same reason <see cref="GuildStatScope"/>
+        /// names its three: a rule about which stats behave differently belongs in one
+        /// place where somebody appending a stat will meet it.
+        ///
+        /// The exemption is narrow on purpose. It says a flat curve is allowed here, not
+        /// that one is expected — <see cref="ADemandCurveIsFlatAndTheOtherTwoAreNot"/> is
+        /// what asserts it actually is flat, so this cannot quietly become a hole for a
+        /// curve somebody forgot to fill in.
+        /// </summary>
+        private static bool IsDeliberatelyFlat(GuildStat stat)
+        {
+            return stat == GuildStat.ServiceDemand;
         }
 
         [Test]
@@ -192,33 +224,31 @@ namespace IdleGuild.Tests
         }
 
         /// <summary>
-        /// The deadlock Day 4–5 found in data rather than code: Housing Capacity has a
-        /// neutral base of zero, so a guild with no Inn has no beds, can recruit nobody,
-        /// and can never earn anything. Starting gold has to cover a bed-granting building
-        /// *and* somebody to sleep in it, or the game is unwinnable from the first frame.
+        /// The deadlock Day 4–5 found in data rather than code, restated for the build the
+        /// revision produced.
+        ///
+        /// Housing Capacity has a neutral base of zero, so for fifteen days a guild with no
+        /// Inn had no beds, could recruit nobody, and could never earn anything. That was
+        /// answered by starting gold covering a bed-granting building plus somebody to
+        /// sleep in it — which was a hope rather than a solution, as Day 16's playtest
+        /// proved by spending the gold on something else and finishing the game on the
+        /// third purchase.
+        ///
+        /// Day 18 moved the beds into a Barracks the player cannot build until Town, and
+        /// answered it properly: the settlement grants beds of its own, so the opening no
+        /// longer depends on the player buying the right thing first. The assertion moves
+        /// with it. What has to be true is not "starting gold covers a bunkhouse" but
+        /// "somebody can be hired at all, from the first frame, whatever the player does" —
+        /// which is §01's rule at the one moment it is cheapest to get wrong.
         /// </summary>
         [Test]
         public void TheOpeningIsSolvent()
         {
-            double cheapestBedBuilding = double.MaxValue;
-            string bedBuildingId = null;
+            GuildTierDefinition village = Shipped.TiersInOrder()[0];
 
-            foreach (BuildingDefinition building in Shipped.Content.Buildings)
-            {
-                if (building.MinimumTierOrder > 0 || !GrantsHousing(building))
-                {
-                    continue;
-                }
-
-                if (building.CostToReach(1) < cheapestBedBuilding)
-                {
-                    cheapestBedBuilding = building.CostToReach(1);
-                    bedBuildingId = building.Id;
-                }
-            }
-
-            Assert.That(bedBuildingId, Is.Not.Null,
-                "No building available at the starting tier grants Housing Capacity, so the guild can never recruit.");
+            Assert.That(village.BaseHousingCapacity, Is.GreaterThanOrEqualTo(1),
+                "The starting tier grants no beds of its own, and the Barracks is not available at Village, " +
+                "so a new guild can recruit nobody — unwinnable rather than merely slow.");
 
             double cheapestRecruit = double.MaxValue;
             foreach (AdventurerDefinition archetype in Shipped.Content.Adventurers)
@@ -232,10 +262,40 @@ namespace IdleGuild.Tests
             Assert.That(cheapestRecruit, Is.LessThan(double.MaxValue),
                 "No Common archetype is available at the starting tier, so nobody can be hired first.");
 
-            Assert.That(Shipped.Content.StartingGold, Is.GreaterThanOrEqualTo(cheapestBedBuilding + cheapestRecruit),
-                $"Starting gold ({Shipped.Content.StartingGold:N0}) does not cover {bedBuildingId} at level 1 " +
-                $"({cheapestBedBuilding:N0}) plus the cheapest recruit ({cheapestRecruit:N0}). The guild would " +
-                "have no way to earn anything — unwinnable rather than merely slow.");
+            Assert.That(Shipped.Content.StartingGold, Is.GreaterThanOrEqualTo(cheapestRecruit),
+                $"Starting gold ({Shipped.Content.StartingGold:N0}) does not cover the cheapest recruit " +
+                $"({cheapestRecruit:N0}), and a bed with nobody in it earns nothing.");
+
+            // And the other half, which is new: the guild has to be able to trade before it
+            // has hired anybody, or the first room is a purchase with no return and the
+            // cold-start trap §6C finding #2 describes is back. This is the assertion the
+            // tier's base service exists for.
+            Assert.That(village.BaseServicePerHour, Is.GreaterThan(0f),
+                "Nobody serves the first customer. With service coming from staff alone an unstaffed room " +
+                "earns nothing, so a room upgrade has no marginal value and neither does the first employee — " +
+                "each needs the other to already exist.");
+
+            BuildingDefinition cheapestEarner = null;
+            foreach (BuildingDefinition building in Shipped.Content.Buildings)
+            {
+                if (building.MinimumTierOrder > 0 || !building.Produces(GuildStat.ServiceDemand))
+                {
+                    continue;
+                }
+
+                if (cheapestEarner == null || building.CostToReach(1) < cheapestEarner.CostToReach(1))
+                {
+                    cheapestEarner = building;
+                }
+            }
+
+            Assert.That(cheapestEarner, Is.Not.Null,
+                "No room available at the starting tier draws a crowd, so the tycoon half of the game does " +
+                "not begin until the player advances a tier they can only advance by playing it.");
+
+            Assert.That(Shipped.Content.StartingGold, Is.GreaterThanOrEqualTo(cheapestEarner.CostToReach(1)),
+                $"Starting gold does not cover {cheapestEarner.Id} at level 1 " +
+                $"({cheapestEarner.CostToReach(1):N0}), which is the guild's only way to earn.");
         }
 
         /// <summary>Content nobody can ever reach is content that should not have been written.</summary>
@@ -293,7 +353,7 @@ namespace IdleGuild.Tests
         /// <summary>
         /// Rarity has to be a decision rather than a badge, which means each band must be
         /// a real multiple of the one below rather than a rounding error next to the
-        /// Training Room's guild-wide bonus. Days 10–11 set that multiple at 2.00 by
+        /// Barracks' guild-wide bonus. Days 10–11 set that multiple at 2.00 by
         /// generating the ladder from a rule instead of picking five sets of numbers.
         /// </summary>
         [Test]
@@ -394,6 +454,181 @@ namespace IdleGuild.Tests
             }
         }
 
+        // ---- the rooms, authored on Day 18 --------------------------------------
+        //
+        // §7 of Docs/Tests.md, written on Day 16: "the seats curves, the spend curves and
+        // whether a Provisioner is worth nine thousand gold have no coverage at all, and
+        // will not get any by accident. The day the rooms are authored owes this suite its
+        // canaries." This is that debt.
+
+        /// <summary>
+        /// A room that draws a crowd has to be able to seat it and charge it.
+        ///
+        /// Seats without spend earns nothing; spend without seats has nobody to charge;
+        /// demand without either is a queue outside a door that never opens. Any one of
+        /// the three alone is a room that looks authored and is not, and the failure is
+        /// silent in every direction — the room simply reads zero, and this project has
+        /// been caught by an absence six times.
+        ///
+        /// Deliberately an "all or none" rather than a list of which rooms earn, so that
+        /// authoring a sixth department stays one new .asset and zero edits here.
+        /// </summary>
+        [Test]
+        public void AnEarningRoomProducesAllThreeLeversOrNoneOfThem()
+        {
+            foreach (BuildingDefinition room in Shipped.Content.Buildings)
+            {
+                bool seats = room.Produces(GuildStat.ServiceSeats);
+                bool spend = room.Produces(GuildStat.CustomerSpend);
+                bool demand = room.Produces(GuildStat.ServiceDemand);
+
+                if (!seats && !spend && !demand)
+                {
+                    continue;
+                }
+
+                Assert.That(seats && spend && demand, Is.True,
+                    $"'{room.Id}' carries some of seats/spend/demand and not all three " +
+                    $"(seats {seats}, spend {spend}, demand {demand}). A room missing one of them earns " +
+                    "exactly zero and says nothing about why.");
+
+                Assert.That(room.EffectAt(GuildStat.ServiceSeats, 1), Is.GreaterThan(0f),
+                    $"'{room.Id}' opens with no seats, so building it changes nothing until it is upgraded.");
+                Assert.That(room.EffectAt(GuildStat.CustomerSpend, 1), Is.GreaterThan(0f),
+                    $"'{room.Id}' opens charging nothing.");
+                Assert.That(room.EffectAt(GuildStat.ServiceDemand, 1), Is.GreaterThan(0f),
+                    $"'{room.Id}' opens with nobody wanting in.");
+            }
+        }
+
+        /// <summary>
+        /// §3.1's three levers, as an assertion: demand comes from the tier, capacity from
+        /// the room's level, throughput from staff, and none of them may overlap.
+        ///
+        /// The half that is checkable in the assets is that a room's own level moves its
+        /// seats and its spend and does <b>not</b> move its demand. Get that wrong and
+        /// advancing a tier stops being the moment everything you own becomes insufficient
+        /// — which is the rhythm the whole revision is built on, and it would fail as a
+        /// vague sense that the game was flat rather than as anything anybody could find.
+        /// </summary>
+        [Test]
+        public void ADemandCurveIsFlatAndTheOtherTwoAreNot()
+        {
+            foreach (BuildingDefinition room in Shipped.Content.Buildings)
+            {
+                if (!room.Produces(GuildStat.ServiceDemand))
+                {
+                    continue;
+                }
+
+                Assert.That(room.EffectAt(GuildStat.ServiceDemand, room.MaxLevel),
+                    Is.EqualTo(room.EffectAt(GuildStat.ServiceDemand, 1)).Within(0.0001f),
+                    $"'{room.Id}' draws a bigger crowd as it levels. Demand belongs to the settlement, " +
+                    "and a room that grows its own collapses two of the three levers into one.");
+
+                Assert.That(room.EffectAt(GuildStat.ServiceSeats, room.MaxLevel),
+                    Is.GreaterThan(room.EffectAt(GuildStat.ServiceSeats, 1)),
+                    $"'{room.Id}' never gains a seat, so there is nothing to spend gold on.");
+
+                Assert.That(room.EffectAt(GuildStat.CustomerSpend, room.MaxLevel),
+                    Is.GreaterThan(room.EffectAt(GuildStat.CustomerSpend, 1)),
+                    $"'{room.Id}' never charges more per head.");
+            }
+        }
+
+        /// <summary>
+        /// The settlement only ever grows, and the Village is its unit. Every demand figure
+        /// in the game is a room's own number multiplied by this, so a market that went
+        /// backwards would quietly shrink every room at once.
+        /// </summary>
+        [Test]
+        public void TheMarketOnlyEverGrowsAndTheVillageIsItsUnit()
+        {
+            List<GuildTierDefinition> tiers = Shipped.TiersInOrder();
+
+            Assert.That(tiers[0].MarketSize, Is.EqualTo(1f).Within(0.0001f),
+                "The Village is the unit every room's authored demand is expressed in.");
+
+            for (int index = 1; index < tiers.Count; index++)
+            {
+                Assert.That(tiers[index].MarketSize, Is.GreaterThan(tiers[index - 1].MarketSize),
+                    $"{tiers[index].Id} draws no bigger a crowd than {tiers[index - 1].Id}, so advancing to it " +
+                    "leaves every room exactly as sufficient as it already was.");
+            }
+        }
+
+        /// <summary>
+        /// The Tavern's seats at the four moments the design document describes them.
+        ///
+        /// §3 of Docs/World_View_Design.md rests its entire case on a table — four seats at
+        /// Village against four hundred wanting in, sixty at the ceiling against ninety
+        /// thousand — and until today no room produced a single one of those numbers, so
+        /// the table was a claim about a spreadsheet. It is now a claim about the game, and
+        /// this is what keeps it one: the view draws a seat per floored point of the stat,
+        /// so these are literally how many chairs are in the room.
+        ///
+        /// A canary rather than an invariant. A balance pass is expected to move these, and
+        /// the thing it must not do is move them without noticing that §3's table, the
+        /// world view's seat count and the tuned model all said the same thing first.
+        /// </summary>
+        [Test]
+        [Category("BalanceCanary")]
+        public void TheTavernsSeatsReadAsTheWorldViewWasDesignedAgainst()
+        {
+            BuildingDefinition tavern = Shipped.Building("tavern");
+
+            Assert.That(Mathf.FloorToInt(tavern.EffectAt(GuildStat.ServiceSeats, 1)), Is.EqualTo(4),
+                "Four seats at the moment the Village opens.");
+            Assert.That(Mathf.FloorToInt(tavern.EffectAt(GuildStat.ServiceSeats, 17)), Is.EqualTo(19),
+                "Nineteen at the Town gate.");
+            Assert.That(Mathf.FloorToInt(tavern.EffectAt(GuildStat.ServiceSeats, 36)), Is.EqualTo(38),
+                "Thirty-eight at the City gate.");
+            Assert.That(Mathf.FloorToInt(tavern.EffectAt(GuildStat.ServiceSeats, tavern.MaxLevel)), Is.EqualTo(59),
+                "Fifty-nine at the ceiling.");
+
+            Assert.That(tavern.EffectAt(GuildStat.ServiceDemand, 1), Is.EqualTo(400f).Within(0.01f),
+                "Four hundred want in at Village, against a hundred and sixty the seats can take. Seats are " +
+                "the binding constraint at every tier, which is why there is always a queue outside the door " +
+                "and why the view has permanent content for free.");
+        }
+
+        /// <summary>
+        /// The Front Desk's commission is authored nowhere, and that is deliberate — but
+        /// for a reason that is one word different from the one recorded on Day 16.
+        ///
+        /// It was written down as "declared with no producer: the Front Desk is authored
+        /// later", which reads as though it were waiting for an asset. Day 18 authored the
+        /// Front Desk and found it is waiting for a <b>consumer</b> as well: nothing in the
+        /// game reads <see cref="GuildStat.ContractCommission"/>, and nothing reads a
+        /// tier's contract reward scale either. A contract still pays its full authored
+        /// gold through Reward Yield, unbounded, and the same multiplier is applied to
+        /// reputation — where the model pays a saturating cut of a tier-scaled reward and
+        /// leaves reputation alone. Two different mechanisms, and the tuned "rooms are 65%
+        /// of lifetime income" is a fact about the model's one.
+        ///
+        /// So this asserts the absence, with the reason attached, because a curve authored
+        /// onto the desk before the mechanism exists would produce a stat nothing reads on
+        /// a room that visibly earns nothing — the sixth costume of the same failure. When
+        /// somebody writes the consumer, this test is what they delete.
+        /// </summary>
+        [Test]
+        public void TheContractCommissionHasNoProducerBecauseItStillHasNoConsumer()
+        {
+            foreach (BuildingDefinition room in Shipped.Content.Buildings)
+            {
+                Assert.That(room.Produces(GuildStat.ContractCommission), Is.False,
+                    $"'{room.Id}' produces a commission, and nothing in the game spends it. Wire " +
+                    "QuestResolution to read it — and the tier's contract reward scale with it — before " +
+                    "authoring the curve, or the desk earns exactly nothing while looking like it earns.");
+            }
+
+            foreach (GuildTierDefinition tier in Shipped.TiersInOrder())
+            {
+                Assert.That(tier.ContractRewardScale, Is.EqualTo(1f).Within(0.0001f),
+                    $"{tier.Id} scales contract rewards, and nothing reads that either.");
+            }
+        }
+
         /// <summary>
         /// What one bed costs over the life of the guild, against what it delivers: the
         /// hire plus every training level, divided by the power the archetype reaches.
@@ -407,19 +642,6 @@ namespace IdleGuild.Tests
             }
 
             return lifetime / archetype.BasePowerAt(archetype.MaxLevel);
-        }
-
-        private static bool GrantsHousing(BuildingDefinition building)
-        {
-            foreach (BuildingEffect effect in building.Effects)
-            {
-                if (effect.Stat == GuildStat.HousingCapacity && effect.ValuePerLevel.Evaluate(1) >= 1f)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private static int MinimumLevelFor(GuildTierDefinition tier, string buildingId)

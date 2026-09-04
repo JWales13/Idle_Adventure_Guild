@@ -24,7 +24,7 @@ namespace IdleGuild.Tests
         [Test]
         public void RetiringFreesTheBedItWasHolding()
         {
-            GameWorld world = GuildWith("village", tavern: 1, inn: 1);
+            GameWorld world = GuildWith("village", tavern: 1, barracks: 0);
             RecruitmentService recruitment = new RecruitmentService(world);
             AdventurerDefinition recruit = Shipped.Adventurer("militia_recruit");
 
@@ -50,7 +50,7 @@ namespace IdleGuild.Tests
         [Test]
         public void AGuildThatSpentEveryBedOnEpicsCanStillFieldALegendary()
         {
-            GameWorld world = GuildWith("capital", tavern: 32, inn: 30);
+            GameWorld world = GuildWith("capital", tavern: 32, barracks: 41);
             RecruitmentService recruitment = new RecruitmentService(world);
 
             AdventurerDefinition battlemage = Shipped.Adventurer("arcane_battlemage");
@@ -71,7 +71,7 @@ namespace IdleGuild.Tests
         [Test]
         public void SomebodyOutInTheFieldCannotBeRetired()
         {
-            GameWorld world = GuildWith("village", tavern: 1, inn: 1);
+            GameWorld world = GuildWith("village", tavern: 1, barracks: 0);
             RecruitmentService recruitment = new RecruitmentService(world);
             QuestDispatchService dispatch = new QuestDispatchService(world);
 
@@ -100,7 +100,7 @@ namespace IdleGuild.Tests
         [Test]
         public void RestingBetweenRunsIsNotTheSameAsBeingFree()
         {
-            GameWorld world = GuildWith("village", tavern: 1, inn: 1);
+            GameWorld world = GuildWith("village", tavern: 1, barracks: 0);
             RecruitmentService recruitment = new RecruitmentService(world);
             QuestDispatchService dispatch = new QuestDispatchService(world);
             SimulationClock clock = new SimulationClock(world, dispatch);
@@ -129,7 +129,7 @@ namespace IdleGuild.Tests
         [Test]
         public void TheNearerOfTheTwoRefusalsIsTheOneReported()
         {
-            GameWorld world = GuildWith("village", tavern: 1, inn: 1);
+            GameWorld world = GuildWith("village", tavern: 1, barracks: 0);
             RecruitmentService recruitment = new RecruitmentService(world);
             QuestDispatchService dispatch = new QuestDispatchService(world);
 
@@ -145,7 +145,7 @@ namespace IdleGuild.Tests
         [Test]
         public void RetiringSomebodyTwiceIsRefusedRatherThanRepeated()
         {
-            GameWorld world = GuildWith("village", tavern: 1, inn: 1);
+            GameWorld world = GuildWith("village", tavern: 1, barracks: 0);
             RecruitmentService recruitment = new RecruitmentService(world);
 
             recruitment.TryRecruit(Shipped.Adventurer("militia_recruit"), out Adventurer member);
@@ -165,7 +165,7 @@ namespace IdleGuild.Tests
         [Test]
         public void RetiringRefundsNothing()
         {
-            GameWorld world = GuildWith("village", tavern: 1, inn: 1);
+            GameWorld world = GuildWith("village", tavern: 1, barracks: 0);
             RecruitmentService recruitment = new RecruitmentService(world);
 
             recruitment.TryRecruit(Shipped.Adventurer("militia_recruit"), out Adventurer member);
@@ -176,26 +176,33 @@ namespace IdleGuild.Tests
             Assert.That(world.Economy.Get(CurrencyType.Gold), Is.EqualTo(goldAfterHiring));
         }
 
-        private static GameWorld GuildWith(string tierId, int tavern, int inn)
+        /// <summary>
+        /// Beds moved from the Inn to the Barracks on Day 18, so this takes a Barracks
+        /// level. A Barracks of zero is not "no beds": the tier grants a couple of its own
+        /// so a Village guild can recruit before it can afford a bunkhouse, which is why
+        /// the Village cases below pass zero rather than one.
+        /// </summary>
+        private static GameWorld GuildWith(string tierId, int tavern, int barracks)
         {
             GameWorld world = Shipped.NewGuild();
             world.Economy.Grant(CurrencyType.Gold, 10_000_000d);
             Shipped.MoveTo(world, tierId);
-            Shipped.SetLevels(world, tavern: tavern, inn: inn);
+            Shipped.SetLevels(world, tavern: tavern, barracks: barracks);
             return world;
         }
 
         /// <summary>
-        /// Hire this archetype until the Inn refuses. Written against the gate rather than
+        /// Hire this archetype until housing refuses. Written against the gate rather than
         /// against a bed count so that the tests above say nothing about how many beds
-        /// there are, which is a Day 13 number.
+        /// there are — which is why moving the beds from the Inn to the Barracks on Day 18
+        /// cost this file two identifiers and not one assertion.
         /// </summary>
         private static void FillEveryBed(RecruitmentService recruitment, AdventurerDefinition archetype)
         {
             int guard = 0;
             while (recruitment.Preview(archetype) == RecruitOutcome.Recruited)
             {
-                Assert.That(++guard, Is.LessThan(200), "The Inn never ran out of beds, which cannot be right.");
+                Assert.That(++guard, Is.LessThan(200), "Housing never ran out, which cannot be right.");
                 recruitment.TryRecruit(archetype, out Adventurer _);
             }
 

@@ -25,30 +25,35 @@ namespace IdleGuild.Tests
         public void TheFirstQuestOfANewGuildReadsAsWritten()
         {
             GameWorld world = Shipped.NewGuild();
-            Shipped.SetLevels(world, inn: 1);
 
             QuestDefinition ratCellar = Shipped.Quest("rat_infested_cellar");
             float partyPower = Shipped.Adventurer("militia_recruit").BasePowerAt(1)
                                + world.Stats.Get(GuildStat.AdventurerPower);
 
             Assert.That(partyPower, Is.EqualTo(3f).Within(0.01f),
-                "A level-1 Militia Recruit in a guild with no Training Room should contribute 3 power.");
+                "A level-1 Militia Recruit in a guild with no Barracks should contribute 3 power.");
 
             Assert.That(QuestResolution.DurationSeconds(ratCellar, partyPower), Is.EqualTo(51.96d).Within(0.1d));
             Assert.That(QuestResolution.FailureChance(ratCellar, partyPower, world.Stats), Is.EqualTo(0.0625f).Within(0.001f));
             Assert.That(QuestResolution.GoldReward(ratCellar, world.Stats), Is.EqualTo(48d).Within(0.01d),
-                "With no Tavern, Reward Yield is neutral and the quest pays exactly what the asset says.");
+                "With no Front Desk, Reward Yield is neutral and the quest pays exactly what the asset says.");
         }
 
         [Test]
         [Category("BalanceCanary")]
-        public void TheTavernRaisesWhatEveryQuestPays()
+        public void TheFrontDeskRaisesWhatEveryQuestPays()
         {
+            // Reward Yield moved from the Tavern to the Front Desk on Day 18 — a Tavern
+            // that both multiplied contract gold and generated its own would compound
+            // twice, which §2 of Vision_Revision.md is explicit about. The curve was
+            // re-spaced from ninety levels onto fifty-two so that it lands on the same
+            // ceiling, and its BASE was left alone — which is why every figure in this
+            // test is unchanged and only the room's name moved.
             GameWorld world = Shipped.NewGuild();
-            Shipped.SetLevels(world, tavern: 1, inn: 1);
+            Shipped.SetLevels(world, frontDesk: 1);
 
             Assert.That(world.Stats.Get(GuildStat.RewardYield), Is.EqualTo(1.2f).Within(0.001f),
-                "Reward Yield is a bonus fraction accumulated onto 1.0, so a level-1 Tavern reads x1.20 — " +
+                "Reward Yield is a bonus fraction accumulated onto 1.0, so a level-1 Front Desk reads x1.20 — " +
                 "never x0.20, which is what a multiplicative effect starting from zero would give.");
 
             Assert.That(QuestResolution.GoldReward(Shipped.Quest("rat_infested_cellar"), world.Stats),
@@ -57,24 +62,26 @@ namespace IdleGuild.Tests
 
         [Test]
         [Category("BalanceCanary")]
-        public void TheTrainingRoomShortensAQuestAndCutsItsRisk()
+        public void TheBarracksShortensAQuestAndCutsItsRisk()
         {
+            // The Training Room was retired on Day 18 and the Barracks houses and drills
+            // the roster in one room. Same base, re-spaced growth, same figures.
             GameWorld world = Shipped.NewGuild();
-            Shipped.SetLevels(world, tavern: 1, trainingRoom: 1, inn: 1);
+            Shipped.SetLevels(world, frontDesk: 1, barracks: 1);
 
             QuestDefinition ratCellar = Shipped.Quest("rat_infested_cellar");
             float partyPower = Shipped.Adventurer("militia_recruit").BasePowerAt(1)
                                + world.Stats.Get(GuildStat.AdventurerPower);
 
-            Assert.That(partyPower, Is.EqualTo(5f).Within(0.01f), "3 from the archetype, +2 from a level-1 Training Room.");
+            Assert.That(partyPower, Is.EqualTo(5f).Within(0.01f), "3 from the archetype, +2 from a level-1 Barracks.");
             Assert.That(QuestResolution.DurationSeconds(ratCellar, partyPower), Is.EqualTo(40.25d).Within(0.1d));
             Assert.That(QuestResolution.FailureChance(ratCellar, partyPower, world.Stats), Is.EqualTo(0.0375f).Within(0.001f));
         }
 
         /// <summary>
-        /// The clamps are why the Training Room's tree is short and steep while the
-        /// Tavern's is long and shallow: power stops buying speed at four times the
-        /// recommendation, so a geometric price for it would eventually buy nothing.
+        /// The clamps are why the Barracks' tree is short and steep while the Tavern's is
+        /// long and shallow: power stops buying speed at four times the recommendation, so
+        /// a geometric price for it would eventually buy nothing.
         /// </summary>
         [Test]
         public void SpeedIsClampedAtBothEnds()
@@ -127,7 +134,7 @@ namespace IdleGuild.Tests
         public void TheHardestQuestOverwhelmsAStarterParty()
         {
             GameWorld world = Shipped.NewGuild();
-            Shipped.SetLevels(world, tavern: 1, trainingRoom: 1, inn: 21);
+            Shipped.SetLevels(world, frontDesk: 1, barracks: 1);
             Shipped.MoveTo(world, "capital");
 
             QuestDefinition roost = Shipped.Quest("dragons_roost");

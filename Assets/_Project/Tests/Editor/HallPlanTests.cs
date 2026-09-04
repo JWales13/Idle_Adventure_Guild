@@ -17,10 +17,10 @@ namespace IdleGuild.Tests
     /// guild does. That is the sixth appearance of *a failure whose only symptom is the
     /// absence of something*, and the first test here is the guard against it.
     ///
-    /// It matters most on the day it has not happened yet. The revision authors five rooms
-    /// where three stand today, and the plan is a separate file that nothing forces anybody
-    /// to update — so the moment a Barracks asset lands, this goes red with its name in it
-    /// rather than the Barracks going missing from the picture.
+    /// It mattered most on the day it had not happened yet, and it paid: the plan is a
+    /// separate file that nothing forces anybody to update, and on Day 18 — when the
+    /// Barracks, the Front Desk and the Provisioner landed as assets — this went red with
+    /// all three names in it rather than three rooms going quietly missing from the picture.
     ///
     /// These assert the plan's SHAPE and not its taste. Where the rooms should actually sit
     /// is listed as open in section 11 and the current layout is provisional; moving a room
@@ -93,7 +93,7 @@ namespace IdleGuild.Tests
 
             Assert.That(
                 HallPlan.FootprintsOutside(HallPlan.Default(), tooSmall),
-                Is.EquivalentTo(new[] { "tavern", "inn", "training_room" }));
+                Is.EquivalentTo(new[] { "tavern", "front_desk", "inn", "barracks", "provisioner" }));
         }
 
         [Test]
@@ -102,8 +102,10 @@ namespace IdleGuild.Tests
             HallRoom[] plan = HallPlan.Default();
 
             Assert.That(HallPlan.FindAt(plan, new Vector2(-5f, -8f))?.BuildingId, Is.EqualTo("tavern"));
-            Assert.That(HallPlan.FindAt(plan, new Vector2(5f, -10f))?.BuildingId, Is.EqualTo("inn"));
-            Assert.That(HallPlan.FindAt(plan, new Vector2(5f, 2f))?.BuildingId, Is.EqualTo("training_room"));
+            Assert.That(HallPlan.FindAt(plan, new Vector2(5f, -10f))?.BuildingId, Is.EqualTo("front_desk"));
+            Assert.That(HallPlan.FindAt(plan, new Vector2(-5f, 4f))?.BuildingId, Is.EqualTo("inn"));
+            Assert.That(HallPlan.FindAt(plan, new Vector2(5f, 1f))?.BuildingId, Is.EqualTo("barracks"));
+            Assert.That(HallPlan.FindAt(plan, new Vector2(5f, 12f))?.BuildingId, Is.EqualTo("provisioner"));
         }
 
         [Test]
@@ -132,9 +134,12 @@ namespace IdleGuild.Tests
         {
             HallRoom[] plan = HallPlan.Default();
 
-            Assert.That(HallPlan.Find(plan, "barracks"), Is.Null,
+            Assert.That(HallPlan.Find(plan, "smithy"), Is.Null,
                 "An unauthored room has no ground, and Find must say so rather than " +
-                "handing back somebody else's.");
+                "handing back somebody else's. The Smithy is the post-launch room that " +
+                "would produce Failure Rate Reduction, and it is deliberately the id used " +
+                "here — the Barracks stopped being unauthored on Day 18, and a test that " +
+                "names a room somebody is about to write is a test with a shelf life.");
 
             var catalogue = new List<BuildingDefinition> { null };
             Assert.That(HallPlan.BuildingsWithNoFootprint(plan, catalogue), Is.Empty,

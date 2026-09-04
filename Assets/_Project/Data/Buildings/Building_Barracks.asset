@@ -10,36 +10,37 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 98564af1443fa40259307c657fb1dda0, type: 3}
-  m_Name: Building_Inn
+  m_Name: Building_Barracks
   m_EditorClassIdentifier: IdleGuild.Guild::IdleGuild.Guild.BuildingDefinition
-  _id: inn
-  _displayName: Inn
-  _description: 'Rooms let to travellers and merchants passing through. Purely a hotel now
-    that the roster sleeps in the Barracks: fewer beds than the Tavern has
-    seats, and each one worth a great deal more per night.'
+  _id: barracks
+  _displayName: Barracks
+  _description: 'Bunks, a drill yard and a rack of practice weapons. It houses the roster
+    and trains it in the same breath, which is one idea rather than two: room
+    count caps who can live here, and the yard raises the Power of everyone
+    who does.'
   _icon: {fileID: 0}
   _minimumTierOrder: 1
-  _maxLevel: 53
+  _maxLevel: 41
   _costToReachLevel:
-    BaseValue: 3118.05
+    BaseValue: 1385.8
     LinearPerLevel: 0
     GrowthPerLevel: 0.11
   _effects:
-  - Stat: 8
+  - Stat: 3
     Kind: 0
     ValuePerLevel:
       BaseValue: 2
-      LinearPerLevel: 0.59484
+      LinearPerLevel: 0.3125
       GrowthPerLevel: 0
-  - Stat: 9
+  - Stat: 2
     Kind: 0
     ValuePerLevel:
-      BaseValue: 26
+      BaseValue: 2
       LinearPerLevel: 0
-      GrowthPerLevel: 0.13
-  - Stat: 10
-    Kind: 0
+      GrowthPerLevel: 0.136272
+  - Stat: 4
+    Kind: 1
     ValuePerLevel:
-      BaseValue: 20
+      BaseValue: 0.1
       LinearPerLevel: 0
-      GrowthPerLevel: 0
+      GrowthPerLevel: 0.071543

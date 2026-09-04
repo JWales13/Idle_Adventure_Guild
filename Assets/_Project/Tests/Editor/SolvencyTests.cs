@@ -1,3 +1,4 @@
+using IdleGuild.Adventurers;
 using IdleGuild.App;
 using IdleGuild.App.Saves;
 using IdleGuild.Core;
@@ -45,6 +46,25 @@ namespace IdleGuild.Tests
             return new SimulationClock(world, new QuestDispatchService(world));
         }
 
+        /// <summary>
+        /// What it costs to put one body on the roster right now. The reference every
+        /// solvency figure in this file is measured against, because an adventurer is the
+        /// cheapest thing that turns a stranded guild back into a working one.
+        /// </summary>
+        private static double CheapestRecruitAt(GameWorld world)
+        {
+            double cheapest = double.PositiveInfinity;
+            foreach (AdventurerDefinition archetype in Shipped.Content.Adventurers)
+            {
+                if (archetype != null && archetype.MinimumTierOrder <= world.GuildState.CurrentTier.Order)
+                {
+                    cheapest = System.Math.Min(cheapest, archetype.RecruitCostGold);
+                }
+            }
+
+            return cheapest;
+        }
+
         // ---- the rule ------------------------------------------------------------
 
         [Test]
@@ -68,44 +88,91 @@ namespace IdleGuild.Tests
         }
 
         [Test]
-        public void TheExactPlaytestPathIsNoLongerADeadEnd()
+        public void TheDay16DeadEndCannotEvenBeWalkedAnyMore()
         {
-            // Tavern, Tavern, Inn — bought through the real service, at shipped prices,
-            // from shipped starting gold. Then: can the player afford the cheapest
-            // adventurer within a few minutes of tapping?
+            // The original path was Tavern, Tavern, Inn — 147.50 of 150 starting gold in a
+            // build where gold came only from contracts and a contract needed an
+            // adventurer. Day 18 closed it twice over, and it is worth asserting both
+            // because either one alone would be a coincidence rather than a property.
+            //
+            // First, the path is not walkable: the Inn is a Town room now, so the third
+            // purchase in that sequence is refused before it can empty the treasury.
+            // Second, and the part that actually matters, the two purchases that ARE
+            // available are rooms that earn — so a guild that has spent everything is
+            // trading rather than waiting on the post.
             GameWorld world = Shipped.NewGuild();
             SimulationClock clock = ClockFor(world);
             BuildingUpgradeService buildings = new BuildingUpgradeService(world);
 
             Assert.That(buildings.TryUpgrade(Shipped.Building("tavern")), Is.EqualTo(UpgradeOutcome.Upgraded));
             Assert.That(buildings.TryUpgrade(Shipped.Building("tavern")), Is.EqualTo(UpgradeOutcome.Upgraded));
-            Assert.That(buildings.TryUpgrade(Shipped.Building("inn")), Is.EqualTo(UpgradeOutcome.Upgraded));
 
-            double cheapestRecruit = double.PositiveInfinity;
-            foreach (var archetype in Shipped.Content.Adventurers)
-            {
-                if (archetype != null && archetype.MinimumTierOrder <= world.GuildState.CurrentTier.Order)
-                {
-                    cheapestRecruit = System.Math.Min(cheapestRecruit, archetype.RecruitCostGold);
-                }
-            }
+            Assert.That(buildings.TryUpgrade(Shipped.Building("inn")), Is.EqualTo(UpgradeOutcome.TierLocked),
+                "The third purchase of the Day 16 playtest is a Town room, and a Village guild is told so " +
+                "rather than being allowed to spend its last coin on it.");
 
-            Assert.That(world.Economy.Get(CurrencyType.Gold), Is.LessThan(cheapestRecruit),
-                "Guard: this is meant to reproduce the stranded state, not step over it.");
+            TradeService trade = new TradeService(world);
+            Assert.That(trade.GrossPerHour(), Is.GreaterThan(0d),
+                "Two Tavern levels and the guild still earns nothing an hour. The guildmaster works the bar " +
+                "unaided — that is what the tier's base service is for — and without it the first room is a " +
+                "purchase with no return.");
 
-            // Twenty minutes of collecting the moment each delivery lands. Long,
-            // deliberately: see RecoveringFromNothingIsSlowAndThatIsADecision.
-            for (int tick = 0; tick < 20 * 60; tick++)
+            Assert.That(trade.UnservedWantPerHour(), Is.GreaterThan(0d),
+                "Nobody is being turned away, so there is nothing for a thumb to do. Seats are meant to bind " +
+                "at every tier: that is the queue outside the door, and it is what makes tapping worth 87% " +
+                "of early income.");
+
+            // And the till fills without the player doing anything at all.
+            double before = world.Economy.Get(CurrencyType.Gold);
+            clock.Advance(600d);
+            Assert.That(world.Economy.Get(CurrencyType.Gold), Is.GreaterThan(before),
+                "Ten minutes of a built Tavern paid nothing.");
+        }
+
+        [Test]
+        [Category("BalanceCanary")]
+        public void AStrandedGuildWithARoomRecoversInMinutesRatherThanInTwelveOfThem()
+        {
+            // §5 of Docs/Day16_Followup_Solvency.md, cashed in: "the cost is largely an
+            // artefact of the build it was written in. Nothing earns gold today, so the
+            // mailbox is the only income there is. Once the five rooms are authored, a
+            // stranded player also has room income and a working takings tap, and twelve
+            // minutes stops describing anything a player will meet. If it still does on
+            // the room day, the hardship line is the thing to reach for."
+            //
+            // It does not. This is the same measurement as the canary below, run against
+            // the guild a player actually has rather than one that has built nothing, and
+            // the answer is a couple of minutes — so the hardship line stays designed and
+            // unbuilt, and the crown stays unconditional.
+            //
+            // The tap is what does it rather than the rooms: a Tavern this small earns
+            // about ten gold an hour idle, and the queue outside it is worth roughly forty
+            // times that to a thumb. That is §7's "tapping is 87% of early income" arriving
+            // as a number in the shipped build for the first time.
+            GameWorld world = Shipped.NewGuild();
+            SimulationClock clock = ClockFor(world);
+            BuildingUpgradeService buildings = new BuildingUpgradeService(world);
+
+            buildings.TryUpgrade(Shipped.Building("tavern"));
+            buildings.TryUpgrade(Shipped.Building("tavern"));
+            world.Economy.TrySpend(CurrencyType.Gold, world.Economy.Get(CurrencyType.Gold));
+
+            double cheapestRecruit = CheapestRecruitAt(world);
+
+            int seconds = 0;
+            while (world.Economy.Get(CurrencyType.Gold) < cheapestRecruit && seconds < 3600)
             {
                 clock.Advance(1d);
-                while (clock.Stipend.TryCollect(out double _))
+                seconds++;
+                while (clock.Takings.TryCollect(out double _, out BuildingDefinition _))
                 {
                 }
             }
 
-            Assert.That(world.Economy.Get(CurrencyType.Gold), Is.GreaterThanOrEqualTo(cheapestRecruit),
-                "Twenty minutes of collecting did not buy the cheapest adventurer in the game, so the " +
-                "player is still stranded — just more slowly, which is worse than being told.");
+            Assert.That(seconds, Is.LessThan(600),
+                $"A guild with a Tavern took {seconds}s of tapping to afford the cheapest adventurer, which " +
+                "is no better than the empty-handed case the mailbox was sized for. Either the tap is not " +
+                "reaching the queue or the queue is not filling.");
         }
 
         [Test]
@@ -128,23 +195,18 @@ namespace IdleGuild.Tests
             // above a threshold. So this is what a mistake now costs, measured rather than
             // asserted, and pinned so that changing it has to be deliberate.
             //
-            // Worth knowing when reading this later: the cost is largely an artefact of
-            // the build it was written in. Nothing earns gold today, so the mailbox is the
-            // only income there is. Once the five rooms are authored the stranded player
-            // also has room income and a working takings tap, and this figure stops
-            // describing anything a player will meet.
+            // Worth knowing when reading this later: this is the WORST case rather than
+            // the likely one, and since Day 18 it is a guild that has built nothing at all
+            // — the mailbox is the only income a hall with no rooms in it has. The case a
+            // player actually meets is AStrandedGuildWithARoomRecoversInMinutesRatherThanInTwelveOfThem
+            // above, which is a couple of minutes. Both are kept: this one is what the
+            // stipend was sized against and is the floor under §01, and moving it should
+            // still be a decision somebody made on purpose.
             GameWorld world = Shipped.NewGuild();
             SimulationClock clock = ClockFor(world);
             world.Economy.TrySpend(CurrencyType.Gold, world.Economy.Get(CurrencyType.Gold));
 
-            double cheapestRecruit = double.PositiveInfinity;
-            foreach (var archetype in Shipped.Content.Adventurers)
-            {
-                if (archetype != null && archetype.MinimumTierOrder <= world.GuildState.CurrentTier.Order)
-                {
-                    cheapestRecruit = System.Math.Min(cheapestRecruit, archetype.RecruitCostGold);
-                }
-            }
+            double cheapestRecruit = CheapestRecruitAt(world);
 
             int seconds = 0;
             while (world.Economy.Get(CurrencyType.Gold) < cheapestRecruit && seconds < 3600)

@@ -74,7 +74,7 @@ namespace IdleGuild.Tests
             InMemorySaveStore store = new InMemorySaveStore();
 
             GameWorld saved = Shipped.NewGuild();
-            Shipped.SetLevels(saved, inn: 9);
+            Shipped.SetLevels(saved, barracks: 9);
             AdventurerDefinition archetype = Shipped.Adventurer("militia_recruit");
             saved.Roster.Add(new Adventurer("veteran-of-week-one", archetype, 10));
 
@@ -204,7 +204,7 @@ namespace IdleGuild.Tests
         {
             GameWorld world = Shipped.NewGuild();
             world.Economy.Grant(CurrencyType.Gold, 100_000d);
-            Shipped.SetLevels(world, tavern: 6, trainingRoom: 4, inn: 9);
+            Shipped.SetLevels(world, tavern: 6, frontDesk: 4, barracks: 9, inn: 3);
             Shipped.MoveTo(world, "town");
 
             RecruitmentService recruitment = new RecruitmentService(world);

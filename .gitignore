@@ -76,3 +76,10 @@ GoogleService-Info.plist
 ._*
 Thumbs.db
 desktop.ini
+
+# Python bytecode from the models and the asset tools in Docs/tools/.
+# Committed by accident on Day 15 and regenerated on every run, so it shows up as a
+# modified binary in every commit that touches a model. Untrack the two that are already
+# in with `git rm -r --cached Docs/tools/__pycache__`.
+__pycache__/
+*.pyc

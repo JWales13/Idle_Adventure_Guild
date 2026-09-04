@@ -24,7 +24,7 @@ namespace IdleGuild.Tests
         public void TheTavernIsWhatHoldsBackAnUncommonHireAtVillage()
         {
             GameWorld world = Wealthy();
-            Shipped.SetLevels(world, tavern: 8, inn: 1);
+            Shipped.SetLevels(world, tavern: 8);
 
             RecruitmentService recruitment = new RecruitmentService(world);
             Assert.That(recruitment.Preview(Shipped.Adventurer("hedge_knight")), Is.EqualTo(RecruitOutcome.RarityLocked),
@@ -37,14 +37,14 @@ namespace IdleGuild.Tests
 
         /// <summary>
         /// The anti-tunnelling backstop. A player can push the Tavern hard while ignoring
-        /// the Training Room and the Inn, so the Tavern alone must not be able to buy
+        /// the Front Desk and the Barracks, so the Tavern alone must not be able to buy
         /// access to content a whole tier away.
         /// </summary>
         [Test]
         public void AMaxedTavernStillCannotOutrunTheTierGate()
         {
             GameWorld world = Wealthy();
-            Shipped.SetLevels(world, tavern: 90, inn: 30);
+            Shipped.SetLevels(world, tavern: 57, barracks: 41);
 
             RecruitmentService recruitment = new RecruitmentService(world);
 
@@ -59,7 +59,7 @@ namespace IdleGuild.Tests
         {
             GameWorld world = Wealthy();
             Shipped.MoveTo(world, "city");
-            Shipped.SetLevels(world, tavern: 24, inn: 21);
+            Shipped.SetLevels(world, tavern: 24);
 
             RecruitmentService recruitment = new RecruitmentService(world);
             AdventurerDefinition battlemage = Shipped.Adventurer("arcane_battlemage");
@@ -82,7 +82,7 @@ namespace IdleGuild.Tests
         {
             GameWorld world = Wealthy();
             Shipped.MoveTo(world, "capital");
-            Shipped.SetLevels(world, tavern: 31, inn: 21);
+            Shipped.SetLevels(world, tavern: 31);
 
             RecruitmentService recruitment = new RecruitmentService(world);
             AdventurerDefinition champion = Shipped.Adventurer("dragonsworn_champion");
@@ -109,24 +109,29 @@ namespace IdleGuild.Tests
             AssertAttracts(world, recruitment, 25, Rarity.Epic);
             AssertAttracts(world, recruitment, 31, Rarity.Epic);
             AssertAttracts(world, recruitment, 32, Rarity.Legendary);
-            AssertAttracts(world, recruitment, 90, Rarity.Legendary);
+            AssertAttracts(world, recruitment, 57, Rarity.Legendary);
         }
 
         [Test]
-        public void TheInnIsWhatRunsOutLast()
+        public void TheBarracksIsWhatRunsOutLast()
         {
+            // Was TheInnIsWhatRunsOutLast until Day 18. The Inn is purely a hotel now and
+            // grants no beds at all; the roster sleeps in the Barracks, which does not
+            // exist at Village — so the tier's own two beds are what a new guild has, and
+            // they are what runs out.
             GameWorld world = Wealthy();
-            Shipped.SetLevels(world, tavern: 9, inn: 1);
+            Shipped.SetLevels(world, tavern: 9);
 
             RecruitmentService recruitment = new RecruitmentService(world);
             AdventurerDefinition recruit = Shipped.Adventurer("militia_recruit");
 
-            Assert.That(recruitment.TotalHousing, Is.EqualTo(2), "A level-1 Inn sleeps two.");
+            Assert.That(recruitment.TotalHousing, Is.EqualTo(2),
+                "A Village guild with no Barracks sleeps two, granted by the settlement rather than by a building.");
 
             Assert.That(recruitment.TryRecruit(recruit, out Adventurer _), Is.EqualTo(RecruitOutcome.Recruited));
             Assert.That(recruitment.TryRecruit(recruit, out Adventurer _), Is.EqualTo(RecruitOutcome.Recruited));
             Assert.That(recruitment.Preview(recruit), Is.EqualTo(RecruitOutcome.HousingFull),
-                "Both beds are taken, and the gate that reports it should be the Inn rather than the Tavern.");
+                "Both beds are taken, and the gate that reports it should be housing rather than the Tavern.");
         }
 
         [Test]
@@ -134,33 +139,44 @@ namespace IdleGuild.Tests
         {
             GameWorld world = Shipped.NewGuild();
             world.Economy.Restore(CurrencyType.Gold, 0d);
-            Shipped.SetLevels(world, tavern: 9, inn: 3);
+            Shipped.SetLevels(world, tavern: 9);
 
             RecruitmentService recruitment = new RecruitmentService(world);
             Assert.That(recruitment.Preview(Shipped.Adventurer("hedge_knight")), Is.EqualTo(RecruitOutcome.Unaffordable));
         }
 
         /// <summary>
-        /// A level-1 Inn grants two beds, not fifty. Day 4–5 shipped this asset with the
-        /// *cost* curve in the Housing Capacity slot and nothing caught it until the YAML
-        /// was read back by hand — a wrong curve looks exactly like a right one in the
-        /// Inspector.
+        /// A level-1 Barracks does not grant its own price list. Day 4-5 shipped the Inn
+        /// with the *cost* curve in the Housing Capacity slot, so a level-1 Inn granted
+        /// fifty beds, and nothing caught it until the YAML was read back by hand — a
+        /// wrong curve looks exactly like a right one in the Inspector. The effect moved
+        /// house on Day 18 and the canary moved with it, which is the point of having one.
+        ///
+        /// The ceiling is deliberately unchanged at sixteen: the bed curve was re-spaced
+        /// from the Inn's thirty levels onto the Barracks' forty-one so that it lands on
+        /// exactly the number it used to, rather than taking the model's twenty. The
+        /// contract economy is not being re-tuned today. See §3 of Docs/Day18_The_Five_Rooms.md.
         /// </summary>
         [Test]
         [Category("BalanceCanary")]
-        public void TheInnGrantsBedsAndNotItsOwnPriceList()
+        public void TheBarracksGrantsBedsAndNotItsOwnPriceList()
         {
             GameWorld world = Shipped.NewGuild();
 
-            Shipped.SetLevels(world, inn: 1);
-            Assert.That(world.Roster.CapacityWith(world.Stats), Is.EqualTo(2));
+            Shipped.SetLevels(world, barracks: 0);
+            Assert.That(world.Roster.CapacityWith(world.Stats), Is.EqualTo(2),
+                "The settlement sleeps two before any Barracks is built, or a Village guild can recruit nobody.");
 
-            Shipped.SetLevels(world, inn: 21);
+            Shipped.SetLevels(world, barracks: 1);
+            Assert.That(world.Roster.CapacityWith(world.Stats), Is.EqualTo(4));
+
+            Shipped.SetLevels(world, barracks: 27);
             Assert.That(world.Roster.CapacityWith(world.Stats), Is.EqualTo(12),
                 "Twelve beds at the City gate — four parties of three at Capital.");
 
-            Shipped.SetLevels(world, inn: 30);
-            Assert.That(world.Roster.CapacityWith(world.Stats), Is.EqualTo(16));
+            Shipped.SetLevels(world, barracks: 41);
+            Assert.That(world.Roster.CapacityWith(world.Stats), Is.EqualTo(16),
+                "Sixteen at the ceiling, which is what a maxed Inn granted before the effect moved.");
         }
 
         private static GameWorld Wealthy()

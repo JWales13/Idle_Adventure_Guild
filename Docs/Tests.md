@@ -2,7 +2,8 @@
 
 An EditMode assembly at `Assets/_Project/Tests/Editor/`. Run it from
 **Window → General → Test Runner → EditMode → Run All**. All green, in well under a
-second. **Two tests are deliberately Ignored rather than green** — see §7.
+second. **One test is deliberately Ignored rather than green** — see §7. It was three
+until Day 18 authored the five rooms, which is what two of them were waiting for.
 
 There is no `dotnet` or `unity` on the Cowork shell, so tests are written there and run
 here. That loop is the same one compiling already uses.
@@ -78,6 +79,8 @@ because its silence reads as a pass.** Two tests closed it:
 | `RosterRatchetTests` | Day 12 | a full guild can always make room; both refusals, in the right order; a refused dismissal does not half-happen; no refund |
 | `PartyFormationTests` | Day 12 | the run in flight survives a re-form untouched; the new party goes out next; exact party size; the refuse → re-form → release → retire route end to end |
 | `TradeEngineTests` (Day 16) | — | the three levers and which of them binds; staff serving the most valuable custom first; opening a room never making the guild poorer; wages charged against capacity; the net floored at zero; an hour away paying exactly an hour watched; a per-room stat reading zero through the guild-wide seam; the tap's cap and its queue |
+| `AssetInvariantTests` (Day 18) | — | the three levers all-or-none; a demand curve flat and the other two not; the market growing and the Village its unit; the Tavern's seats as the world view was designed against; the commission still having neither producer nor consumer |
+| `TierUnlockTests` (Day 18) | — | every tier opens at least one new room; Village opens what its own gate asks for; every tier sleeps somebody before anything is built |
 | `StaffRatchetTests` (Day 16) | — | a full payroll can always make room; the least capable is the one who goes; no refund; the refusals in the order the player can clear them; the payroll and the till through a save round trip; a pre-revision save restoring as no staff and **no repairs** |
 
 Day 13 added two tests to `AssetInvariantTests` and changed nothing else in the suite.
@@ -107,15 +110,25 @@ Day 14's played-in save anyway.
 
 ---
 
-## 7. Two tests that are Ignored on purpose, and why that is not the same as absent
+## 7. What is Ignored on purpose, and why that is not the same as absent
 
-Day 16 built the revenue engine and authored no assets for it, which leaves two checks
-with nothing yet to check. Both call `Assert.Ignore` with a reason rather than passing:
+Day 16 built the revenue engine and authored no assets for it, which left three checks
+with nothing yet to check. Each called `Assert.Ignore` with a reason rather than passing.
+**Day 18 authored the five rooms and two of the three went live**, which is the whole
+argument for the pattern: an ignored test with a stated condition is a test that turns
+itself on, where a vacuously green one would have gone on being green and told nobody.
 
-| test | why |
-|---|---|
-| `EveryTierCarriesABaseServiceOnceAnyRoomAsksForCustom` | No shipped room produces `ServiceDemand` until the five rooms are authored, so the cold-start guard is vacuous. It goes live the day they land. |
-| `AHigherStaffTierNeverCostsMoreGoldPerPointOfService` | No staff assets exist. §6 of `Docs/Day16_Staff_And_Revenue.md` is why they were deliberately not written: the model can only ever *append* staff, so the ladder has never been climbed by anything and its four prices are unmeasured rather than tuned. |
+| test | was | now |
+|---|---|---|
+| `EveryTierCarriesABaseServiceOnceAnyRoomAsksForCustom` | Ignored: no shipped room produced `ServiceDemand`, so the cold-start guard was vacuous | **Live and green.** Every tier carries 5.6062 customers an hour of guildmaster |
+| `TheStipendNeverGrowsFasterThanTheMarketItBacks` | Ignored: no tier carried a market size, so it compared a growing stipend against a flat market | **Live and green.** The stipend doubles per tier against a market growing ×6.09 |
+| `AHigherStaffTierNeverCostsMoreGoldPerPointOfService` | Ignored: no staff assets, and §6 of `Day16_Staff_And_Revenue.md` says why they were deliberately not written | **Still Ignored.** The model can only ever *append* staff, so the ladder has never been climbed by anything and its four prices are unmeasured rather than tuned |
+
+**A note on this document's own arithmetic, since that is the recurring fault here.** The
+third row was added by the Day 16 follow-up and never reached this table, so this file
+said *two* while the Ledger said *three* and the runner said three. Nobody could have
+checked it without running the suite, which is the same shape as the 115/117 count and as
+the staff ladder's own comment. The number is now one and this table lists all of them.
 
 This is §2's rule pointed at itself. **A canary set that does not watch a value is quieter
 than no canary set, because its silence reads as a pass** — and a test that would pass
@@ -123,12 +136,29 @@ vacuously is the same failure in a smaller costume. Ignored shows up in the runn
 neither green nor red, with the reason attached, which is the honest report: *this exists,
 it is not doing anything yet, and here is the document that says when it will.*
 
-The same discipline applies to what Day 16 did **not** cover, which is written into
-`TradeFixture`'s own doc comment so it cannot be lost: the mechanism of the revenue engine
-is tested, and **no value in it is** — no room produces seats, spend or demand yet, so the
-seats curves, the spend curves and whether a Provisioner is worth nine thousand gold have
-no coverage at all, and will not get any by accident. The day the rooms are authored owes
-this suite its canaries.
+### The coverage Day 16 owed, and Day 18 paid
+
+`TradeFixture`'s doc comment carried the debt: *"no room produces seats, spend or demand
+yet, so the seats curves, the spend curves and whether a Provisioner is worth nine
+thousand gold have no coverage at all, and will not get any by accident. The day the rooms
+are authored owes this suite its canaries."* Five tests settle it, in `AssetInvariantTests`:
+
+| test | kind | holds |
+|---|---|---|
+| `AnEarningRoomProducesAllThreeLeversOrNoneOfThem` | invariant | seats without spend earns nothing, spend without seats has nobody to charge, demand without either is a queue at a door that never opens — and each failure is silent |
+| `ADemandCurveIsFlatAndTheOtherTwoAreNot` | invariant | §3.1's three levers, as arithmetic: a room's level moves its seats and its spend and must not move its demand |
+| `TheMarketOnlyEverGrowsAndTheVillageIsItsUnit` | invariant | every demand figure in the game is a room's number times this |
+| `TheTavernsSeatsReadAsTheWorldViewWasDesignedAgainst` | **canary** | 4 / 19 / 38 / 59 seats against 400 wanting in — §3 of `World_View_Design.md`'s table, which had no producer until today |
+| `TheContractCommissionHasNoProducerBecauseItStillHasNoConsumer` | invariant | the day's finding, as a guard: authoring a commission curve before the mechanism exists gives the desk a stat nothing reads |
+
+And one invariant gained its first honest exception. `NoBuildingEffectIsDeadAtMaxLevel`
+was written on Days 8–9 and assumed, without saying so, that every effect is a thing the
+player buys more of. `ServiceDemand` is not — demand belongs to the tier, and a room that
+grew its own would collapse two of §3.1's three levers into one. The exemption is named by
+**stat** in one place rather than special-cased at the call site, the same way
+`GuildStatScope` names its three, and it is kept narrow by
+`ADemandCurveIsFlatAndTheOtherTwoAreNot` asserting the curve really is flat — so it cannot
+quietly become a hole for a curve somebody forgot to fill in.
 
 ### One note on the fixtures being built in code
 
@@ -179,6 +209,23 @@ Day 6 repair path against a file that actually needed repairing.
 be recreated once lost, only approximated: the original Week-1 save was overwritten by an
 autosave before it could be preserved, which is how the second fixture came to be
 synthesised rather than kept.
+
+**Day 18 is what they were kept for, and the number was one.** All four fixtures name a
+`training_room`, and the revision retired it, so all four now restore with **exactly one
+unknown building** — the fourth, which already pointed at a Quest Board no build ever had,
+reports two. Nothing else moved: no adventurer dropped, no run, no order, no tier fallen
+back, and every building level around the gap exactly as written. `save_day14_played_in`
+was pinned at zero repairs on Day 14 *specifically* so that this would arrive as a red test
+with a number in it rather than as a silence, and it did. Two tests were renamed, because
+`TheLastSaveOfTheOneEconomyGameLoadsWithoutRepair` had stopped being true and a test whose
+name is a lie is worse than no test.
+
+The assertions are now field by field rather than through `HasRepairs`. *Something was
+repaired* is exactly the assertion that would have hidden a second thing being repaired,
+which on the day a fixture legitimately goes from zero to one is the only failure mode
+left. It is also the first time in the project's life that the Day 6 repair path has run
+against **real** saves that genuinely needed repairing — until now only the synthesised
+third fixture ever exercised it.
 
 ---
 

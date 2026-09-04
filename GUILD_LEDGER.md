@@ -214,67 +214,113 @@ where things stand in a sentence or two before writing any code.
 
 ### Current status
 
-**Current status:** Week 3, Day 17 complete — **the guild is a place.** A tenth assembly
-draws the hall, the interface stopped being the game, and the grey-box did the job it was
-built for by rejecting a plan drawn for the wrong device.
+**Current status:** Week 3, Day 18 complete — **the five rooms exist, and the revenue
+engine is finally connected to something.** The `.asset` files changed on the eighth
+occasion they could have, and the day found that authoring them does not make the revision
+true.
 
-`IdleGuild.World` sits beside `IdleGuild.UI` above App, and **no production assembly
-references it** — only `IdleGuild.Tests.Editor`, which references everything by design. The
-five feature assemblies are still Core-only and **no `.asset` file changed**, on the seventh
-occasion it could have. Verified by reading all ten `.asmdef` files rather than asserted:
-Adventurers, Economy, Guild, Quests and Staff each list `IdleGuild.Core` and nothing else,
-App lists the five, and UI and World list App without listing each other.
+Three new rooms (`front_desk`, `barracks`, `provisioner`), two rewritten (`tavern`, `inn`),
+the Training Room unlisted and awaiting deletion, and all four tiers carrying the market
+size, base service and base housing Day 16 added and never wrote. `HallPlan` gained two
+footprints. **No game `.cs` outside `IdleGuild.World` changed, no save field moved, and
+`SaveSchema.CurrentVersion` still has never been bumped.** `Docs/Day18_The_Five_Rooms.md`
+carries all of it.
 
-> **CORRECTION, issued Day 17.** This document has said **six** feature assemblies since Day
-> 16, and there are **five** — Economy, Adventurers, Quests, Guild, Staff. Day 16 called
-> Staff "the sixth feature assembly" while the same paragraph listed four before it, and the
-> arithmetic was never done. Harmless, and the second counting error this session after the
-> 115/117 suite figure — both the same shape as every other finding in this file: **a number
-> nobody could check, carried forward as though somebody had.** Total assembly count is now
-> **ten**, which was nine before `IdleGuild.World`. Steps 1 and 2 of §9 of `Docs/World_View_Design.md` are done — an
-orthographic camera panned by pinning the world point under the finger, a grey-box floor
-and grid, and the three rooms as walled rectangles reading level and unlock state off
-`GuildState` with a level bar drawn against **each room's own tree length**, since the
-trees are 90/40/30 and a shared denominator reports a finished Inn as permanently behind.
+**Nothing was typed.** `Docs/tools/author_rooms.py` and `author_tiers.py` read
+`tuned_params.json` through `tuner.build()` and write the YAML; `check_assets.py` reads the
+finished YAML back and re-derives every claim made about it, reporting **0 failures**. All
+three are checked in, because the balance pass will move every one of these numbers and
+will want the same three tools.
 
-**§7 is half settled, and the half that is left is blocked on content.** `HallView` lost its
-building grid — §10 obsoleted it — and kept the tier card, now collapsed to one line that
-reports the shortfall. Deleting the whole view would have been tidier and would have left
-advancing a tier reachable from nowhere, which §01 forbids in almost those words. Rooms are
-tapped instead, publishing `RoomSelected` through a new `Core/Events/PresentationEvents.cs`
-to the overlay that already existed. **The tab bar survives**, and its removal is now pinned
-to a date rather than left open: contracts open from the Front Desk and the roster from the
-Barracks, and neither building is authored, so removing it today would strand two screens.
+**THE DAY'S FINDING: the contract half of the revision has never been built.** §3.2 of the
+charter says *"the gold from a contract arrives as the Front Desk's commission"*. In the
+model that is `gold × contractRewardScale(tier) × commission(desk)`, saturating at 0.85. In
+the game it is `GoldReward × RewardYield`, unbounded, and the same multiplier is applied to
+**reputation** as well. **`ContractCommission` and `ContractRewardScale` are declared and
+neither has a consumer** — not merely no producer, which is what Day 16 recorded, and while
+no room produced them the two absences were indistinguishable. The size of it: Rat Cellar
+pays **48 gold** in the shipped build against about **1.7** in the model at Village, a
+factor of twenty-eight, so **rooms will be single-digit percent of income where the tuned
+figure says 65%.** That figure was never a fact about this game. **Eighth appearance of the
+shape** — a failure whose only symptom is the absence of something — and the second time it
+has been caught before the asset was written rather than after. **So `guild_model.py`
+cannot retire today**: the plan said it retires the day the rooms land, and it does not,
+because `tycoon_model.py` still does not describe the shipped game either.
 
-**The day's finding is that §9's own step order does not survive contact with the data.**
-Step 3 is *"seats, derived from `ServiceSeats` — the first moment the economy is visible"*,
-and **no shipped room produces `ServiceSeats`, `CustomerSpend` or `ServiceDemand`.** The
-Tavern produces Reward Yield and Recruitable Rarity and nothing else. So step 3 draws zero
-seats, step 4 zero townsfolk, step 5 an empty queue and step 6 an inert tap — and step 7
-needs staff assets the ladder finding forbids authoring. **Of steps 3–8, only step 8
-(adventurers) is buildable against today's catalogue.** Steps 3–6 are one dependency: the
-five rooms as assets. Caught by reading the assets before writing the code rather than after,
-which is the first time this project has met that shape in advance.
+**The rule the assets were authored under**, because it is what keeps the day honest: *the
+rooms' trade economy is ported from the tuned model exactly; the contract economy is not
+ported at all.* Reward Yield, Adventurer Power, Recovery Speed and Housing Capacity each
+**keep the value they have today at their old building's maximum, re-spaced onto their new
+building's tree** — only the growth rate moves, the base is untouched, so a level-1 Front
+Desk is worth exactly what a level-1 Tavern was. Every contract canary in the suite is
+unchanged to the digit; the tests moved a room name and not a number.
 
-**The second finding is what the grey-box is for.** The first hall plan was thirty-two units
-wide with twelve-unit rooms — a landscape shape on a portrait device. At any zoom where a
-room was legible a 1080×1920 screen showed 13.5 units across, so one room filled **89% of the
-screen width** and two could never be seen at once. No art would have fixed that. The plan is
-now portrait-native (8-wide rooms stacked either side of a 2-wide corridor, growing upward),
-the floor is **derived from the plan** rather than authored — killing a stale serialized
-rectangle that would otherwise have outlived every edit — and the zoom policy is *the
-screen's short edge shows 14 world units*, which is the dimension that constrains
-legibility. §11's "where the rooms sit" is still open, but now with a constraint attached
-rather than drawn free-hand.
+**Three things are true for the first time.** `_baseServicePerHour` has read **0** since Day
+16 — the cold-start value its own tooltip warns about — and is now 5.6062 on every tier.
+`_baseHousingCapacity` had to stop being 0, because beds moved into a Town-gated Barracks
+and without the tier's own two a Village guild could recruit nobody: **Day 4–5's opening
+deadlock for the third time**, closed in data again, now with §01's rule written down behind
+it. And **§3 of `World_View_Design.md` has a producer**: reading the shipped Tavern back
+gives 4 / 19 / 38 / 59 seats against 400 / 2,436 / 14,834 / 90,333 wanting in — that
+document's own table, with seats binding at every tier, so the queue outside the door is
+confirmed rather than hoped for.
 
-**Suite: 136, confirmed green, three Ignored.** It went 103 → 117 → 136 across the day, and
-the first of those was a correction rather than work: see the Day 16 block below.
+**The Day 14 fixture went red as designed and the number was one.** All four checked-in
+saves name a `training_room`, so all four restore with **exactly one unknown building** —
+the fourth, already pointing at a Quest Board no build ever had, reports two. Nothing else
+moved: no adventurer, run, order or tier. It is the first time the Day 6 repair path has
+ever run against **real** saves that genuinely needed repairing. Two tests were renamed,
+because `TheLastSaveOfTheOneEconomyGameLoadsWithoutRepair` had stopped being true, and the
+assertions moved from `HasRepairs` to field by field — *something was repaired* is exactly
+the assertion that would hide a **second** thing being repaired.
 
-**What has NOT been done, and is owed.** The reshaped plan **has never been seen running on
-a portrait screen** — every screenshot this session was taken in a landscape Game view, which
-is not a smaller version of the target but a different one, and three of the day's reported
-problems were partly that. Set the Game view to 1080×1920 before judging anything. The
-25-minute interface hand-check is now deferred a **fourth** time.
+**Two of the three Ignored tests went live and both pass.** `EveryTierCarriesABaseService`
+and `TheStipendNeverGrowsFasterThanTheMarketItBacks` turned themselves on, which is the
+whole argument for the pattern: a vacuously green test would have gone on being green and
+told nobody. Only the staff-ladder guard is still Ignored, and for the same reason as ever.
+**`NoBuildingEffectIsDeadAtMaxLevel` gained its first honest exception**: it was written on
+Days 8–9 assuming every effect is a thing the player buys more of, and `ServiceDemand` is
+deliberately flat across levels — a room that grew its own demand would collapse two of
+§3.1's three levers into one. Named by stat in one place, the way `GuildStatScope` names its
+three, and kept narrow by a second test asserting the curve really is flat.
+
+**The crown's stipend was re-checked on the day it was told to be, and it stops biting.**
+For a guild with a Tavern: idle room income 0.16 g/min, the crown 2.00, **tapping 5.48** —
+the thumb out-earns the mailbox roughly threefold and recovery from an empty treasury falls
+from twelve and a half minutes to about four. **The hardship line stays designed and
+unbuilt.** Both figures are kept as canaries, the old one now explicitly the worst case.
+
+**Suite: 143, confirmed green by a human run, one Ignored.** The arithmetic reconciles
+exactly — 136, minus `EveryBuildingIsAvailableFromTheStart` which the design change
+retired, plus two in `TierUnlockTests`, five in `AssetInvariantTests` and one in
+`SolvencyTests`. **Verified rather than asserted, to the standard Days 10–11 set.** The
+seven game DLLs plus `IdleGuild.UI.dll` are timestamped two days before any asset was
+touched and did not recompile at all — only `IdleGuild.World.dll` and
+`IdleGuild.Tests.Editor.dll` moved, which are the two things that changed — so the
+data-only claim is confirmed by the compiler rather than by counting files. **No
+`OnValidate` warning from any of the nine changed or new assets.** And the fixture number
+came from the runner rather than from this document's own arithmetic, which is the
+distinction this file has been caught by twice: `Editor.log` carries
+*"Loaded the guild with repairs: 1 unknown building(s), 0 adventurer(s) dropped, 0
+employee(s) dropped, 0 run(s) dropped, 0 order(s) dropped, 0 adventurer(s) sent home"*,
+four times over. **Play mode was entered and the domain reloaded with no exception**,
+which matters because the world view now draws five rooms where it drew three and two of
+them stand at level 0 — a path no EditMode test can reach, and the exact class of bug that
+was Day 17's only runtime crash.
+
+**What has NOT been done, and is owed.** The hall **still has never been seen on a
+1080×1920 screen** — the plan now has five rooms on it and nobody has looked at any of them
+on the aspect this game ships in. The 25-minute interface hand-check is deferred a **fifth**
+time. Neither is work Claude can do.
+
+---
+
+**Superseded — Week 3, Day 17:** the guild became a place. `IdleGuild.World` drew the
+hall, `IdleGuild.UI` stopped being the game, and §9's step order did not survive contact
+with the catalogue — steps 3–6 all read stats no shipped room produced, which is what made
+Day 18 the next real day of work. The hall plan was reshaped portrait-native after the
+grey-box rejected a landscape one, and the floor became derived from the rooms rather than
+authored. Suite 103 → 136, three Ignored. See entry 21 of the session log.
 
 ---
 
@@ -476,7 +522,7 @@ The passes earned their keep immediately. Step 1 of the Day 6 document found a r
 
 The Week 1 checkpoint holds, minus the UI that Day 7 adds.
 
-**Next action:** set the Game view to **1080×1920** and look at the hall, which nobody has yet done on the aspect this game ships in. Then **the five rooms as assets** — §8 of `Docs/Vision_Revision.md`'s third item, and the single dependency standing under steps 3, 4, 5 and 6 of §9 of `Docs/World_View_Design.md`. **All art work is still deferred** by decision; none of those steps needs any.
+**Next action:** **the contract mechanism** — `ContractCommission` and `ContractRewardScale` are declared with no consumer, so a contract still pays its full authored gold through Reward Yield and the tycoon half of the economy is single-digit percent of income. §4 of `Docs/Day18_The_Five_Rooms.md`. Then §9 steps 3–6 of `Docs/World_View_Design.md` — seats, townsfolk, the queue and the tap — which are unblocked, in order, and need no art. And still owed by everybody who has picked this up: **set the Game view to 1080×1920 and look at the hall**, which now has five rooms on it and has never once been seen on the aspect this game ships in.
 
 The tuner has the two hardest targets already: rooms at **68%** of lifetime income
 against a 70% target, and a **6-minute** 90th-percentile purchase gap against a 10-minute
@@ -759,10 +805,56 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 
 **Open decisions carried forward:**
 
-- **The revision is now half built.** Day 16 landed the Staff assembly and the revenue engine; arrivals and the five rooms as assets are still outstanding, so **the game that runs is still the one-economy version** — three buildings, gold only from contracts, individual training. `Docs/Vision_Revision.md` is the charter, corrected in §3.1, §4 and §6C by Day 16; `Docs/tools/tycoon_model.py` models it and `tuner.py` searches its parameters. **`guild_model.py` still describes the game that actually exists** and stays until the revision ships — then it retires. Two models is confusing for exactly as long as two games exist.
+- **THE CONTRACT MECHANISM DOES NOT EXIST, and it is the largest open item in the project.**
+  §3.2 of the charter says the gold from a contract arrives as the Front Desk's commission.
+  The game pays `GoldReward × RewardYield`, unbounded, and applies the same multiplier to
+  **reputation**; the model pays `gold × contractRewardScale(tier) × commission(desk)`
+  saturating at 0.85 and leaves reputation alone. `ContractCommission` and
+  `ContractRewardScale` are declared and **neither has a consumer**. Rat Cellar pays 48 gold
+  in the shipped build against about 1.7 in the model at Village — twenty-eight-fold — so
+  **rooms are single-digit percent of income where the tuned figure says 65%**, and that
+  figure was never a fact about this game. It is a code day and it lands on a real seam:
+  `QuestResolution` is Core-only and cannot see a `GuildTierDefinition`, so either the tier's
+  scale arrives through `IGuildStats` or the transaction moves up into App. **Nothing else
+  in the economy is trustworthy until this lands**, including any pacing measured now.
+  `TheContractCommissionHasNoProducerBecauseItStillHasNoConsumer` guards the absence; when
+  somebody writes the consumer, that test is what they delete. §4 of
+  `Docs/Day18_The_Five_Rooms.md`.
+
+- **Neither model describes the shipped game, which is worse than one of them not doing so.**
+  The plan said `guild_model.py` retires the day the rooms land. It cannot: the rooms were
+  only half the divergence, and `tycoon_model.py` is still describing a contract economy this
+  build does not have. Retire it on the day above, not before, and re-check both against the
+  assets rather than against each other.
+
+- **Starting gold stayed at 150 where the model tuned 60, deliberately, and the balance pass
+  has to resolve it one way or the other.** Porting room costs without the opening dial they
+  were searched against is Day 15's dead-twenty-two-minutes in reverse — the opening is
+  arithmetic, `start_gold − Σ(opening purchases)`, and every number in that sentence has to
+  come from the same place. But moving it to 60 takes an hour of the crown's stipend to
+  **twice** the opening budget and fails
+  `AnHourOfTheCrownsStipendIsWorthLessThanTheOpeningItBacksUp` today, with no re-tune
+  available to answer it. So: either pin `start_gold` at the shipped value and re-run the
+  tuner, or move the asset and re-size the stipend. Not both, and not neither.
+
+- **The Barracks opens at Town rather than at Village, and that contradicts §6.2.** The
+  charter leaned to Village opening Tavern, Barracks and Front Desk; the tuned model opens
+  Tavern and Front Desk, adds Barracks and Inn at Town and the Provisioner at City. The
+  model's schedule was taken because it is the one every pacing figure was measured against,
+  and the tier's two base beds make Village playable without a bunkhouse. **One field on one
+  asset if it plays badly.**
+
+- **A content removal is a refund question the day something has shipped.** Day 18 retired the
+  Training Room and a guild mid-run keeps its gold and its roster and silently loses whatever
+  it spent on it. Nothing has shipped, so nobody is owed anything — recorded because the same
+  shape returns the first time a live build re-costs or retires a room, and because the
+  repair path is deliberately quiet about it.
+
+- **~~The revision is now half built~~ — the rooms landed on Day 18, and the revision is still not economically true.** The five rooms are authored, the trade layer is live, `_baseServicePerHour` is above zero and the world view has real seats to draw. What is still missing is the **contract mechanism**: §4 of `Docs/Day18_The_Five_Rooms.md`. Arrivals (§8's second item) are also still outstanding. Original note follows. Day 16 landed the Staff assembly and the revenue engine; arrivals and the five rooms as assets were outstanding, so **the game that ran was still the one-economy version** — three buildings, gold only from contracts, individual training. `Docs/Vision_Revision.md` is the charter, corrected in §3.1, §4 and §6C by Day 16; `Docs/tools/tycoon_model.py` models it and `tuner.py` searches its parameters. **`guild_model.py` still describes the game that actually exists** and stays until the revision ships — then it retires. Two models is confusing for exactly as long as two games exist.
 - **~~Staff need a dismiss action designed in from the start~~ — done on Day 16, on the same day as hiring.** `StaffService.TryLetGo` and `TryLetGoLeastCapable` ship beside `TryHire`, with no gate on either: an employee has no run in flight and no standing order to belong to, so there is nothing they can be in the middle of. Nothing is refunded, the same rule adventurers follow. **What that immediately exposed is the item below**, and it is the more interesting half.
 
 - **The staff ladder has never been climbed by anything, so its four prices are guesses.** Day 16's finding: gold per point of service climbs 0.47 → 2.06 → 8.63 → 32.69 across the ladder, and the tuned configuration hires **105 Potboys and no employee from the three tiers above, at every integration step**. Not a pricing problem — flattening the ladder still gives 98 Potboys and one Server, and starving slots to four still gives four Potboys. `tycoon_model.purchase()` can only ever *append* staff, so the ladder is unreachable at any price and nothing has ever measured what the upper rungs are worth. **The balance pass must give the model the dismiss action the game now has before it searches for those four numbers** — replace the least capable when the replacement is better the day it arrives, which is the rule Day 13 landed on for adventurers after the naive version added eight hours. Until then treat every staff figure in `tuned_params.json` as unmeasured rather than tuned; the room curves are unaffected, since what the rooms see is the payroll's total service. `AHigherStaffTierNeverCostsMoreGoldPerPointOfService` ships **ignored**, with a pointer, rather than vacuously green. **No staff `.asset` was authored on Day 16 for this reason.**
+- **~~The crown's stipend should be re-checked the day the rooms land~~ — done on Day 18, and it stops biting.** For a guild with a Tavern: idle room income **0.16 g/min**, the crown **2.00**, tapping **5.48**. The thumb out-earns the mailbox roughly threefold and recovery from an empty treasury falls from twelve and a half minutes to about four, so **the hardship line stays designed and unbuilt** and the crown stays unconditional. Both figures are pinned as canaries, the twelve-and-a-half-minute one now explicitly the worst case — a guild that has built nothing at all — because it is still the floor under §01. Original note follows.
 - **The crown's stipend is sized for a build where nothing else earns, and should be re-checked the day the rooms land.** 1/2/4/8 gold every 30 seconds, capped at three deliveries. It holds ~30% of what the guild earns at Village and Town, 11% at City and 0.01% at Capital — necessarily, because the earn rate at tier openings runs 418 → 730 → 4,208 → 15,859,700 g/hr and no ladder stays proportional across a ×3,768 jump. **Recovering from an empty treasury takes about twelve and a half minutes**, pinned as a `BalanceCanary` so the cost is visible rather than merely true. That figure is mostly an artefact of today's build having no other income; if it still bites once rooms and the tap are live, the fix already designed is a **hardship line** — accrual stops above a per-tier threshold, so the crown can never hold you above `line + one delivery`, which buys back fast recovery without making the mailbox farmable. `Docs/Day16_Followup_Solvency.md` §4.
 
 - **All art work is deferred, deliberately.** The generation pipeline is chosen and documented (Draw Things + FLUX.1 [schnell], local, free, Apache 2.0 and therefore shippable) and the walkthroughs exist — `Docs/Draw_Things_Walkthrough.md` is the click-by-click one, `Docs/Art_Generation_Guide.md` carries the commercial-licence and Unity-import material. **Nothing should be generated until the grey-box world view exists**, because eight of §9's nine steps need no art and the ninth is a single character spike whose only job is to settle how frames are made. The one exception worth doing early is the **app icon**, which gates the App Store Connect record.
@@ -771,8 +863,10 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 
 - **The presentation layer is being replaced and the art requirement with it.** `Docs/World_View_Design.md` settles: depict-not-cause, high-angle three-quarter floor plan, free pan, the hall physically expanding, redecoration at thresholds, and townsfolk, staff and adventurers all moving. A seventh assembly `IdleGuild.World` sits beside `IdleGuild.UI` above App; the features stay Core-only. **Still open**: whether animation frames are authored or baked out of a rig (decided by taking one character end to end, not in the abstract — image generators cannot produce consistent frames of the same character, and the resolution to test is rig-once-and-bake); whether the tab bar survives; how many redecoration states per room; and where the five rooms sit on the plan. **`Day15_Art_Brief.md` §4 and `Art_Generation_Guide.md` §3's asset lists are both obsolete** — the guide's licence and pipeline sections are not.
 
+- **~~§9's step order does not survive contact with the catalogue~~ — unblocked on Day 18.** Steps 3 (seats), 4 (townsfolk), 5 (the queue) and 6 (the tap) all read stats that now have producers, and the arithmetic behind them has been checked against the shipped assets rather than against the model: 4 / 19 / 38 / 59 seats on the Tavern, seats binding at every tier, 400 wanting in at Village. Step 7 (staff) is still blocked on staff assets the ladder finding forbids authoring. Original note follows.
 - **§9's step order does not survive contact with the catalogue, and only step 8 is buildable.** Steps 3–6 read `ServiceSeats`, `CustomerSpend` and `ServiceDemand`, and **no shipped room produces any of them** — the Tavern carries Reward Yield and Recruitable Rarity and nothing else. So seats draw as zero, townsfolk never spawn, the queue stays empty and the tap stays inert; step 7 needs staff assets the ladder finding forbids authoring. **Steps 3–6 are one dependency — the five rooms as assets — and that is the next real day of work.** Step 8, adventurers from `AdventurerActivity`, is the one step that runs against today's data, and it needs the Inn standing in for a Barracks that does not exist.
 
+- **~~Four fields on `GuildTierDefinition` have never been written to any tier `.asset`~~ — three of the four were written on Day 18.** `_marketSize` (1 / 6.0897 / 37.0844 / 225.8332), `_baseServicePerHour` (5.6062 everywhere — the zero that mattered) and `_baseHousingCapacity` (2 everywhere, which is what lets a Village guild recruit now that beds live in a Town-gated Barracks). **`_contractRewardScale` was deliberately left neutral**, because nothing consumes it: writing a value into a field nothing reads is how a room comes to look like it earns, and there is now a test asserting the absence with the reason attached. Original note follows.
 - **Four fields on `GuildTierDefinition` have never been written to any tier `.asset`, and one of them is a zero that matters.** Day 16 added `_marketSize`, `_contractRewardScale`, `_baseServicePerHour` and `_baseHousingCapacity` and — correctly, per §8's order — touched no asset, so none of the four appears in a tier's YAML and each reads its C# initialiser. Two are harmless (`= 1f`). **`_baseServicePerHour` has no initialiser and reads 0 at every tier**, which is the cold-start value its own tooltip warns about: *"Must be above zero, or an unstaffed guild can never start trading."* It is guarded, but the guard is gated on *rooms producing demand* rather than on itself, so it goes live the day the rooms do rather than the day the field was added. Harmless while nothing trades. **Author it with the rooms.**
 
 - **The world view has a category of failure the first sixteen days did not, and the suite cannot reach it.** All 136 tests drive plain C#; none constructs a MonoBehaviour or survives a domain reload. Day 17's only runtime crash was exactly that — a plain C# helper and the `Transform` it draws into do not have the same lifetime, and a domain reload while the editor sits in Play mode (which this working arrangement causes constantly) clears one and leaves the other standing. Constructing the pair together made it only as safe as that assumption. **Play mode is the only thing that checks this class of bug**, and the fix pattern is `EnsureChild`: check each half separately, and drop the helper whenever its parent is remade.
@@ -783,6 +877,7 @@ cd ~/Idle_Adventure_Guild && rm -f .git/HEAD.lock .git/index.lock .git/objects/m
 
 - **The late-stage escape from a dead end is unreachable from any screen.** §01's rule holds early through the crown's stipend, which is now in `TreasuryBar`; late it holds through letting staff go, and `StaffService` is on no screen and not on `GuildContext`. Day 23's staff panel closes it. Named rather than papered over with unused plumbing.
 
+- **~~The tap is inert until a room produces `ServiceDemand`~~ — live since Day 18, and it is the biggest thing in the early game.** A Village Tavern turns away 194 customers an hour, so the queue fills and a thumb is worth **5.48 g/min** against 0.16 of idle room income and 2.00 from the crown. That is §7's "tapping is 87% of room income" arriving as a shipped number, and in the shipped build at Village it is nearer **97%** of *room* income — though contracts currently dwarf both, which is §4 of `Docs/Day18_The_Five_Rooms.md`. Settle it before §6B's monetisation. Original note follows.
 - **The tap is inert until a room produces `ServiceDemand`.** `TakingsService` shipped tested and documented on Day 16 and cannot fire: no shipped building carries the stat, no tier carries a base service, so total demand is zero and the queue never fills. It goes live with the room assets and nothing before then. **Any pacing measured before that is measuring the mailbox, not the game.**
 
 - **The tap mechanic — collecting takings exists as of Day 16; the other two do not.**
@@ -868,6 +963,64 @@ half-loaded object from a half-filled one is not a check.**
 Day 13's canaries that watched no training cost, Day 15's `--checks` block looking for a
 curve no room has, and this. **A failure whose only symptom is the absence of something is
 not detectable, and will be found by accident or not at all.**
+
+**Resolved on Day 18:**
+
+- **The five rooms are assets, and the architectural bet took the load it was built for
+  without moving.** Three new `.asset` files, two rewritten, one retired, four tiers
+  rewritten and the catalogue relisted — and **nothing was added to `BuildingDefinition`,
+  no branch to `GuildState.Aggregate`, no game `.cs` outside `IdleGuild.World`, no save
+  field, and `SaveSchema.CurrentVersion` still has never moved.** Seats, spend, demand and
+  staff slots are `BuildingEffect` entries like every other effect. Adding a sixth
+  department is still one new `.asset` and zero code, on the day that claim was cashed.
+
+- **Nothing was typed, and that is the Day 4–5 lesson taken seriously at last.**
+  `author_rooms.py` and `author_tiers.py` read `tuned_params.json` through `tuner.build()`
+  and write the YAML; `check_assets.py` reads it back and re-derives every claim, reporting
+  0 failures. Day 4–5 made four transcription slips out of fourteen assets and the one that
+  mattered handed the Inn its own cost curve as its bed curve — a wrong curve looks exactly
+  like a right one in the Inspector, and it looks exactly like a right one in a markdown
+  table too. All three tools are checked in, because the balance pass will move every one of
+  these numbers.
+
+- **A moved effect keeps its ceiling, and the base comes free.** Reward Yield left a
+  ninety-level Tavern for a fifty-two-level Front Desk, Adventurer Power a forty-level
+  Training Room for a forty-one-level Barracks, Recovery and Housing a thirty-level Inn for
+  the same Barracks — each re-spaced so it lands on exactly the value it used to.
+  `(1 + g)^((M − 1) / (N − 1)) − 1` for a growth curve, `(b + l(M − 1) − b_new) / (N − 1)`
+  for a linear one. Because only the growth moves, the **base** is untouched, so a level-1
+  Front Desk is worth precisely what a level-1 Tavern was — and every contract canary in the
+  suite is unchanged to the digit. The tests moved a room name and not a number, which is
+  the strongest available evidence that the move was a move rather than a re-tune wearing
+  one's clothes.
+
+- **An invariant met its first honest exception, and the exception is named rather than
+  special-cased.** `NoBuildingEffectIsDeadAtMaxLevel` assumed, without ever saying so, that
+  every effect is a thing the player buys more of. `ServiceDemand` is not: demand belongs to
+  the tier, and a room whose own level raised its demand would collapse two of §3.1's three
+  levers into one. The exemption lives in one place, keyed by stat, exactly as
+  `GuildStatScope` names its three — and is kept narrow by a second test asserting the curve
+  really is flat, so it cannot become a hole for a curve somebody forgot to fill in. **The
+  general shape: an invariant that has only ever seen one kind of thing has an assumption in
+  it, and the first counter-example is where you find out what it was.**
+
+- **`EveryBuildingIsAvailableFromTheStart` was right and had to go.** Its own message read
+  *"a tier-gated building would be a design change, not a data one"*. It was right, the
+  design change happened, and **the change was still one field on three assets.** Replaced
+  by two tests asserting the shape rather than the schedule: every tier opens at least one
+  new room, and Village opens what its own gate asks for — because a gate naming a building
+  the tier cannot build is a tier the player can never leave.
+
+- **The fixtures earned their keep, and a test whose name is a lie is worse than no test.**
+  All four saves lost their Training Room and nothing else, and the assertions moved from
+  `HasRepairs` to field by field: *something was repaired* is precisely the assertion that
+  would hide a **second** thing being repaired, which is the only failure mode left on the
+  day a fixture legitimately goes from zero to one. Two tests were renamed. It is the first
+  time the Day 6 repair path has run against real saves that genuinely needed repairing.
+
+- **An Ignored test with a stated condition turns itself on.** Two of the three did, and
+  both passed. A vacuously green one would have gone on being green and told nobody, which
+  is Day 13's silent-canary finding in the form of a working answer rather than a warning.
 
 **Resolved on Day 16:**
 
@@ -1038,134 +1191,137 @@ a date.
 
 The project lives at ~/Idle_Adventure_Guild. Read GUILD_LEDGER.md in the repo root IN FULL
 first - it is the source of truth for what EXISTS, and section 06 carries corrections that
-invalidate things earlier entries state as fact. Then Docs/Vision_Revision.md in full (the
-source of truth for what we are BUILDING; supersedes sections 02, 03 and 05 of the Ledger,
-and carries three CORRECTION boxes of its own in 3.1, 4 and 6C). Then
-Docs/World_View_Design.md (the presentation charter - but read the Ledger's correction to
-its section 9 step order BEFORE planning against it). Then Docs/Day16_Staff_And_Revenue.md,
-Docs/Day16_Followup_Solvency.md and Docs/Tests.md (short; section 7 covers the tests that
-are Ignored on purpose).
+invalidate things earlier entries state as fact. Then Docs/Day18_The_Five_Rooms.md IN FULL
+(the most recent day, and its section 4 is the largest open item in the project). Then
+Docs/Vision_Revision.md (what we are BUILDING; supersedes sections 02, 03 and 05 of the
+Ledger, and carries three CORRECTION boxes of its own in 3.1, 4 and 6C - and note that
+Day 18 corrected its section 6.2 as well). Then Docs/World_View_Design.md (the presentation
+charter; its section 9 step order was wrong and Day 18 unblocked steps 3-6). Then
+Docs/Day16_Staff_And_Revenue.md, Docs/Day16_Followup_Solvency.md and Docs/Tests.md (short;
+section 7 covers the one test still Ignored on purpose).
 
-Current position: Week 3, Day 18 - continuing the revision. ART IS STILL DEFERRED and
+Current position: Week 3, Day 19 - continuing the revision. ART IS STILL DEFERRED and
 nothing on the next list needs any.
 
 Last completed: Week 1 in full; Days 8-9 building trees; Days 10-11 tier transitions and the
 test suite; Day 12 recruitment and assignment UI; Day 13 first balance pass; Day 14 playtest
 and the design revision; Day 15 economy tuning and the discovery that the interface had
 never been rendered; Day 16 the Staff assembly, the revenue engine and the crown's stipend;
-Day 17 the world view - steps 1 and 2 of section 9, and half of section 7.
+Day 17 the world view - steps 1 and 2 of section 9, and half of section 7; Day 18 THE FIVE
+ROOMS AS ASSETS.
 
 Unity 6000.5.0f1 / URP 2D, private GitHub repo via GitHub Desktop. Git LFS patterns are
 declared; `git lfs install` on the machine is still outstanding and must happen before the
 first binary is committed.
 
 TEN assemblies. IdleGuild.Core at the bottom. FIVE feature assemblies depending on Core and
-NOTHING else: Economy, Adventurers, Quests, Guild, Staff. (The Ledger said "six" from Day 16
-until Day 17 corrected it; it is five.) IdleGuild.App above them holds composition and
-cross-feature transactions. IdleGuild.UI and IdleGuild.World sit as SIBLINGS above App and
-NEITHER REFERENCES THE OTHER - that constraint is load-bearing, and is why a tap in the hall
-reaches an overlay through a Core event rather than through a call. IdleGuild.Tests.Editor
-is above everything and references everything.
+NOTHING else: Economy, Adventurers, Quests, Guild, Staff. IdleGuild.App above them holds
+composition and cross-feature transactions. IdleGuild.UI and IdleGuild.World sit as SIBLINGS
+above App and NEITHER REFERENCES THE OTHER - that constraint is load-bearing, and is why a
+tap in the hall reaches an overlay through a Core event rather than through a call.
+IdleGuild.Tests.Editor is above everything and references everything.
 
-FIRST, TWO THINGS THAT COST NOTHING AND ARE OWED:
+THREE THINGS THAT ARE OWED AND THAT CLAUDE CANNOT DO:
 
-1. SET THE GAME VIEW TO 1080x1920 AND LOOK AT THE HALL. Nobody has. Every screenshot on
-   Day 17 was taken in a landscape Game view, and three of that day's reported problems
-   were partly that - a landscape window is not a smaller version of the target but a
-   different one, and it makes chrome look like 58% of the screen where a phone shows 18%.
-2. The 25-minute interface hand-check, now deferred FOUR times. It needs your eyes rather
+1. DELETE Assets/_Project/Data/Buildings/Building_TrainingRoom.asset IN THE PROJECT WINDOW.
+   Day 18 unlisted it from GameContent and wrote nothing to it, because Claude never deletes
+   a file inside Assets/. EverythingUnderDataIsListedInGameContent is RED until it goes.
+2. SET THE GAME VIEW TO 1080x1920 AND LOOK AT THE HALL. Nobody ever has. It now has five
+   rooms on it. Every judgement made about it so far was made in a landscape Game view,
+   which is not a smaller version of the target but a different one.
+3. The 25-minute interface hand-check, now deferred FIVE times. It needs your eyes rather
    than Claude's and is implicated in two shipped-unusable bugs.
 
-WHAT EXISTS AND WHAT DOES NOT, because this is the confusing part:
+WHAT EXISTS AND WHAT DOES NOT:
 
-THE REVENUE ENGINE IS BUILT AND NO ROOM USES IT. Day 16 added IdleGuild.Staff, TradeService,
-StaffService (hire AND dismiss), TakingsService (the tap), five appended GuildStats, four new
-tier fields and the save fields - and touched NOT ONE .asset. So the game that actually runs
-is still the one-economy version: three buildings, gold only from contracts, individual
-adventurer training, plus the crown's stipend.
+THE ROOMS ARE REAL. Five BuildingDefinition assets - tavern and front_desk from Village,
+barracks and inn from Town, provisioner from City. The trade layer is live: a Village Tavern
+seats 4, wants 400 an hour, serves 5.6 of them unaided and turns away 194. The tap works and
+is worth 5.48 g/min against the crown's 2.00. _baseServicePerHour is 5.6062 on every tier
+where it read 0 since Day 16, and _baseHousingCapacity is 2, which is what lets a Village
+guild recruit now that beds live in a Town-gated Barracks.
 
-THE WORLD VIEW IS BUILT AND DEPICTS ALMOST NOTHING, for exactly the same reason. It draws the
-three rooms, their level and their unlock state. It cannot draw seats, townsfolk, the queue
-or the tap, because those read ServiceSeats / CustomerSpend / ServiceDemand and NO SHIPPED
-ROOM PRODUCES ANY OF THEM - Building_Tavern carries Reward Yield and Recruitable Rarity,
-full stop.
+THE CONTRACT HALF OF THE REVISION HAS NEVER BEEN BUILT, AND IT IS THE NEXT TASK.
+Vision_Revision section 3.2 says contract gold arrives as the Front Desk's COMMISSION. The
+game pays GoldReward x RewardYield, unbounded, and applies the same multiplier to REPUTATION
+as well. The model pays gold x contractRewardScale(tier) x commission(desk), saturating at
+0.85, and leaves reputation alone. ContractCommission and ContractRewardScale are BOTH
+DECLARED WITH NO CONSUMER - Day 16 recorded the missing producer and nobody looked for the
+other half. Rat Cellar pays 48 gold in the shipped build against about 1.7 in the model at
+Village, twenty-eight-fold, so ROOMS ARE SINGLE-DIGIT PERCENT OF INCOME WHERE THE TUNED
+FIGURE SAYS 65%. That figure was never a fact about this game.
 
-SO SECTION 9's STEP ORDER IS WRONG AND THE LEDGER CORRECTS IT. Steps 3 (seats), 4
-(townsfolk), 5 (the queue) and 6 (the tap) are ALL blocked on one dependency: the five rooms
-as assets. Step 7 (staff) is blocked on staff assets, which the Day 16 ladder finding forbids
-authoring. Step 8 (adventurers, from AdventurerActivity) is the ONE step buildable against
-today's catalogue, and it needs the Inn standing in for a Barracks that does not exist.
+  It lands on a real seam: QuestResolution lives in IdleGuild.Quests, which is Core-only and
+  cannot see a GuildTierDefinition, so either the tier's contract scale arrives through
+  IGuildStats or the transaction moves up into App. That is an architectural decision, not a
+  number. NOTHING IN THE ECONOMY IS TRUSTWORTHY UNTIL IT LANDS, including any pacing you
+  measure. TheContractCommissionHasNoProducerBecauseItStillHasNoConsumer guards the absence;
+  when you write the consumer, that test is what you delete.
+  Section 4 of Docs/Day18_The_Five_Rooms.md has all of it.
 
-NEXT TASK: THE FIVE ROOMS AS ASSETS - section 8 of Docs/Vision_Revision.md's third item.
+THEN section 9 steps 3-6 of Docs/World_View_Design.md, in order, none needing art: seats
+(derived from ServiceSeats, floored - 4 / 19 / 38 / 59 on the Tavern), townsfolk (spawned at
+3600/ServedPerHour, sitting 90 seconds), the queue outside (density from UnservedPerHour),
+and re-homing the tap onto a waiting customer. All four now read stats that have producers.
+Step 7 (staff) is still blocked on staff assets. THE TAB BAR CAN NOW GO - section 7 pinned
+its removal to contracts opening from the Front Desk and the roster from the Barracks, and
+both rooms are authored.
 
-This is the day the .asset files finally change, and it is the day described in advance more
-than any other:
-  * save_day14_played_in.json is PINNED AT ZERO REPAIRS specifically so that deleting the
-    Training Room shows up as a red test with a number in it rather than as a silence.
-    EXPECT IT TO GO RED. UNDERSTAND ITS NUMBER BEFORE UPDATING IT.
-  * Author _baseServicePerHour on every tier while you are in there. Day 16 added four
-    fields to GuildTierDefinition and wrote none of them to any asset; three read harmless
-    C# initialisers and this one reads 0, which its own tooltip calls the cold-start failure
-    ("an unstaffed guild can never start trading"). Its guard is gated on rooms producing
-    demand, so it goes live the day you do this and not before.
-  * The moment a room produces ServiceDemand, TradeEngineTests' ignored guard stops being
-    ignored and starts asserting. That is deliberate. Two of the three Ignored tests are
-    waiting on this day.
-  * TakingsService is INERT until then, so ANY PACING MEASURED BEFORE THIS IS MEASURING THE
-    MAILBOX, NOT THE GAME.
+DO NOT AUTHOR STAFF ASSETS. Nothing changed on Day 18. The four prices in tuned_params.json
+are UNMEASURED, not tuned: gold per point of service climbs 0.47 -> 2.06 -> 8.63 -> 32.69,
+and the tuned configuration hires 105 Potboys and never buys a Server, Barkeep or Steward at
+ANY integration step. Not a pricing problem - flattening the ladder still gives 98 Potboys.
+tycoon_model.purchase() can only APPEND staff, so the ladder is unreachable at any price.
+Give the model the dismiss action the game has had since Day 16 first. Section 6 of
+Docs/Day16_Staff_And_Revenue.md has the tables.
 
-Then steps 3 through 6 of section 9 become real, in order, and none of them needs art.
+THE RULE DAY 18 AUTHORED UNDER, because the next balance pass has to know it: the rooms'
+TRADE economy is ported from the tuned model exactly; the CONTRACT economy is not ported at
+all. Reward Yield, Adventurer Power, Recovery Speed and Housing Capacity each keep the value
+they had at their OLD building's maximum, re-spaced onto the new tree - only the growth rate
+moved, the base is untouched, so every contract canary is unchanged to the digit. Quests,
+adventurers, reputation thresholds and starting gold were NOT touched.
 
-DO NOT AUTHOR STAFF ASSETS. The four staff prices in tuned_params.json are UNMEASURED, not
-tuned: gold per point of service climbs 0.47 -> 2.06 -> 8.63 -> 32.69, and the tuned
-configuration hires 105 Potboys and never buys a Server, Barkeep or Steward at ANY
-integration step. Not a pricing problem - flattening the ladder still gives 98 Potboys.
-tycoon_model.purchase() can only APPEND staff, so the ladder is unreachable at any price and
-nothing has ever measured what the upper rungs are worth. Give the model the dismiss action
-the game already has first. Section 6 of Docs/Day16_Staff_And_Revenue.md has the tables.
+  STARTING GOLD IS 150 AND THE MODEL TUNED 60, deliberately and on the record. Porting room
+  costs without the opening dial they were searched against is Day 15's dead-twenty-two-
+  minutes in reverse; but moving it to 60 takes an hour of the crown's stipend to twice the
+  opening budget and fails a live invariant. Either pin start_gold at 150 and re-run the
+  tuner, or move the asset and re-size the stipend. Not both, and not neither.
 
-THE WORLD VIEW, PRECISELY:
-  IdleGuild.World holds WorldView (the one MonoBehaviour, third seam of the same kind as
-  GameBootstrap and GuildScreenController), WorldCameraBounds (the clamp and the zoom
-  policy - plain C# and tested), HallPlan (where rooms stand, and the floor DERIVED from
-  them), RoomRectangles, GreyBoxFloor, WorldShapes, WorldSorting, GreyBoxPalette and
-  ChromeHitTest.
+THE ASSETS ARE GENERATED, NOT TYPED. Docs/tools/author_rooms.py and author_tiers.py read
+tuned_params.json through tuner.build() and write the .asset YAML; check_assets.py reads the
+YAML back and re-derives every claim about it. Re-run all three after any tuning pass rather
+than retyping numbers:
 
-  THE RULE IT LIVES UNDER IS DEPICT, NOT CAUSE (section 4). It reads state and computes
-  nothing. The way that gets broken is one convenient calculation at a time: a view that
-  works out whether a room is affordable so it can tint it now owns a rule
-  BuildingUpgradeService also owns, and the two can disagree.
+    python3 Docs/tools/author_rooms.py && python3 Docs/tools/author_tiers.py
+    python3 Docs/tools/check_assets.py          # must report FAILURES: 0
 
-  The hall plan is PORTRAIT-NATIVE as of Day 17, and that was a finding rather than a
-  preference - the first version had twelve-unit rooms on a thirty-two-unit plan, which put
-  one room across 89% of a 1080x1920 screen with two never visible at once, and no art would
-  have fixed it. Rooms are now 8 wide, stacked either side of a 2-wide corridor, growing
-  UPWARD. The floor is derived from the footprints plus a margin and the street, so
-  authoring a room grows the ground and the camera's reach together - section 5's
-  requirement, satisfied by construction. Zoom policy: the screen's SHORT edge shows 14
-  world units. CHECK ANY NEW LAYOUT AGAINST THAT SPAN BEFORE DRAWING IT.
+    python3 Docs/tools/tycoon_model.py --profile --checks
+    python3 Docs/tools/tuner.py 0 --resume --report
 
-SECTION 7 IS HALF SETTLED AND THE OTHER HALF IS PINNED TO THE NEXT DAY. HallView lost its
-building grid and kept the tier card, collapsed to one row; rooms are tapped instead. THE TAB
-BAR SURVIVES because contracts open from the Front Desk and the roster from the Barracks and
-neither is authored - removing it today would strand two screens, which section 01 forbids.
-Author those two rooms and the tab bar can go.
+THE PER-STEP TABLE IS THE POINT: the model used to give different answers at different
+integration steps - about 2x - and every headline figure in section 6C was an artefact of
+scoring at step=60. It is stable to a few percent across step 5 to 60. If a future change
+makes those rows disagree again, that is the first thing to fix.
 
-TESTING: EditMode suite at Assets/_Project/Tests/Editor/ - 136 tests, confirmed green, well
-under a second, of which THREE are deliberately Ignored and say why (section 7 of
-Docs/Tests.md). Run it (Window > General > Test Runner > EditMode > Run All) before you start
-and before you commit. It asserts SHAPE rather than NUMBERS on purpose; the value-asserting
-ones are [Category("BalanceCanary")] and are expected to move on a balance pass. It loads the
-real .asset files through AssetDatabase rather than building fixtures - EXCEPT TradeFixture,
-which builds rooms in memory because it tests mechanism rather than content.
+BOTH MODELS ARE NOW WRONG, IN DIFFERENT PLACES. guild_model.py describes the one-economy
+game, which no longer exists. tycoon_model.py describes a contract mechanism the build does
+not have. The plan said guild_model.py retires the day the rooms land; it cannot, because
+the rooms were only half the divergence. Retire it the day the commission lands.
+
+TESTING: EditMode suite at Assets/_Project/Tests/Editor/. Run it (Window > General > Test
+Runner > EditMode > Run All) BEFORE you start and before you commit - Day 18 changed a lot
+of it and the last human-confirmed count was 136 from Day 17. ONE test is deliberately
+Ignored (the staff ladder); two others went live on Day 18 and pass. It asserts SHAPE rather
+than NUMBERS on purpose; the value-asserting ones are [Category("BalanceCanary")]. It loads
+the real .asset files through AssetDatabase - EXCEPT TradeFixture, which builds rooms in
+memory because it tests mechanism rather than content.
 
   A LIMIT FOUND ON DAY 17: every test drives plain C#, so nothing in the suite constructs a
-  MonoBehaviour or survives a domain reload - and the world view's only runtime crash that
-  day was exactly that class of bug (a plain C# helper and the Transform it draws into do not
-  have the same lifetime). PLAY MODE IS THE ONLY THING THAT CHECKS IT. Do not read a green
-  suite as evidence the view runs.
+  MonoBehaviour or survives a domain reload. PLAY MODE IS THE ONLY THING THAT CHECKS THE
+  WORLD VIEW. Do not read a green suite as evidence the view runs.
 
-WORKING ARRANGEMENT (section 06 has it in full; it gained two rules on Day 17):
+WORKING ARRANGEMENT (section 06 has it in full):
   * Claude runs NO git commands. Safe for inspection only: git log, git show, git ls-tree,
     git ls-files. Tell me the commit message and I commit through GitHub Desktop.
   * CLAUDE NEVER DELETES A FILE INSIDE Assets/. Deleting from the bridge leaves Unity's Bee
@@ -1173,58 +1329,41 @@ WORKING ARRANGEMENT (section 06 has it in full; it gained two rules on Day 17):
     Assets > Refresh. Claude writes files; I delete them in the Project window.
   * `unity` and `dotnet` are not on Claude's PATH. Ask me to focus the Editor to import. To
     verify a compile, check the Library/ScriptAssemblies/IdleGuild.*.dll timestamps - NOT the
-    "error CS after the last Finished compiling graph" rule, which gives false positives
-    because that marker is only emitted on full graph rebuilds. A test run that reports a
-    count has, by definition, compiled every assembly.
+    "error CS after the last Finished compiling graph" rule, which gives false positives. A
+    test run that reports a count has, by definition, compiled every assembly.
   * ScriptableObject values can be written directly into .asset YAML, and a texture's .meta
     can be too - but this project imports textures as Sprite Mode MULTIPLE by default, which
     auto-slices any image with a detached element. Set spriteMode: 1.
   * ADDING A SERIALIZED FIELD DOES NOT REACH OBJECTS ALREADY IN A SCENE OR ASSET, AND IT
-    FAILS IN BOTH DIRECTIONS. A field ABSENT from the YAML keeps its C# initialiser (which
-    is why _baseServicePerHour reads 0, and why HallPlan.Default() reached a WorldView that
-    predates it). A field ALREADY PRESENT keeps its OLD serialized value and your new default
-    is ignored entirely - which is why Day 17 stopped serializing the floor bounds and
-    derived them instead. Check the YAML before assuming a new default took.
+    FAILS IN BOTH DIRECTIONS. A field ABSENT from the YAML keeps its C# initialiser; a field
+    ALREADY PRESENT keeps its OLD serialized value and your new default is ignored entirely.
+    Check the YAML before assuming a new default took.
+  * A multiplicative-only effect reads ZERO through BuildingDefinition.EffectAt, because
+    there is no additive term for the bonus to scale. That is correct - a bonus is a bonus ON
+    something - and it is why Reward Yield and Recovery Speed must be read through the
+    guild-wide seam, which starts from a neutral 1.0. It caught a checking script on Day 18.
 
 MODELLED MINUTES ARE NOT LIVED MINUTES - roughly 2.2x on the one noisy sample this project
-has (Day 14 took 17.6 real minutes to reach Town against a predicted 8). Re-measure on the
-next playthrough; do not tune to modelled numbers as though a player experiences them.
+has. Re-measure on the next playthrough; do not tune to modelled numbers as though a player
+experiences them.
 
-The economy is otherwise tuned and Docs/tools/tuned_params.json holds the result. Verify
-before you trust it:
-
-    python3 Docs/tools/tycoon_model.py --profile --checks
-    python3 Docs/tools/tuner.py 0 --resume --report
-
-THE PER-STEP TABLE IS THE POINT: the model used to give different answers at different
-integration steps - about 2x - and every headline figure in section 6C was an artefact of
-scoring at step=60. It is now stable to a few percent across step 5 to 60. If a future change
-makes those rows disagree again, that is the first thing to fix and nothing else is
-trustworthy until it is.
-
-Two models on purpose. guild_model.py describes the game that EXISTS; tycoon_model.py
-describes the game being BUILT. Retire the first when the second becomes true - which is the
-day you author the five rooms.
-
-Known issues and blockers: the crown's stipend is sized for a build where nothing else earns
-and must be re-checked the day the rooms land (a HARDSHIP LINE is already designed if it
-still bites). The whole game is 6h54m of modelled content against a 20-hour target - a
-curve-length question for Day 22. Tapping is 87% of room income across the first thirty
-modelled minutes, high enough to be a design decision rather than a side effect. The worst
-opening silence is 5 modelled minutes against a 2-minute target. Bundle ID and product name
-are still template defaults AND are the save directory, so changing either strands every
-save. Save files are plain text and trivially editable; the guild_save.json.corrupt-* files
-are never capped. The debug console must be deleted or excluded before submission - and note
-it is STILL the only place the trade layer, the payroll and the tap can be seen at all, so do
-not remove it before the real UI has been exercised. Week 4 execution surface (device builds,
-TestFlight, App Store Connect) is not solvable from Cowork and needs deciding by Day 22. Ad
-network and IAP provider unchosen. Apple Developer enrollment IS approved.
+Known issues and blockers: THE CONTRACT MECHANISM, above, which everything else waits on.
+The whole game is 6h54m of modelled content against a 20-hour target - a curve-length
+question for the balance pass. Tapping is 97% of ROOM income at Village in the shipped build
+(contracts currently dwarf both), high enough to be a design decision. Bundle ID and product
+name are still template defaults AND are the save directory, so changing either strands
+every save. Save files are plain text and trivially editable; the guild_save.json.corrupt-*
+files are never capped. The debug console must be deleted or excluded before submission -
+and note it is STILL the only place the trade layer, the payroll and the tap can be seen at
+all, so do not remove it before the real UI has been exercised. Week 4 execution surface
+(device builds, TestFlight, App Store Connect) is not solvable from Cowork and needs
+deciding. Ad network and IAP provider unchosen. Apple Developer enrollment IS approved.
 
 Follow the Principles section of the Ledger (Clean Code, data-driven ScriptableObject
 architecture, event-driven decoupling, UI Toolkit/USS styling) without needing it
-re-explained - including the Day 16 addition that NO SEQUENCE OF CHOICES MAY LEAVE THE PLAYER
-UNABLE TO MAKE PROGRESS. Confirm your understanding of where things stand in a sentence or
-two before writing any code.
+re-explained - including the Day 16 addition that NO SEQUENCE OF CHOICES MAY LEAVE THE
+PLAYER UNABLE TO MAKE PROGRESS. Confirm your understanding of where things stand in a
+sentence or two before writing any code.
 ```
 
 ### Session log
@@ -1265,6 +1404,8 @@ two before writing any code.
 20. **W3D16 third follow-up — the art pipeline chosen, and then deferred** — A working session with no game code in it. The generation route is settled: **Draw Things on Apple Silicon with FLUX.1 [schnell]** — local, free, unlimited, offline, and Apache 2.0, which is the half that matters because **this game ships with IAP and most free tiers do not grant commercial rights.** Leonardo is the trap worth remembering: 150 credits a day, the most generous free tier available, recommended everywhere, and its output cannot legally ship. A second licence sits underneath the first and nobody mentions it — **`FLUX.1 [dev]` is non-commercial** and is the better-looking model, which is precisely why it catches people. `Docs/Art_Generation_Guide.md` carries the licence and pipeline material; `Docs/Draw_Things_Walkthrough.md` is a click-by-click walkthrough written for somebody who has never opened the app, including the three schnell behaviours that would each cost an afternoon — **the negative prompt field is inert** (guidance-distilled at CFG 1.0, so there is nothing to push away from, which also makes the trailing negatives in `Day15_Portrait_Prompts.md` close to decorative), **more steps is worse rather than better** (distilled to finish in four), and **Flux wants prose rather than tags**. Two project-specific findings came out of writing it. The asset list had grown twice and nobody had updated it: the revision took it from three buildings to five rooms, and **Day 16 silently added four staff portraits** — `StaffDefinition._icon` exists and is unread, exactly as `BuildingDefinition._icon` was — plus a mailbox glyph. And **the Sprite Mode trap now has two correct answers**: Single for portraits, rooms and glyphs, but **Multiple with Grid By Cell Size for character walk sheets**, and getting it backwards is silent in both directions because a shredded portrait and an unsliced sheet both present as an empty sprite field. **NVIDIA MotionBricks was evaluated and rejected** — real, mid-2026, commercially licensable, and it generates 3D humanoid skeletal motion on a CUDA GPU, so it fits neither a 2D sprite pipeline nor this machine. The sharper reason is that it solves motion *variety* against a project needing five clips reused across fifteen characters; the problem here is character *consistency*, which Unity's built-in 2D Animation package solves for free. It did surface a real fallback worth keeping: **pre-rendering 3D characters to 2D sprite sheets** is proven (Diablo II, Fallout, Age of Empires) and eliminates frame drift by construction. **Then all of it was deferred**, which is the right call and the same one the project has made before: eight of §9's nine build steps need no art at all, and generating a batch before the grey-box proves the view is fun is the shape this project keeps getting caught by. **The suite is the one loose end**: 115 tests written and compiling clean with zero `error CS`, and **the last count a human confirmed is 103** — Day 12's situation exactly, and its note applies unchanged.
 
 21. **W3D17 — the guild becomes a place, and the grey box rejects a plan** — Steps 1 and 2 of §9 of `Docs/World_View_Design.md` plus half of §7, in a tenth assembly that **no production assembly references**, with **no `.asset` touched** and `SaveSchema.CurrentVersion` still never moved. The hall is an orthographic camera panned by pinning the world point under the finger — no speed constant, correct at any zoom or density — over a grey-box floor, with the three rooms as walled rectangles reading level and unlock state off `GuildState`. `IdleGuild.UI` stopped being the game: one line of USS (`.guild-root`'s opaque background) had been the entire wall in front of the hall, `HallView` lost the grid §10 obsoleted and kept the tier card collapsed to a single row, and rooms are tapped instead — publishing `RoomSelected` through a new `Core/Events/PresentationEvents.cs`, kept separate from `GameEvents` because that file is the *simulation's* vocabulary and a tap is not a fact about the guild. **Four findings, and the two that matter are about the plan rather than the code.** §9's step order does not survive contact with the catalogue: steps 3–6 read `ServiceSeats`, `CustomerSpend` and `ServiceDemand` and **no shipped room produces any of them**, so of steps 3–8 only step 8 is buildable and the other four are one dependency — the five rooms as assets. And **the first hall plan was a landscape shape on a portrait device**: twelve-unit rooms on a thirty-two-unit plan put one room across 89% of a 1080×1920 screen with two never visible at once, which no art would have fixed. Reshaped portrait-native, the floor **derived from the plan** rather than authored (killing a stale serialized rectangle that would have outlived every edit), and the zoom policy set to *the short screen edge shows fourteen world units*, which is the dimension that constrains legibility. Also: the project is on the **Input System exclusively**, so legacy `UnityEngine.Input` compiles clean and throws on device; `Mathf.Clamp` given a reversed range silently returns the max, which would have pinned the hall to one screen edge for the whole early game while looking merely badly composed; and the suite's **115 was this document's own arithmetic**, not the runner's — `SolvencyTests.cs` holds fourteen tests where it was recorded as eleven-plus-one, so 103 + 14 = 117. Suite 103 → **136**, three still Ignored, all three conditions re-verified against the shipped assets. Two new working-arrangement rules earned the hard way: **Claude never deletes a file inside `Assets/`**, and the `Finished compiling graph` log heuristic gives false positives. **Not done and owed: nobody has looked at the hall on a 1080×1920 screen** — every judgement this session was made in a landscape Game view — and the 25-minute interface hand-check is deferred a fourth time.
+
+22. **W3D18 — the five rooms as assets, and the half of the revision nobody had built** — The day the `.asset` files finally changed, described in advance more than any other, and it did what it was told: three new rooms (`front_desk`, `barracks`, `provisioner`), two rewritten (`tavern`, `inn`), the Training Room retired, all four tiers carrying the market size, base service and base housing Day 16 added and never wrote, the gates re-derived, and five footprints on the hall plan where three stood. **No game `.cs` outside `IdleGuild.World`, no save field, and `SaveSchema.CurrentVersion` still has never moved** — the architectural bet taking the load it was built for on the day the claim was cashed: seats, spend, demand and staff slots are `BuildingEffect` entries like every other effect, and adding a sixth department is still one new `.asset` and zero code. **Nothing was typed.** `author_rooms.py` and `author_tiers.py` read `tuned_params.json` through `tuner.build()` and write the YAML; `check_assets.py` reads it back and re-derives every claim, reporting 0 failures. Day 4–5 made four transcription slips out of fourteen assets and the one that mattered gave a level-1 Inn fifty beds, because **a wrong curve looks exactly like a right one in the Inspector — and exactly like a right one in a markdown table too.** All three tools are checked in for the balance pass. **The rule the day was authored under**: the rooms' *trade* economy is ported from the tuned model exactly; the *contract* economy is not ported at all, and every effect that has to move house — Reward Yield, Adventurer Power, Recovery Speed, Housing Capacity — **keeps the value it has today at its old building's maximum, re-spaced onto its new building's tree**. Only the growth moves, so the base is untouched, so a level-1 Front Desk is worth precisely what a level-1 Tavern was, and **every contract canary in the suite is unchanged to the digit** — the tests moved a room name and not a number, which is the strongest available evidence that a move was a move. **Three things became true for the first time**: `_baseServicePerHour` has read **0** since Day 16, the cold-start value its own tooltip warns about, and is now 5.6062 on every tier; `_baseHousingCapacity` had to stop being 0 because beds moved into a Town-gated Barracks, which is **Day 4–5's opening deadlock for the third time** and is closed in data again with §01's rule written down behind it this time; and **§3 of `World_View_Design.md` acquired a producer** — reading the shipped Tavern back gives 4 / 19 / 38 / 59 seats against 400 / 2,436 / 14,834 / 90,333 wanting in, that document's own table, with seats binding at every tier, so the permanent queue outside the door is confirmed rather than hoped for. **THE FINDING is that authoring the rooms does not make the revision true, because the contract half of it has never been built.** §3.2 says contract gold arrives as the Front Desk's commission; the game pays `GoldReward × RewardYield`, unbounded, and applies the same multiplier to **reputation**, while the model pays a saturating cut of a tier-scaled reward and leaves reputation alone. **`ContractCommission` and `ContractRewardScale` are declared and neither has a consumer** — Day 16 recorded the missing producer and nobody looked for the other half, because while no room produced them the two absences were indistinguishable. Rat Cellar pays **48 gold** in the shipped build against about **1.7** in the model at Village, twenty-eight-fold, so **rooms are single-digit percent of income where the tuned 65% says otherwise** — a figure that was never a fact about this game. Eighth appearance of *a failure whose only symptom is the absence of something*, and the second ever caught before the asset was written. **So `guild_model.py` cannot retire**: the rooms were only half the divergence and both models are now wrong in different places, which is worse than one being wrong. **The Day 14 fixture went red exactly as it was pinned to, and the number was one**: all four saves name a `training_room` and all four lost it and nothing else, the fourth reporting two because it already pointed at a Quest Board. First time the Day 6 repair path has ever run against **real** saves that genuinely needed repairing. Two tests were renamed — `TheLastSaveOfTheOneEconomyGameLoadsWithoutRepair` had stopped being true, and **a test whose name is a lie is worse than no test** — and the assertions moved from `HasRepairs` to field by field, because *something was repaired* is precisely what would hide a **second** thing being repaired. **Two of the three Ignored tests turned themselves on and both passed**, which is the whole argument for the pattern against a vacuously green one. **`NoBuildingEffectIsDeadAtMaxLevel` met its first honest exception**: written on Days 8–9 assuming every effect is a thing the player buys more of, it met `ServiceDemand`, which is deliberately flat because a room growing its own demand would collapse two of §3.1's three levers into one — exemption named by stat in one place the way `GuildStatScope` names its three, kept narrow by a second test asserting the curve really is flat. **An invariant that has only ever seen one kind of thing has an assumption in it, and the first counter-example is where you find out what it was.** And **the crown's stipend was re-checked on the day it was told to be and stops biting**: for a guild with a Tavern, idle room income 0.16 g/min against the crown's 2.00 and **tapping's 5.48**, so recovery from an empty treasury falls from twelve and a half minutes to about four and **the hardship line stays designed and unbuilt**. **Suite 136 → 143, one Ignored, confirmed by a human run**, and verified to the Days 10–11 standard: the seven game DLLs and `IdleGuild.UI.dll` did not recompile at all, no asset emitted an `OnValidate` warning, the fixture repair line came from the runner's own log rather than from this document's arithmetic, and play mode was entered with no exception — which matters because the world view now draws five rooms where it drew three, two of them at level 0. Still owed and now deferred a **fifth** time: nobody has looked at the hall on a 1080×1920 screen, and it now has five rooms on it. `Docs/Day18_The_Five_Rooms.md` carries all of it.
 
 ---
 

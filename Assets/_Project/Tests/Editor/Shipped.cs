@@ -132,23 +132,71 @@ namespace IdleGuild.Tests
         /// <summary>
         /// Put the guild into an arbitrary shape without playing to it. Levels below zero
         /// are left alone, so a caller can set one building and ignore the rest.
+        ///
+        /// Day 18 replaced the Training Room with the Barracks and split the Inn in two,
+        /// and every caller had to be re-read rather than renamed, because <c>inn:</c> had
+        /// two meanings in this file: the hotel, and the beds. Beds are the Barracks now.
+        /// Named arguments are what made that safe — a positional call would have silently
+        /// pointed the old middle argument at a different room.
         /// </summary>
-        public static void SetLevels(GameWorld world, int tavern = -1, int trainingRoom = -1, int inn = -1)
+        public static void SetLevels(
+            GameWorld world,
+            int tavern = -1,
+            int frontDesk = -1,
+            int barracks = -1,
+            int inn = -1,
+            int provisioner = -1)
         {
             if (tavern >= 0)
             {
                 world.GuildState.SetLevel("tavern", tavern);
             }
 
-            if (trainingRoom >= 0)
+            if (frontDesk >= 0)
             {
-                world.GuildState.SetLevel("training_room", trainingRoom);
+                world.GuildState.SetLevel("front_desk", frontDesk);
+            }
+
+            if (barracks >= 0)
+            {
+                world.GuildState.SetLevel("barracks", barracks);
             }
 
             if (inn >= 0)
             {
                 world.GuildState.SetLevel("inn", inn);
             }
+
+            if (provisioner >= 0)
+            {
+                world.GuildState.SetLevel("provisioner", provisioner);
+            }
+        }
+
+        /// <summary>
+        /// Build exactly enough Barracks to sleep <paramref name="beds"/> adventurers.
+        ///
+        /// Beds come from two places since Day 18 — the tier grants a couple so that a
+        /// Village guild with no Barracks can still recruit, which is Day 4-5's opening
+        /// deadlock closed for the third time — so a test that wants a roster of a given
+        /// size can no longer name a level and has to ask for the size it means. Which is
+        /// also what makes those tests survive the Barracks being re-costed: §2 of
+        /// Docs/Tests.md, assert the shape rather than the number, applied to the setup
+        /// rather than to the assertion.
+        /// </summary>
+        public static void SetBeds(GameWorld world, int beds)
+        {
+            BuildingDefinition barracks = Building("barracks");
+            for (int level = 0; level <= barracks.MaxLevel; level++)
+            {
+                world.GuildState.SetLevel("barracks", level);
+                if (world.Roster.CapacityWith(world.Stats) >= beds)
+                {
+                    return;
+                }
+            }
+
+            Assert.Fail($"A maxed Barracks sleeps fewer than {beds}, so no test can ask for that roster.");
         }
 
         public static void MoveTo(GameWorld world, string tierId)

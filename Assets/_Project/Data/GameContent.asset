@@ -14,8 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: IdleGuild.App::IdleGuild.App.GameContent
   _buildings:
   - {fileID: 11400000, guid: 3290872f038bc430f9dea3e256e800bf, type: 2}
-  - {fileID: 11400000, guid: bd6ef315d6a414d739084873b8c69477, type: 2}
+  - {fileID: 11400000, guid: 33349d502fd342d2b3a5e6fd10db3a9e, type: 2}
+  - {fileID: 11400000, guid: 5a5e1022a7f64d1c91eee6d523743374, type: 2}
   - {fileID: 11400000, guid: 82c1ec95ef7c54fafb2abeb57b879109, type: 2}
+  - {fileID: 11400000, guid: 9e87803e67ab4646a65826415a174fc8, type: 2}
   _tiers:
   - {fileID: 11400000, guid: a6f617b0d0fd9471cb05e1e6d11862e3, type: 2}
   - {fileID: 11400000, guid: ad296e34028ef4500a364896736aa1ce, type: 2}

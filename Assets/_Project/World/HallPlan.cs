@@ -44,11 +44,11 @@ namespace IdleGuild.World
     ///
     /// **The layout below is provisional.** Section 11 of Docs/World_View_Design.md lists
     /// "where the five rooms physically sit on the plan" as still open, and this is a
-    /// working answer for the three rooms that exist rather than a settled one. It is a
-    /// spine: the street runs along the bottom, an entrance corridor goes up the middle,
-    /// and rooms attach either side of it — chosen because section 5 needs new wings to
-    /// arrive without the hall ceasing to read as one building, and a corridor with space
-    /// left at the top is the cheapest shape that survives being extended.
+    /// working answer rather than a settled one. It is a spine: the street runs along the
+    /// bottom, an entrance corridor goes up the middle, and rooms attach either side of it
+    /// — chosen because section 5 needs new wings to arrive without the hall ceasing to
+    /// read as one building, and a corridor growing upward is the cheapest shape that
+    /// survives being extended. Day 18 authored the other two rooms into it.
     /// </summary>
     public static class HallPlan
     {
@@ -63,7 +63,7 @@ namespace IdleGuild.World
         public const float EdgeMargin = 1f;
 
         /// <summary>
-        /// The provisional layout, drawn for a portrait phone.
+        /// The layout, drawn for a portrait phone and now holding all five rooms.
         ///
         /// **The first version of this was a landscape shape on a portrait device**, and the
         /// grey box is what caught it: rooms twelve units wide on a plan thirty-two across,
@@ -72,25 +72,44 @@ namespace IdleGuild.World
         /// whole job is showing the guild as a place, and no amount of art would have fixed
         /// it. Exactly the sort of thing section 9 says to find out as rectangles.
         ///
-        /// So: rooms eight units wide, stacked in pairs either side of a two-unit corridor
-        /// running up from the entrance. The hall grows **upward**, which suits both the
-        /// device and section 5's expanding hall, and leaves the left column above the
-        /// Tavern and the right column above the Training Room for the rooms the revision
-        /// has yet to author.
+        /// So: rooms eight units wide, stacked either side of a two-unit corridor running up
+        /// from the entrance, and the hall grows **upward**, which suits both the device and
+        /// section 5's expanding hall. Against the zoom policy of *the screen's short edge
+        /// shows fourteen world units*, one room is 8/14 — about 57% of a portrait phone's
+        /// width, which reads. A facing pair plus the corridor is eighteen and never fits at
+        /// once; that is the accepted trade rather than an oversight, because the alternative
+        /// is rooms too small to hold a legible seat.
         ///
-        /// Still provisional -- section 11 lists this as open -- but now with a constraint
-        /// attached rather than drawn free-hand.
+        /// **The rooms are placed in the order the guild unlocks them**, bottom to top, so
+        /// the hall grows away from the street as the settlement grows around it and every
+        /// growth step still reads as one building. The two Village rooms face each other
+        /// across the entrance — the Tavern where the townsfolk sit and the Front Desk where
+        /// the contracts are posted — Town adds the Inn above the Tavern and the Barracks
+        /// above the desk, which is the door the adventurers living in it walk out of, and
+        /// City adds the Provisioner at the top.
+        ///
+        /// The Tavern is the tallest at twelve units against nine. It is the only room whose
+        /// spend compounds, the one the player feeds for fifty-seven levels, and the one with
+        /// sixty seats in it at the end where the Inn has thirty-four — so it needs the most
+        /// ground and is the room the camera opens on.
+        ///
+        /// Still provisional: section 11 lists where the rooms sit as open, and this is a
+        /// working answer with a constraint attached rather than a settled one.
         /// </summary>
         public static HallRoom[] Default()
         {
             return new[]
             {
-                // The main room, and the tallest: it is the only building that compounds,
-                // so it is the one the player keeps feeding for ninety levels.
+                // Village — either side of the entrance, hard against the street.
                 new HallRoom("tavern", new Rect(-9f, -14f, 8f, 12f)),
+                new HallRoom("front_desk", new Rect(1f, -14f, 8f, 9f)),
 
-                new HallRoom("inn", new Rect(1f, -14f, 8f, 9f)),
-                new HallRoom("training_room", new Rect(1f, -3f, 8f, 9f)),
+                // Town.
+                new HallRoom("inn", new Rect(-9f, 0f, 8f, 9f)),
+                new HallRoom("barracks", new Rect(1f, -3f, 8f, 9f)),
+
+                // City.
+                new HallRoom("provisioner", new Rect(1f, 8f, 8f, 9f)),
             };
         }
 

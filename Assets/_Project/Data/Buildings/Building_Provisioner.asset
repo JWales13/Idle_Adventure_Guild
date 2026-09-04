@@ -10,36 +10,36 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 98564af1443fa40259307c657fb1dda0, type: 3}
-  m_Name: Building_Inn
+  m_Name: Building_Provisioner
   m_EditorClassIdentifier: IdleGuild.Guild::IdleGuild.Guild.BuildingDefinition
-  _id: inn
-  _displayName: Inn
-  _description: 'Rooms let to travellers and merchants passing through. Purely a hotel now
-    that the roster sleeps in the Barracks: fewer beds than the Tavern has
-    seats, and each one worth a great deal more per night.'
+  _id: provisioner
+  _displayName: Provisioner
+  _description: 'Rope, rations, torches and potions, sold to anyone about to need them. The
+    smallest crowd of the three trading rooms and by far the richest, because
+    nobody haggles over rope on the morning they leave.'
   _icon: {fileID: 0}
-  _minimumTierOrder: 1
-  _maxLevel: 53
+  _minimumTierOrder: 2
+  _maxLevel: 48
   _costToReachLevel:
-    BaseValue: 3118.05
+    BaseValue: 31180.5
     LinearPerLevel: 0
     GrowthPerLevel: 0.11
   _effects:
   - Stat: 8
     Kind: 0
     ValuePerLevel:
-      BaseValue: 2
+      BaseValue: 3
       LinearPerLevel: 0.59484
       GrowthPerLevel: 0
   - Stat: 9
     Kind: 0
     ValuePerLevel:
-      BaseValue: 26
+      BaseValue: 45
       LinearPerLevel: 0
       GrowthPerLevel: 0.13
   - Stat: 10
     Kind: 0
     ValuePerLevel:
-      BaseValue: 20
+      BaseValue: 222.72
       LinearPerLevel: 0
       GrowthPerLevel: 0

@@ -39,15 +39,28 @@ namespace IdleGuild.Tests
         /// argument for keeping real files rather than only synthetic ones.
         /// </summary>
         [Test]
-        public void ARealPlaySessionStillLoadsCleanly()
+        public void ARealPlaySessionLosesOnlyTheTrainingRoom()
         {
             GameWorld world = Load("save_real_session.json", out SaveRestoreReport report);
 
-            Assert.That(report.HasRepairs, Is.False, $"The restore had to repair something: {report}.");
+            // One repair since Day 18, and exactly one: this file names a Training Room
+            // and no build has one any more. Nothing else about it is damaged — no
+            // adventurer is dropped, no run, no order, and the tier resolves — which is
+            // the repair path doing its stated job of leaving the guild around the damage
+            // standing. Asserted field by field rather than through HasRepairs, because
+            // "something was repaired" is the assertion that would have hidden a second one.
+            Assert.That(report.UnknownBuildings, Is.EqualTo(1), $"Expected only the retired Training Room: {report}.");
+            Assert.That(report.DroppedAdventurers, Is.EqualTo(0));
+            Assert.That(report.DroppedStaff, Is.EqualTo(0));
+            Assert.That(report.DroppedQuestRuns, Is.EqualTo(0));
+            Assert.That(report.DroppedAssignments, Is.EqualTo(0));
+            Assert.That(report.RepairedAdventurers, Is.EqualTo(0));
+            Assert.That(report.TierFellBack, Is.False);
 
             Assert.That(world.GuildState.CurrentTier.Id, Is.EqualTo("village"));
             Assert.That(world.GuildState.GetLevel("tavern"), Is.EqualTo(5));
-            Assert.That(world.GuildState.GetLevel("training_room"), Is.EqualTo(4));
+            Assert.That(world.GuildState.GetLevel("training_room"), Is.EqualTo(0),
+                "A building the catalogue no longer has reads level 0, and the levels around it are untouched.");
             Assert.That(world.GuildState.GetLevel("inn"), Is.EqualTo(5));
 
             Assert.That(world.Economy.Get(CurrencyType.Gold), Is.EqualTo(24054.18d).Within(0.5d));
@@ -95,7 +108,11 @@ namespace IdleGuild.Tests
         {
             GameWorld world = Load("save_v1_adventurers_at_old_ceiling.json", out SaveRestoreReport report);
 
-            Assert.That(report.HasRepairs, Is.False, $"The restore had to repair something: {report}.");
+            // The Training Room again, and nothing else. What this fixture guards is the
+            // roster, so the assertion that matters is that no adventurer was touched.
+            Assert.That(report.UnknownBuildings, Is.EqualTo(1), $"Expected only the retired Training Room: {report}.");
+            Assert.That(report.DroppedAdventurers, Is.EqualTo(0));
+            Assert.That(report.RepairedAdventurers, Is.EqualTo(0));
             Assert.That(world.Roster.Count, Is.EqualTo(3));
 
             TrainingService training = new TrainingService(world);
@@ -132,7 +149,8 @@ namespace IdleGuild.Tests
             GameWorld world = Load("save_v1_content_since_removed.json", out SaveRestoreReport report);
 
             Assert.That(report.TierFellBack, Is.True, "An unknown tier should fall back to the starting tier.");
-            Assert.That(report.UnknownBuildings, Is.EqualTo(1));
+            Assert.That(report.UnknownBuildings, Is.EqualTo(2),
+                "The Quest Board this build never had, and the Training Room it used to have.");
             Assert.That(report.DroppedAdventurers, Is.EqualTo(1));
             Assert.That(report.DroppedQuestRuns, Is.EqualTo(1));
             Assert.That(report.DroppedAssignments, Is.EqualTo(1),
@@ -180,11 +198,6 @@ namespace IdleGuild.Tests
         }
 
         /// <summary>
-        /// Push a fixture through the whole shipping load path — the version probe, the
-        /// migration ladder, restore — rather than deserialising it directly, so the test
-        /// exercises what a device does.
-        /// </summary>
-        /// <summary>
         /// The last save the one-economy game will ever produce.
         ///
         /// Captured at the end of the Day 14 playtest, minutes before the design was
@@ -194,31 +207,45 @@ namespace IdleGuild.Tests
         /// reshape it becomes the only real evidence of whether a save written by the old
         /// build survives losing the Training Room and losing the meaning of `Level`.
         ///
-        /// Today it pins the baseline — **zero repairs** — so that when the reshape lands,
-        /// the repair count changing is a red test with a number in it rather than a
-        /// silence nobody notices. That distinction is the entire argument for fixtures:
-        /// Days 10–11 changed what a value *meant* without changing its shape, and nothing
-        /// would have caught it.
+        /// It pinned the baseline — **zero repairs** — so that when the reshape landed, the
+        /// repair count changing would be a red test with a number in it rather than a
+        /// silence nobody notices. Day 18 landed it and the test went red as designed, and
+        /// **the number was one**: one unknown building, the Training Room, and not a
+        /// single other thing. No adventurer dropped, no run, no order, no tier fallen
+        /// back, and every building level around the gap still exactly as written. That is
+        /// the Day 6 repair path doing what it was built for, and it is the first time it
+        /// has ever run against a real save that genuinely needed repairing — until today
+        /// only the synthesised third fixture ever exercised it.
+        ///
+        /// Worth being precise about what is NOT covered, since a repaired save is a
+        /// player losing something: a guild mid-run keeps its gold and its roster and
+        /// silently loses whatever it spent on the Training Room. Nothing has shipped, so
+        /// nobody is owed a refund — but the shape is worth naming before the day it is.
         ///
         /// A genuine 17-minute session that reached Town: seven contracts completed, six
         /// of them successful, one honest failure. Worth more than a constructed file for
         /// the usual reason — nobody would have thought to build in the failure.
         /// </summary>
         [Test]
-        public void TheLastSaveOfTheOneEconomyGameLoadsWithoutRepair()
+        public void TheLastSaveOfTheOneEconomyGameLosesOnlyTheTrainingRoom()
         {
             GameWorld world = Load("save_day14_played_in.json", out SaveRestoreReport report);
 
-            Assert.That(report.HasRepairs, Is.False,
-                $"The restore had to repair something: {report}. Before the tycoon revision this file " +
-                "needed no repair at all — once the Training Room is gone it will need exactly one, and " +
-                "this assertion is where that becomes visible.");
-
-            Assert.That(world.GuildState.CurrentTier.Id, Is.EqualTo("town"),
+            Assert.That(report.UnknownBuildings, Is.EqualTo(1),
+                $"Expected exactly one unknown building, the retired Training Room: {report}.");
+            Assert.That(report.DroppedAdventurers, Is.EqualTo(0), "The roster is not collateral damage.");
+            Assert.That(report.DroppedStaff, Is.EqualTo(0), "A save with no payroll is not a save that lost one.");
+            Assert.That(report.DroppedQuestRuns, Is.EqualTo(0));
+            Assert.That(report.DroppedAssignments, Is.EqualTo(0));
+            Assert.That(report.RepairedAdventurers, Is.EqualTo(0));
+            Assert.That(report.TierFellBack, Is.False,
                 "This guild earned its way to Town; a tier that falls back means the tier could not be resolved.");
 
+            Assert.That(world.GuildState.CurrentTier.Id, Is.EqualTo("town"));
+
             Assert.That(world.GuildState.GetLevel("tavern"), Is.EqualTo(4));
-            Assert.That(world.GuildState.GetLevel("training_room"), Is.EqualTo(3));
+            Assert.That(world.GuildState.GetLevel("training_room"), Is.EqualTo(0),
+                "The retired room is the only thing this save lost.");
             Assert.That(world.GuildState.GetLevel("inn"), Is.EqualTo(4));
 
             Assert.That(world.Economy.Get(CurrencyType.Gold), Is.EqualTo(88.03d).Within(0.5d));
@@ -294,6 +321,11 @@ namespace IdleGuild.Tests
             return world;
         }
 
+        /// <summary>
+        /// Push a fixture through the whole shipping load path — the version probe, the
+        /// migration ladder, restore — rather than deserialising it directly, so the test
+        /// exercises what a device does.
+        /// </summary>
         private static GameWorld Load(string fixtureName, out SaveRestoreReport report)
         {
             string path = PathTo(fixtureName);

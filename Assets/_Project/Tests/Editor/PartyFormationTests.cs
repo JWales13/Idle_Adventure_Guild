@@ -363,7 +363,8 @@ namespace IdleGuild.Tests
                 World = Shipped.NewGuild();
                 World.Economy.Grant(CurrencyType.Gold, 10_000_000d);
                 Shipped.MoveTo(World, "city");
-                Shipped.SetLevels(World, tavern: 9, inn: 21);
+                Shipped.SetLevels(World, tavern: 9);
+                Shipped.SetBeds(World, 12);   // four parties of three, which is what Capital fields
 
                 Dispatch = new QuestDispatchService(World);
                 Recruitment = new RecruitmentService(World);
